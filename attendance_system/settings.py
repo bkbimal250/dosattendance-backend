@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'channels',  # Django Channels for WebSocket support
     
     # Local apps
     'core',
@@ -69,7 +70,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.DisableTrailingSlashMiddleware',  # Disable trailing slashes
+    # 'core.middleware.DisableTrailingSlashMiddleware',  # Disable trailing slashes - TEMPORARILY DISABLED
     'core.middleware.APIAuthenticationDebugMiddleware',  # Debug API authentication
     'core.middleware.DatabaseConnectionMiddleware',  # Database connection management
 ]
@@ -92,6 +93,21 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'attendance_system.wsgi.application'
+
+# ASGI Application for WebSocket support
+ASGI_APPLICATION = 'attendance_system.asgi.application'
+
+# Channels Configuration
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        # For production, use Redis:
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     "hosts": [('127.0.0.1', 6379)],
+        # },
+    },
+}
 
 
 # Database
@@ -241,6 +257,14 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
+
+# Additional CORS settings for development
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+
+# Additional CORS settings for better compatibility
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r'^.*$'  # Allow CORS for all URLs
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -251,6 +275,9 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'access-control-allow-origin',
+    'access-control-allow-methods',
+    'access-control-allow-headers',
 ]
 
 # Security Settings for Production

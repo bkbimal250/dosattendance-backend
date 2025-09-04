@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+import uuid
 from .models import (
     CustomUser, Office, Device, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
@@ -126,11 +127,21 @@ class UserLoginSerializer(serializers.Serializer):
 class DeviceSerializer(serializers.ModelSerializer):
     """Serializer for Device model"""
     office_name = serializers.CharField(source='office.name', read_only=True)
+    total_users = serializers.SerializerMethodField()
+    mapped_users = serializers.SerializerMethodField()
     
     class Meta:
         model = Device
         fields = '__all__'
         read_only_fields = ('id', 'last_sync', 'created_at', 'updated_at')
+    
+    def get_total_users(self, obj):
+        """Get total number of users on this device"""
+        return obj.device_users.count()
+    
+    def get_mapped_users(self, obj):
+        """Get number of mapped users on this device"""
+        return obj.device_users.filter(is_mapped=True).count()
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -386,10 +397,59 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
-            'first_name', 'last_name', 'phone', 'address', 'date_of_birth',
-            'gender', 'profile_picture', 'emergency_contact_name',
-            'emergency_contact_phone', 'emergency_contact_relationship'
+            # Basic Information
+            'first_name', 'last_name', 'email', 'phone', 'address', 
+            'date_of_birth', 'gender', 'profile_picture',
+            
+            # Employment Information (non-sensitive)
+            'employee_id', 'biometric_id', 'joining_date', 
+            'department', 'designation', 'salary',
+            
+            # Emergency Contact
+            'emergency_contact_name', 'emergency_contact_phone', 
+            'emergency_contact_relationship',
+            
+            # Bank Details
+            'account_holder_name', 'bank_name', 'account_number', 
+            'ifsc_code', 'bank_branch_name'
         ]
+        read_only_fields = [
+            'id', 'username', 'role', 'office', 'is_active', 
+            'last_login', 'created_at', 'updated_at'
+        ]
+    
+    def validate_salary(self, value):
+        """Validate and convert salary field"""
+        if value is None or value == '':
+            return None
+        try:
+            # Convert to decimal if it's a string or float
+            if isinstance(value, str):
+                value = value.strip()
+                if value == '':
+                    return None
+                value = float(value)
+            if isinstance(value, (int, float)):
+                if value < 0:
+                    raise serializers.ValidationError("Salary cannot be negative")
+                return value
+        except (ValueError, TypeError):
+            raise serializers.ValidationError("Invalid salary format")
+        return value
+    
+    def validate_joining_date(self, value):
+        """Validate joining date field"""
+        if value is None or value == '':
+            return None
+        # Django will handle date parsing automatically
+        return value
+    
+    def validate_date_of_birth(self, value):
+        """Validate date of birth field"""
+        if value is None or value == '':
+            return None
+        # Django will handle date parsing automatically
+        return value
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -414,7 +474,7 @@ class BulkAttendanceSerializer(serializers.Serializer):
 
 class DeviceSyncSerializer(serializers.Serializer):
     """Serializer for device synchronization"""
-    device_id = serializers.UUIDField()
+    device_id = serializers.UUIDField(required=False)  # Optional since it's in URL
     sync_type = serializers.ChoiceField(choices=[
         ('attendance', 'Attendance Data'),
         ('users', 'User Data'),
@@ -422,3 +482,20 @@ class DeviceSyncSerializer(serializers.Serializer):
     ])
     start_date = serializers.DateField(required=False)
     end_date = serializers.DateField(required=False)
+    
+    def validate(self, attrs):
+        """Validate sync data"""
+        # If device_id is provided, ensure it's a valid UUID
+        if 'device_id' in attrs:
+            try:
+                uuid.UUID(str(attrs['device_id']))
+            except ValueError:
+                raise serializers.ValidationError("Invalid device_id format")
+        
+        # Validate date range if both dates are provided
+        start_date = attrs.get('start_date')
+        end_date = attrs.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError("Start date cannot be after end date")
+        
+        return attrs

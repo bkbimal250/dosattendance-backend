@@ -263,6 +263,21 @@ class Attendance(models.Model):
         return None
 
     def save(self, *args, **kwargs):
+        # Check for existing attendance record for the same user on the same date
+        if self.pk is None:  # Only check on creation
+            existing = Attendance.objects.filter(user=self.user, date=self.date).first()
+            if existing:
+                # Update existing record instead of creating duplicate
+                existing.check_in_time = self.check_in_time or existing.check_in_time
+                existing.check_out_time = self.check_out_time or existing.check_out_time
+                existing.status = self.status or existing.status
+                existing.device = self.device or existing.device
+                existing.notes = self.notes or existing.notes
+                existing.save()
+                # Return the existing record's ID to prevent creation
+                self.pk = existing.pk
+                return
+        
         if self.check_in_time and self.check_out_time:
             self.total_hours = self.calculate_total_hours()
         super().save(*args, **kwargs)

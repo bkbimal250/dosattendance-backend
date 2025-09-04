@@ -4,6 +4,10 @@ from django.utils import timezone
 from .models import (
     CustomUser, Attendance, Leave, Document, Notification, AttendanceLog
 )
+from .consumers import broadcast_attendance_update_sync
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Attendance)
@@ -122,3 +126,59 @@ def create_attendance_notification(sender, instance, created, **kwargs):
                     message=f"{instance.user.get_full_name()} was absent on {instance.date}.",
                     notification_type='attendance'
                 )
+
+
+@receiver(post_save, sender=Attendance)
+def attendance_saved(sender, instance, created, **kwargs):
+    """
+    Signal handler for when an attendance record is saved (created or updated).
+    Broadcasts the update to all connected WebSocket clients.
+    """
+    try:
+        # Prepare attendance data for broadcasting
+        attendance_data = {
+            'id': str(instance.id),
+            'user_name': instance.user.get_full_name(),
+            'employee_id': instance.user.employee_id,
+            'office': instance.user.office.name if instance.user.office else None,
+            'date': instance.date.isoformat() if instance.date else None,
+            'check_in_time': instance.check_in_time.isoformat() if instance.check_in_time else None,
+            'check_out_time': instance.check_out_time.isoformat() if instance.check_out_time else None,
+            'status': instance.status,
+            'device': instance.device.name if instance.device else None,
+            'created_at': instance.created_at.isoformat() if instance.created_at else None,
+            'updated_at': instance.updated_at.isoformat() if instance.updated_at else None,
+            'action': 'created' if created else 'updated'
+        }
+        
+        # Broadcast the update
+        broadcast_attendance_update_sync(attendance_data)
+        
+        logger.info(f"Broadcasted attendance {'creation' if created else 'update'} for user {instance.user.get_full_name()}")
+        
+    except Exception as e:
+        logger.error(f"Error broadcasting attendance update: {e}")
+
+
+@receiver(post_delete, sender=Attendance)
+def attendance_deleted(sender, instance, **kwargs):
+    """
+    Signal handler for when an attendance record is deleted.
+    Broadcasts the deletion to all connected WebSocket clients.
+    """
+    try:
+        # Prepare deletion notification
+        deletion_data = {
+            'id': str(instance.id),
+            'user_name': instance.user.get_full_name(),
+            'employee_id': instance.user.employee_id,
+            'action': 'deleted'
+        }
+        
+        # Broadcast the deletion
+        broadcast_attendance_update_sync(deletion_data)
+        
+        logger.info(f"Broadcasted attendance deletion for user {instance.user.get_full_name()}")
+        
+    except Exception as e:
+        logger.error(f"Error broadcasting attendance deletion: {e}")

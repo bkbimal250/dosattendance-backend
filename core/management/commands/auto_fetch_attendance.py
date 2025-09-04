@@ -278,7 +278,7 @@ class AutoAttendanceService:
         return hash(hash_data)
         
     def _save_zkteco_attendance(self, device, log):
-        """Save ZKTeco attendance record to database"""
+        """Save ZKTeco attendance record to database with proper check-in/check-out logic"""
         try:
             # Find user by biometric ID
             user = CustomUser.objects.filter(biometric_id=str(log.user_id)).first()
@@ -291,32 +291,46 @@ class AutoAttendanceService:
             if timezone.is_naive(timestamp):
                 timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
                 
-            # Check if attendance record already exists
-            existing_attendance = Attendance.objects.filter(
+            # Log every biometric scan for audit purposes
+            logger.info(f"📱 BIOMETRIC SCAN: {user.get_full_name()} (ID: {log.user_id}) scanned at {timestamp.strftime('%H:%M:%S')} on {device.name}")
+                
+            # Get or create attendance record for this user and date
+            attendance, created = Attendance.objects.get_or_create(
                 user=user,
                 date=timestamp.date(),
-                check_in_time__hour=timestamp.hour,
-                check_in_time__minute=timestamp.minute
-            ).first()
+                defaults={
+                    'check_in_time': timestamp,
+                    'status': 'present',
+                    'device': device
+                }
+            )
             
-            if existing_attendance:
-                # Update existing record if needed
-                if not existing_attendance.check_out_time and timestamp > existing_attendance.check_in_time:
-                    existing_attendance.check_out_time = timestamp
-                    existing_attendance.save()
-                    logger.info(f"Updated check-out time for {user.get_full_name()}")
-                return True
+            if created:
+                # First scan of the day - this is the check-in
+                logger.info(f"✅ FIRST SCAN: Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
             else:
-                # Create new attendance record
-                attendance = Attendance.objects.create(
-                    user=user,
-                    date=timestamp.date(),
-                    check_in_time=timestamp,
-                    status='present',
-                    device=device
-                )
-                logger.info(f"Created new attendance record for {user.get_full_name()}")
-                return True
+                # Subsequent scans - determine if this should update check-in or check-out
+                if timestamp < attendance.check_in_time:
+                    # Earlier timestamp - update check-in time (first scan of the day)
+                    old_checkin = attendance.check_in_time
+                    attendance.check_in_time = timestamp
+                    attendance.save()
+                    logger.info(f"🔄 EARLIER SCAN: Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                elif timestamp > attendance.check_in_time:
+                    # Later timestamp - update check-out time (last scan of the day)
+                    if not attendance.check_out_time or timestamp > attendance.check_out_time:
+                        old_checkout = attendance.check_out_time
+                        attendance.check_out_time = timestamp
+                        attendance.save()
+                        if old_checkout:
+                            logger.info(f"🔄 LATER SCAN: Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                        else:
+                            logger.info(f"✅ LAST SCAN: Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                    else:
+                        # This scan is between check-in and check-out, log it but don't change times
+                        logger.debug(f"📝 MIDDLE SCAN: {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                        
+            return True
                 
         except Exception as e:
             logger.error(f"Error saving attendance record: {str(e)}")
@@ -357,7 +371,7 @@ class AutoAttendanceService:
         logger.info(f"✅ Processed {new_records} new ESSL records from {device.name}")
         
     def _save_essl_attendance(self, device, record):
-        """Save ESSL attendance record to database"""
+        """Save ESSL attendance record to database with proper check-in/check-out logic"""
         try:
             # Find user by employee ID or biometric ID
             user = CustomUser.objects.filter(
@@ -381,30 +395,43 @@ class AutoAttendanceService:
                 logger.error(f"Invalid timestamp format: {timestamp_str}")
                 return False
                 
-            # Check for existing record
-            existing_attendance = Attendance.objects.filter(
+            # Get or create attendance record for this user and date
+            attendance, created = Attendance.objects.get_or_create(
                 user=user,
                 date=timestamp.date(),
-                check_in_time__hour=timestamp.hour,
-                check_in_time__minute=timestamp.minute
-            ).first()
+                defaults={
+                    'check_in_time': timestamp,
+                    'status': 'present',
+                    'device': device
+                }
+            )
             
-            if existing_attendance:
-                # Update existing record
-                if not existing_attendance.check_out_time and timestamp > existing_attendance.check_in_time:
-                    existing_attendance.check_out_time = timestamp
-                    existing_attendance.save()
-                return True
+            if created:
+                # First scan of the day - this is the check-in
+                logger.info(f"✅ FIRST SCAN (ESSL): Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
             else:
-                # Create new record
-                attendance = Attendance.objects.create(
-                    user=user,
-                    date=timestamp.date(),
-                    check_in_time=timestamp,
-                    status='present',
-                    device=device
-                )
-                return True
+                # Subsequent scans - determine if this should update check-in or check-out
+                if timestamp < attendance.check_in_time:
+                    # Earlier timestamp - update check-in time (first scan of the day)
+                    old_checkin = attendance.check_in_time
+                    attendance.check_in_time = timestamp
+                    attendance.save()
+                    logger.info(f"🔄 EARLIER SCAN (ESSL): Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                elif timestamp > attendance.check_in_time:
+                    # Later timestamp - update check-out time (last scan of the day)
+                    if not attendance.check_out_time or timestamp > attendance.check_out_time:
+                        old_checkout = attendance.check_out_time
+                        attendance.check_out_time = timestamp
+                        attendance.save()
+                        if old_checkout:
+                            logger.info(f"🔄 LATER SCAN (ESSL): Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                        else:
+                            logger.info(f"✅ LAST SCAN (ESSL): Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                    else:
+                        # This scan is between check-in and check-out, log it but don't change times
+                        logger.debug(f"📝 MIDDLE SCAN (ESSL): {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                        
+            return True
                 
         except Exception as e:
             logger.error(f"Error saving ESSL attendance record: {str(e)}")
@@ -416,7 +443,11 @@ class AutoAttendanceService:
                    f"Records: {self.stats['total_records']}, "
                    f"Duplicates Prevented: {self.stats['duplicates_prevented']}, "
                    f"Errors: {self.stats['errors']}")
-                   
+        
+        # Log attendance logic summary
+        logger.info("🎯 ATTENDANCE LOGIC: First scan = Check-in, Last scan = Check-out")
+        logger.info("📱 Every biometric scan is logged, but only first/last affect attendance times")
+                    
     def get_stats(self):
         """Get current service statistics"""
         return self.stats.copy()

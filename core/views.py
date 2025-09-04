@@ -51,8 +51,8 @@ class IsAdminOrManager(IsAuthenticated):
 
 
 class ReportsViewSet(viewsets.ViewSet):
-    """ViewSet for generating reports - Admin only"""
-    permission_classes = [IsAdminUser]
+    """ViewSet for generating reports - Admin and Manager access"""
+    permission_classes = [IsAdminOrManager]
 
     @action(detail=False, methods=['get'])
     def attendance(self, request):
@@ -68,6 +68,29 @@ class ReportsViewSet(viewsets.ViewSet):
             # Build query
             queryset = Attendance.objects.select_related('user', 'user__office')
 
+            # For managers, restrict to their assigned office
+            if request.user.is_manager and not request.user.is_admin:
+                if request.user.office:
+                    queryset = queryset.filter(user__office=request.user.office)
+                else:
+                    # If manager has no office assigned, return empty result
+                    return Response({
+                        'type': 'attendance',
+                        'summary': {
+                            'totalRecords': 0,
+                            'presentCount': 0,
+                            'absentCount': 0,
+                            'lateCount': 0,
+                            'attendanceRate': 0
+                        },
+                        'dailyStats': [],
+                        'rawData': []
+                    })
+            elif request.user.is_admin:
+                # Admins can see all data, apply office filter if specified
+                if office_id:
+                    queryset = queryset.filter(user__office_id=office_id)
+
             # Apply filters with proper date handling
             if start_date:
                 try:
@@ -81,8 +104,6 @@ class ReportsViewSet(viewsets.ViewSet):
                 except Exception as e:
                     logger.warning(f"Invalid end_date format: {end_date}, error: {e}")
             
-            if office_id:
-                queryset = queryset.filter(user__office_id=office_id)
             if user_id:
                 queryset = queryset.filter(user_id=user_id)
             if status_filter:
@@ -188,6 +209,29 @@ class ReportsViewSet(viewsets.ViewSet):
             # Build query
             queryset = Leave.objects.select_related('user', 'user__office')
 
+            # For managers, restrict to their assigned office
+            if request.user.is_manager and not request.user.is_admin:
+                if request.user.office:
+                    queryset = queryset.filter(user__office=request.user.office)
+                else:
+                    # If manager has no office assigned, return empty result
+                    return Response({
+                        'type': 'leave',
+                        'summary': {
+                            'totalLeaves': 0,
+                            'approvedLeaves': 0,
+                            'pendingLeaves': 0,
+                            'rejectedLeaves': 0,
+                            'approvalRate': 0
+                        },
+                        'leaveTypeStats': [],
+                        'rawData': []
+                    })
+            elif request.user.is_admin:
+                # Admins can see all data, apply office filter if specified
+                if office_id:
+                    queryset = queryset.filter(user__office_id=office_id)
+
             # Apply filters with proper date handling
             if start_date:
                 try:
@@ -201,8 +245,6 @@ class ReportsViewSet(viewsets.ViewSet):
                 except Exception as e:
                     logger.warning(f"Invalid end_date format: {end_date}, error: {e}")
             
-            if office_id:
-                queryset = queryset.filter(user__office_id=office_id)
             if user_id:
                 queryset = queryset.filter(user_id=user_id)
             if status_filter:
@@ -350,8 +392,28 @@ class ReportsViewSet(viewsets.ViewSet):
     def user(self, request):
         """Generate user report"""
         try:
-            # Get all users
-            users = CustomUser.objects.select_related('office').all()
+            # Get users based on user role
+            if request.user.is_manager and not request.user.is_admin:
+                # Managers can only see users from their assigned office
+                if request.user.office:
+                    users = CustomUser.objects.select_related('office').filter(office=request.user.office)
+                else:
+                    # If manager has no office assigned, return empty result
+                    return Response({
+                        'type': 'user',
+                        'summary': {
+                            'totalUsers': 0,
+                            'activeUsers': 0,
+                            'inactiveUsers': 0,
+                            'activationRate': 0
+                        },
+                        'roleStats': [],
+                        'officeStats': [],
+                        'rawData': []
+                    })
+            else:
+                # Admins can see all users
+                users = CustomUser.objects.select_related('office').all()
 
             # Calculate user statistics
             role_stats = {}
@@ -462,6 +524,204 @@ class ReportsViewSet(viewsets.ViewSet):
                 {'error': f'Failed to export report: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'])
+    def monthly_summary(self, request):
+        """Generate monthly attendance summary for all employees"""
+        try:
+            # Get query parameters
+            year = request.query_params.get('year')
+            month = request.query_params.get('month')
+            office_id = request.query_params.get('office')
+            user_id = request.query_params.get('user')
+
+            # Convert to integers
+            if year:
+                year = int(year)
+            if month:
+                month = int(month)
+
+            # Calculate date range
+            from datetime import datetime, timedelta
+            start_date = datetime(year, month, 1).date()
+            if month == 12:
+                end_date = datetime(year + 1, 1, 1).date() - timedelta(days=1)
+            else:
+                end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
+            
+            # Get users
+            users_query = CustomUser.objects.filter(role='employee', is_active=True)
+            if office_id:
+                users_query = users_query.filter(office_id=office_id)
+            
+            users = users_query.select_related('office')
+            
+            report_data = []
+            for user in users:
+                # Get attendance records for the month
+                attendance_records = Attendance.objects.filter(
+                    user=user,
+                    date__range=[start_date, end_date]
+                )
+                
+                # Calculate statistics
+                total_days = (end_date - start_date).days + 1
+                present_days = attendance_records.filter(status='present').count()
+                late_days = attendance_records.filter(status='late').count()
+                half_days = attendance_records.filter(status='half_day').count()
+                
+                # Calculate absent days - days without attendance records or with absent status
+                # Absent = Total working days - Days with any attendance record
+                attended_days = attendance_records.count()
+                absent_days = total_days - attended_days
+                
+                # If there are records with 'absent' status, add them to absent_days
+                explicit_absent_days = attendance_records.filter(status='absent').count()
+                absent_days += explicit_absent_days
+                
+                # Ensure absent_days is not negative
+                absent_days = max(0, absent_days)
+                
+                # Log the calculation for debugging
+                logger.info(f"User {user.get_full_name()}: total_days={total_days}, attended_days={attended_days}, explicit_absent={explicit_absent_days}, calculated_absent={absent_days}")
+                
+                # Calculate total hours - convert to float to avoid decimal type issues
+                try:
+                    total_hours = sum([
+                        float(record.total_hours or 0) 
+                        for record in attendance_records 
+                        if record.total_hours is not None
+                    ])
+                except (TypeError, ValueError):
+                    # Fallback if there are any type conversion issues
+                    total_hours = 0.0
+                
+                # Calculate attendance percentage
+                attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
+                
+                report_data.append({
+                    'user_id': user.id,
+                    'user_name': user.get_full_name(),
+                    'employee_id': user.employee_id,
+                    'office': user.office.name if user.office else '',
+                    'total_days': total_days,
+                    'present_days': present_days,
+                    'absent_days': absent_days,
+                    'late_days': late_days,
+                    'half_days': half_days,
+                    'total_hours': round(total_hours, 2),
+                    'attendance_percentage': round(attendance_percentage, 2),
+                    'standard_hours': 9.0 * total_days,  # 9 hours per day
+                    'hours_deficit': max(0, (9.0 * total_days) - total_hours)
+                })
+
+            # Filter by specific user if requested
+            if user_id:
+                report_data = [
+                    record for record in report_data 
+                    if str(record['user_id']) == str(user_id)
+                ]
+
+            # Calculate overall statistics
+            if report_data:
+                total_present = sum(record['present_days'] for record in report_data)
+                total_absent = sum(record['absent_days'] for record in report_data)
+                total_late = sum(record['late_days'] for record in report_data)
+                
+                # Safe calculation of total hours and attendance percentage
+                try:
+                    total_hours = sum(float(record['total_hours'] or 0) for record in report_data)
+                    avg_attendance = sum(float(record['attendance_percentage'] or 0) for record in report_data) / len(report_data)
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Type conversion issue in overall statistics: {e}, setting values to 0")
+                    total_hours = 0.0
+                    avg_attendance = 0.0
+            else:
+                total_present = total_absent = total_late = total_hours = avg_attendance = 0
+
+            return Response({
+                'type': 'monthly_summary',
+                'period': {
+                    'year': year,
+                    'month': month,
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'total_days': report_data[0]['total_days'] if report_data else 0
+                },
+                'summary': {
+                    'totalEmployees': len(report_data),
+                    'totalPresentDays': total_present,
+                    'totalAbsentDays': total_absent,
+                    'totalLateDays': total_late,
+                    'totalHours': round(total_hours, 2),
+                    'averageAttendanceRate': round(avg_attendance, 2)
+                },
+                'employeeData': report_data
+            })
+
+        except Exception as e:
+            logger.error(f"Error generating monthly summary: {str(e)}")
+            return Response(
+                {'error': f'Failed to generate monthly summary: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def latest_attendance(self, request):
+        """Get latest attendance records for real-time updates"""
+        try:
+            # Get query parameters
+            limit = int(request.query_params.get('limit', 10))
+            office_id = request.query_params.get('office')
+            user_id = request.query_params.get('user')
+            
+            # Build query
+            queryset = Attendance.objects.select_related('user', 'user__office', 'device')
+            
+            # Apply filters
+            if office_id:
+                queryset = queryset.filter(user__office_id=office_id)
+            if user_id:
+                queryset = queryset.filter(user_id=user_id)
+            
+            # Get latest records
+            latest_records = queryset.order_by('-created_at')[:limit]
+            
+            # Serialize data
+            attendance_data = []
+            for record in latest_records:
+                try:
+                    data = {
+                        'id': str(record.id),
+                        'user_name': record.user.get_full_name(),
+                        'employee_id': record.user.employee_id,
+                        'office': record.user.office.name if record.user.office else None,
+                        'date': record.date.isoformat() if record.date else None,
+                        'check_in_time': record.check_in_time.isoformat() if record.check_in_time else None,
+                        'check_out_time': record.check_out_time.isoformat() if record.check_out_time else None,
+                        'status': record.status,
+                        'device': record.device.name if record.device else None,
+                        'created_at': record.created_at.isoformat() if record.created_at else None,
+                        'updated_at': record.updated_at.isoformat() if record.updated_at else None,
+                    }
+                    attendance_data.append(data)
+                except Exception as e:
+                    logger.warning(f"Error processing attendance record {record.id}: {e}")
+                    continue
+            
+            return Response({
+                'success': True,
+                'data': attendance_data,
+                'count': len(attendance_data),
+                'timestamp': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Error fetching latest attendance: {e}")
+            return Response({
+                'success': False,
+                'error': 'Failed to fetch latest attendance data'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
@@ -635,10 +895,42 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['put'])
     def update_profile(self, request):
         """Update current user profile"""
+        # Debug logging
+        logger.info(f"Profile update called by user: {request.user}")
+        logger.info(f"Authentication: {request.user.is_authenticated}")
+        logger.info(f"User ID: {request.user.id if request.user.is_authenticated else 'None'}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Request data: {request.data}")
+        logger.info(f"META HTTP_AUTHORIZATION: {request.META.get('HTTP_AUTHORIZATION', 'Not present')}")
+        logger.info(f"Request path: {request.path}")
+        logger.info(f"Request method: {request.method}")
+        
+        if not request.user.is_authenticated:
+            logger.error("User not authenticated in update_profile")
+            logger.error(f"User object: {request.user}")
+            logger.error(f"User class: {type(request.user)}")
+            logger.error(f"Is anonymous: {request.user.is_anonymous}")
+            return Response(
+                {'error': 'Authentication required'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            # Log what fields are being updated
+            logger.info(f"Valid fields to update: {serializer.validated_data.keys()}")
+            logger.info(f"Original user data: {dict(request.user.__dict__)}")
+            
+            # Save the updated data
+            updated_user = serializer.save()
+            logger.info(f"Profile updated successfully for user {request.user.id}")
+            logger.info(f"Updated fields: {serializer.validated_data}")
+            
             return Response(serializer.data)
+        
+        logger.error(f"Profile update validation failed: {serializer.errors}")
+        logger.error(f"Received data: {request.data}")
+        logger.error(f"Validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'])
@@ -752,11 +1044,16 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        print(f"🔍 DeviceViewSet.get_queryset() - User: {user.username}, Role: {getattr(user, 'role', 'No role')}, Is Admin: {getattr(user, 'is_admin', 'No is_admin property')}")
+        
         if user.is_admin:
+            print(f"✅ User {user.username} is admin, returning all devices")
             return Device.objects.all()
         elif user.is_manager:
+            print(f"✅ User {user.username} is manager, returning office devices")
             return Device.objects.filter(office=user.office)
         else:
+            print(f"❌ User {user.username} has no access to devices")
             return Device.objects.none()
 
     def get_permissions(self):
@@ -768,12 +1065,18 @@ class DeviceViewSet(viewsets.ModelViewSet):
     def sync(self, request, pk=None):
         """Sync device data"""
         device = self.get_object()
-        serializer = DeviceSyncSerializer(data=request.data)
+        
+        # Add device_id to request data if not present
+        data = request.data.copy()
+        if 'device_id' not in data:
+            data['device_id'] = str(device.id)
+        
+        serializer = DeviceSyncSerializer(data=data)
         if serializer.is_valid():
             # TODO: Implement device synchronization logic
             device.last_sync = timezone.now()
             device.save()
-            return Response({'message': 'Device sync initiated'})
+            return Response({'message': 'Device sync initiated successfully'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -994,10 +1297,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             absent_days = attendance_records.filter(status='absent').count()
             late_days = attendance_records.filter(status='late').count()
             
-            # Calculate total hours
-            total_hours = attendance_records.aggregate(
-                total=Sum('total_hours')
-            )['total'] or 0
+            # Calculate total hours - convert to float to avoid decimal type issues
+            total_hours = sum([
+                float(record.total_hours or 0) 
+                for record in attendance_records 
+                if record.total_hours is not None
+            ])
             
             # Calculate attendance percentage
             attendance_percentage = (present_days / total_days_in_month * 100) if total_days_in_month > 0 else 0
@@ -1172,6 +1477,229 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(attendance)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'])
+    def checkin_checkout(self, request):
+        """Get check-in/check-out data for a specific date with proper absent day calculation"""
+        try:
+            # Get query parameters
+            date_str = request.query_params.get('date')
+            office_id = request.query_params.get('office')
+            user_id = request.query_params.get('user')
+            
+            # Parse date
+            if date_str:
+                try:
+                    target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return Response(
+                        {'error': 'Invalid date format. Use YYYY-MM-DD'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                target_date = timezone.now().date()
+            
+            # Get base queryset
+            queryset = self.get_queryset()
+            
+            # Apply filters
+            if office_id:
+                queryset = queryset.filter(user__office_id=office_id)
+            if user_id:
+                queryset = queryset.filter(user_id=user_id)
+            
+            # Get all employees for the office/date
+            if office_id:
+                office_users = CustomUser.objects.filter(
+                    office_id=office_id, 
+                    role='employee', 
+                    is_active=True
+                )
+            else:
+                # If no office specified, get users from manager's office
+                if request.user.is_manager and request.user.office:
+                    office_users = CustomUser.objects.filter(
+                        office=request.user.office, 
+                        role='employee', 
+                        is_active=True
+                    )
+                else:
+                    office_users = CustomUser.objects.filter(role='employee', is_active=True)
+            
+            # Get attendance records for the date - IMPORTANT: Use distinct to avoid duplicates
+            # Note: distinct('user_id') only works with PostgreSQL, use Python-level deduplication for MySQL
+            attendance_records = queryset.filter(date=target_date)
+            
+            # Create a map of user_id to attendance record - ensure one record per user
+            attendance_map = {}
+            for record in attendance_records:
+                user_id = record.user_id
+                
+                # If this is the first record for this user, add it
+                if user_id not in attendance_map:
+                    attendance_map[user_id] = record
+                else:
+                    # If multiple records exist for same user, take the one with most complete data
+                    existing = attendance_map[user_id]
+                    
+                    # Priority: Complete record > Check-in only > Incomplete
+                    existing_score = self._get_attendance_completeness_score(existing)
+                    new_score = self._get_attendance_completeness_score(record)
+                    
+                    if new_score > existing_score:
+                        attendance_map[user_id] = record
+            
+            # Prepare response data
+            attendance_details = []
+            present_count = 0
+            absent_count = 0
+            checked_in_only = 0
+            checked_out_count = 0
+            
+            for user in office_users:
+                attendance = attendance_map.get(user.id)
+                
+                if attendance:
+                    # User has attendance record - determine status based on check-in/check-out
+                    has_checkin = bool(attendance.check_in_time)
+                    has_checkout = bool(attendance.check_out_time)
+                    
+                    # Determine status - only one status per user per day
+                    if has_checkin and has_checkout:
+                        present_count += 1
+                        status = 'present'
+                        status_text = 'Present'
+                    elif has_checkin and not has_checkout:
+                        checked_in_only += 1
+                        status = 'checked_in_only'
+                        status_text = 'Checked In Only'
+                    else:
+                        # This case shouldn't happen with proper data, but handle it
+                        status = 'incomplete'
+                        status_text = 'Incomplete'
+                    
+                    attendance_details.append({
+                        'employee_id': user.employee_id,
+                        'employee_name': user.get_full_name(),
+                        'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
+                        'check_out_time': attendance.check_out_time.isoformat() if attendance.check_out_time else None,
+                        'working_hours': attendance.total_hours or 0,
+                        'status': status,
+                        'status_text': status_text,
+                        'device_name': attendance.device.name if attendance.device else None,
+                        'has_checkin': has_checkin,
+                        'has_checkout': has_checkout
+                    })
+                else:
+                    # User has NO attendance record - mark as absent
+                    absent_count += 1
+                    attendance_details.append({
+                        'employee_id': user.employee_id,
+                        'employee_name': user.get_full_name(),
+                        'check_in_time': None,
+                        'check_out_time': None,
+                        'working_hours': 0,
+                        'status': 'absent',
+                        'status_text': 'Absent',
+                        'device_name': None,
+                        'has_checkin': False,
+                        'has_checkout': False
+                    })
+            
+            # Calculate attendance rate
+            total_employees = len(office_users)
+            attendance_rate = (present_count / total_employees * 100) if total_employees > 0 else 0
+            
+            response_data = {
+                'date': target_date.isoformat(),
+                'summary': {
+                    'total_employees': total_employees,
+                    'present_employees': present_count,
+                    'absent_employees': absent_count,
+                    'checked_in_only': checked_in_only,
+                    'checked_out': checked_out_count,
+                    'attendance_rate': round(attendance_rate, 2)
+                },
+                'attendance_details': attendance_details
+            }
+            
+            return Response(response_data)
+            
+        except Exception as e:
+            logger.error(f"Error in checkin_checkout endpoint: {str(e)}")
+            return Response(
+                {'error': 'Internal server error'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def _get_attendance_completeness_score(self, attendance):
+        """Calculate a score for how complete an attendance record is"""
+        score = 0
+        if attendance.check_in_time:
+            score += 1
+        if attendance.check_out_time:
+            score += 2  # Check-out is more important
+        if attendance.total_hours and attendance.total_hours > 0:
+            score += 1
+        return score
+
+    @action(detail=False, methods=['post'])
+    def cleanup_duplicates(self, request):
+        """Clean up duplicate attendance records for the same user on the same date"""
+        try:
+            user = request.user
+            if not user.is_admin:
+                return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Find duplicate records
+            duplicates = []
+            from django.db.models import Count
+            from django.db import connection
+            
+            # Get all attendance records grouped by user and date
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT user_id, date, COUNT(*) as count
+                    FROM core_attendance 
+                    GROUP BY user_id, date 
+                    HAVING COUNT(*) > 1
+                    ORDER BY user_id, date
+                """)
+                duplicate_groups = cursor.fetchall()
+            
+            cleaned_count = 0
+            for user_id, date, count in duplicate_groups:
+                # Get all records for this user on this date
+                records = Attendance.objects.filter(user_id=user_id, date=date).order_by('-created_at')
+                
+                # Keep the most recent/complete record, delete others
+                if records.count() > 1:
+                    keep_record = records.first()  # Most recent
+                    delete_records = records.exclude(id=keep_record.id)
+                    delete_count = delete_records.count()
+                    delete_records.delete()
+                    cleaned_count += delete_count
+                    
+                    duplicates.append({
+                        'user_id': user_id,
+                        'date': date.isoformat(),
+                        'duplicates_found': count,
+                        'duplicates_removed': delete_count,
+                        'kept_record_id': str(keep_record.id)
+                    })
+            
+            return Response({
+                'message': f'Cleaned up {cleaned_count} duplicate attendance records',
+                'duplicates_cleaned': duplicates,
+                'total_cleaned': cleaned_count
+            })
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up duplicates: {str(e)}")
+            return Response(
+                {'error': 'Failed to clean up duplicates'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['post'])
     def check_out(self, request):
@@ -1650,7 +2178,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         elif user.is_manager:
             # Managers can see documents uploaded by them or documents of their office employees
             return base_queryset.filter(
-                models.Q(uploaded_by=user) | models.Q(user__office=user.office)
+                Q(uploaded_by=user) | Q(user__office=user.office)
             )
         else:
             return base_queryset.filter(user=user)
@@ -1697,10 +2225,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
         # Filter by search
         if search:
             queryset = queryset.filter(
-                models.Q(title__icontains=search) |
-                models.Q(description__icontains=search) |
-                models.Q(user__first_name__icontains=search) |
-                models.Q(user__last_name__icontains=search)
+                Q(title__icontains=search) |
+                Q(description__icontains=search) |
+                Q(user__first_name__icontains=search) |
+                Q(user__last_name__icontains=search)
             )
         
         # Filter by document type
@@ -1992,6 +2520,344 @@ class DashboardViewSet(viewsets.ViewSet):
         
         serializer = DashboardStatsSerializer(stats)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def manager_stats(self, request):
+        """Get manager-specific dashboard statistics"""
+        user = request.user
+        
+        if not user.is_manager:
+            return Response({
+                'error': 'Access denied. Only managers can access this endpoint.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        office = user.office
+        if not office:
+            return Response({
+                'error': 'Manager not assigned to any office'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        today = timezone.now().date()
+        
+        # Office-specific statistics
+        total_employees = CustomUser.objects.filter(
+            office=office, 
+            role='employee'
+        ).count()
+        
+        # Today's attendance for the office
+        today_attendance = Attendance.objects.filter(
+            user__office=office,
+            date=today,
+            status='present'
+        ).count()
+        
+        # Pending leave requests for the office
+        pending_leaves = Leave.objects.filter(
+            user__office=office, 
+            status='pending'
+        ).count()
+        
+        # Active employees in the office
+        active_employees = CustomUser.objects.filter(
+            office=office, 
+            is_active=True,
+            role='employee'
+        ).count()
+        
+        # Office devices
+        total_devices = Device.objects.filter(office=office).count()
+        active_devices = Device.objects.filter(office=office, is_active=True).count()
+        
+        # Recent activity (last 7 days)
+        week_ago = today - timedelta(days=7)
+        recent_attendance = Attendance.objects.filter(
+            user__office=office,
+            date__gte=week_ago
+        ).count()
+        
+        recent_leaves = Leave.objects.filter(
+            user__office=office,
+            created_at__gte=week_ago
+        ).count()
+        
+        stats = {
+            'office_name': office.name,
+            'office_id': str(office.id),
+            'total_employees': total_employees,
+            'today_attendance': today_attendance,
+            'pending_leaves': pending_leaves,
+            'active_employees': active_employees,
+            'total_devices': total_devices,
+            'active_devices': active_devices,
+            'recent_attendance': recent_attendance,
+            'recent_leaves': recent_leaves,
+            'attendance_rate': round((today_attendance / total_employees * 100), 2) if total_employees > 0 else 0,
+        }
+        
+        return Response(stats)
+
+    @action(detail=False, methods=['get'])
+    def manager_employees(self, request):
+        """Get employees from manager's office"""
+        user = request.user
+        
+        if not user.is_manager:
+            return Response({
+                'error': 'Access denied. Only managers can access this endpoint.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        office = user.office
+        if not office:
+            return Response({
+                'error': 'Manager not assigned to any office'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get query parameters
+        search = request.query_params.get('search', '')
+        department = request.query_params.get('department', '')
+        status = request.query_params.get('status', '')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
+        
+        # Build queryset for office employees
+        queryset = CustomUser.objects.filter(
+            office=office,
+            role='employee'
+        ).select_related('office')
+        
+        # Apply filters
+        if search:
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(employee_id__icontains=search) |
+                Q(email__icontains=search)
+            )
+        
+        if department:
+            queryset = queryset.filter(department__icontains=department)
+        
+        if status:
+            if status == 'active':
+                queryset = queryset.filter(is_active=True)
+            elif status == 'inactive':
+                queryset = queryset.filter(is_active=False)
+        
+        # Pagination
+        total_count = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        employees = queryset[start:end]
+        
+        # Serialize data
+        serializer = CustomUserSerializer(employees, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size,
+            'office_name': office.name,
+            'office_id': str(office.id)
+        })
+
+    @action(detail=True, methods=['put'])
+    def manager_approve_leave(self, request, pk=None):
+        """Approve or reject leave request (manager only)"""
+        user = request.user
+        
+        if not user.is_manager:
+            return Response({
+                'error': 'Access denied. Only managers can approve leaves.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        office = user.office
+        if not office:
+            return Response({
+                'error': 'Manager not assigned to any office'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            leave = Leave.objects.get(pk=pk)
+        except Leave.DoesNotExist:
+            return Response({
+                'error': 'Leave request not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if leave belongs to manager's office
+        if leave.user.office != office:
+            return Response({
+                'error': 'Access denied. Can only approve leaves from your office.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get action and reason
+        action = request.data.get('action')  # 'approve' or 'reject'
+        reason = request.data.get('reason', '')
+        
+        if action not in ['approve', 'reject']:
+            return Response({
+                'error': 'Invalid action. Must be "approve" or "reject".'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update leave status
+        if action == 'approve':
+            leave.status = 'approved'
+            leave.approved_by = user
+            leave.approved_at = timezone.now()
+        else:
+            leave.status = 'rejected'
+            leave.rejected_by = user
+            leave.rejected_at = timezone.now()
+            leave.rejection_reason = reason
+        
+        leave.save()
+        
+        # Serialize and return updated leave
+        serializer = LeaveSerializer(leave)
+        return Response({
+            'message': f'Leave request {action}d successfully',
+            'leave': serializer.data
+        })
+
+    @action(detail=False, methods=['get'])
+    def manager_attendance(self, request):
+        """Get attendance data for manager's office"""
+        user = request.user
+        
+        if not user.is_manager:
+            return Response({
+                'error': 'Access denied. Only managers can access this endpoint.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        office = user.office
+        if not office:
+            return Response({
+                'error': 'Manager not assigned to any office'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get query parameters
+        date = request.query_params.get('date', timezone.now().date().isoformat())
+        user_id = request.query_params.get('user', '')
+        status = request.query_params.get('status', '')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
+        
+        try:
+            target_date = timezone.datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            target_date = timezone.now().date()
+        
+        # Build queryset for office attendance
+        queryset = Attendance.objects.filter(
+            user__office=office
+        ).select_related('user', 'user__office', 'device')
+        
+        # Apply filters
+        if target_date:
+            queryset = queryset.filter(date=target_date)
+        
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Order by most recent
+        queryset = queryset.order_by('-created_at')
+        
+        # Pagination
+        total_count = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        attendance_records = queryset[start:end]
+        
+        # Serialize data
+        serializer = AttendanceSerializer(attendance_records, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size,
+            'office_name': office.name,
+            'office_id': str(office.id),
+            'date': target_date.isoformat()
+        })
+
+    @action(detail=False, methods=['get'])
+    def manager_leaves(self, request):
+        """Get leave requests for manager's office"""
+        user = request.user
+        
+        if not user.is_manager:
+            return Response({
+                'error': 'Access denied. Only managers can access this endpoint.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        office = user.office
+        if not office:
+            return Response({
+                'error': 'Manager not assigned to any office'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get query parameters
+        status = request.query_params.get('status', '')
+        start_date = request.query_params.get('start_date', '')
+        end_date = request.query_params.get('end_date', '')
+        user_id = request.query_params.get('user', '')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 10))
+        
+        # Build queryset for office leaves
+        queryset = Leave.objects.filter(
+            user__office=office
+        ).select_related('user', 'user__office')
+        
+        # Apply filters
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        if start_date:
+            try:
+                start = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(start_date__gte=start)
+            except ValueError:
+                pass
+        
+        if end_date:
+            try:
+                end = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(end_date__lte=end)
+            except ValueError:
+                pass
+        
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        # Order by most recent
+        queryset = queryset.order_by('-created_at')
+        
+        # Pagination
+        total_count = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        leave_requests = queryset[start:end]
+        
+        # Serialize data
+        serializer = LeaveSerializer(leave_requests, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size,
+            'office_name': office.name,
+            'office_id': str(office.id)
+        })
 
 
 # Custom error handlers for production

@@ -110,6 +110,39 @@ class ImprovedZKTecoDevice:
         
         return users
     
+    def get_attendance_data(self, start_date, end_date):
+        """Get attendance data from device for a date range"""
+        if not self.connected or not self.zk:
+            return []
+            
+        try:
+            # Get attendance logs from device
+            attendance_logs = self.zk.get_attendance()
+            
+            # Filter logs within date range
+            filtered_logs = []
+            for log in attendance_logs:
+                log_time = log.timestamp
+                # Convert naive datetime to timezone-aware for comparison
+                if timezone.is_naive(log_time):
+                    log_time = timezone.make_aware(log_time, timezone.get_current_timezone())
+                
+                log_date = log_time.date()
+                if start_date <= log_date <= end_date:
+                    filtered_logs.append({
+                        'user_id': log.user_id,
+                        'timestamp': log.timestamp,
+                        'punch_type': log.punch_type,
+                        'status': log.status,
+                        'uid': log.uid
+                    })
+            
+            return filtered_logs
+            
+        except Exception as e:
+            logger.error(f"Failed to get attendance data: {str(e)}")
+            return []
+    
     def get_attendance_logs(self, start_date: datetime = None, end_date: datetime = None) -> List[Dict]:
         """Get attendance logs from device"""
         if not self.connected or not self.zk:
@@ -126,6 +159,10 @@ class ImprovedZKTecoDevice:
                 filtered_logs = []
                 for log in logs:
                     log_time = log.timestamp
+                    # Convert naive datetime to timezone-aware for comparison
+                    if timezone.is_naive(log_time):
+                        log_time = timezone.make_aware(log_time, timezone.get_current_timezone())
+                    
                     if start_date and log_time < start_date:
                         continue
                     if end_date and log_time > end_date:
@@ -139,7 +176,7 @@ class ImprovedZKTecoDevice:
                     'user_id': log.user_id,
                     'timestamp': int(log.timestamp.timestamp()),
                     'punch_time': log.timestamp,
-                    'punch_type': 'in' if log.status == const.ATTENDANCE_STATUS.CHECK_IN else 'out',
+                    'punch_type': 'in' if log.status == 0 else 'out',  # 0 = Check In, 1 = Check Out
                     'status': log.status,
                     'device_ip': self.ip_address,
                     'uid': log.uid
@@ -331,7 +368,7 @@ class ImprovedZKTecoService:
                     
                     if created:
                         synced_count += 1
-                    
+                        
                 except Exception as e:
                     logger.error(f"Error processing attendance log: {str(e)}")
                     error_count += 1
