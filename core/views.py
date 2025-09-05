@@ -7,8 +7,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from django.db import models
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import logging
+import calendar
+import traceback
 
 from .models import (
     CustomUser, Office, Device, Attendance, WorkingHoursSettings, 
@@ -65,8 +67,8 @@ class ReportsViewSet(viewsets.ViewSet):
             user_id = request.query_params.get('user')
             status_filter = request.query_params.get('status')
 
-            # Build query
-            queryset = Attendance.objects.select_related('user', 'user__office')
+            # Build query - only show attendance for active users
+            queryset = Attendance.objects.select_related('user', 'user__office').filter(user__is_active=True)
 
             # For managers, restrict to their assigned office
             if request.user.is_manager and not request.user.is_admin:
@@ -675,8 +677,8 @@ class ReportsViewSet(viewsets.ViewSet):
             office_id = request.query_params.get('office')
             user_id = request.query_params.get('user')
             
-            # Build query
-            queryset = Attendance.objects.select_related('user', 'user__office', 'device')
+            # Build query - only show attendance for active users
+            queryset = Attendance.objects.select_related('user', 'user__office', 'device').filter(user__is_active=True)
             
             # Apply filters
             if office_id:
@@ -745,19 +747,22 @@ class OfficeViewSet(viewsets.ModelViewSet):
         stats = {
             'office_id': office.id,
             'office_name': office.name,
-            'total_employees': CustomUser.objects.filter(office=office, role='employee').count(),
+            'total_employees': CustomUser.objects.filter(office=office, role='employee', is_active=True).count(),
             'present_today': Attendance.objects.filter(
                 user__office=office, 
+                user__is_active=True,
                 date=timezone.now().date(), 
                 status='present'
             ).count(),
             'absent_today': Attendance.objects.filter(
                 user__office=office, 
+                user__is_active=True,
                 date=timezone.now().date(), 
                 status='absent'
             ).count(),
             'pending_leaves': Leave.objects.filter(
                 user__office=office, 
+                user__is_active=True,
                 status='pending'
             ).count(),
         }
@@ -1090,12 +1095,15 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # Base queryset - only show attendance for active users
+        base_queryset = Attendance.objects.select_related('user', 'user__office', 'device').filter(user__is_active=True)
+        
         if user.is_admin:
-            return Attendance.objects.select_related('user', 'user__office', 'device').all()
+            return base_queryset
         elif user.is_manager:
-            return Attendance.objects.select_related('user', 'user__office', 'device').filter(user__office=user.office)
+            return base_queryset.filter(user__office=user.office)
         else:
-            return Attendance.objects.select_related('user', 'user__office', 'device').filter(user=user)
+            return base_queryset.filter(user=user)
 
     def list(self, request, *args, **kwargs):
         """Override list method to limit data and prevent large responses"""
@@ -1103,20 +1111,32 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         
         # Apply filters from query parameters
         date = request.query_params.get('date')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
         user_id = request.query_params.get('user')
         office_id = request.query_params.get('office')
         status = request.query_params.get('status')
+        day_status = request.query_params.get('day_status')
+        is_late = request.query_params.get('is_late')
         device_id = request.query_params.get('device')
         limit = request.query_params.get('limit', 100)  # Default limit of 100
         
         if date:
             queryset = queryset.filter(date=date)
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(date__lte=end_date)
         if user_id:
             queryset = queryset.filter(user_id=user_id)
         if office_id:
             queryset = queryset.filter(user__office_id=office_id)
         if status:
             queryset = queryset.filter(status=status)
+        if day_status:
+            queryset = queryset.filter(day_status=day_status)
+        if is_late is not None:
+            queryset = queryset.filter(is_late=is_late.lower() == 'true')
         if device_id:
             queryset = queryset.filter(device_id=device_id)
         
@@ -1172,6 +1192,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         present_records = queryset.filter(status='present').count()
         absent_records = queryset.filter(status='absent').count()
         late_records = queryset.filter(status='late').count()
+        half_day_records = queryset.filter(day_status='half_day').count()
+        complete_day_records = queryset.filter(day_status='complete_day').count()
+        late_coming_records = queryset.filter(is_late=True).count()
         
         # Serialize attendance records
         serializer = self.get_serializer(queryset, many=True)
@@ -1184,6 +1207,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 'present_records': present_records,
                 'absent_records': absent_records,
                 'late_records': late_records,
+                'half_day_records': half_day_records,
+                'complete_day_records': complete_day_records,
+                'late_coming_records': late_coming_records,
                 'attendance_percentage': (present_records / total_records * 100) if total_records > 0 else 0
             },
             'attendance_records': serializer.data
@@ -1240,100 +1266,245 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
-    def monthly(self, request):
-        """Get attendance data for a specific month with statistics"""
+    def monthly_attendance(self, request):
+        """Get monthly attendance data for a specific user"""
         try:
-            # Get query parameters
-            month = request.query_params.get('month')  # 1-12
-            year = request.query_params.get('year')
             user_id = request.query_params.get('user')
-            office_id = request.query_params.get('office')
+            year = int(request.query_params.get('year'))
+            month = int(request.query_params.get('month'))
             
-            # Validate month and year
-            if not month or not year:
+            if not user_id:
                 return Response(
-                    {'error': 'month and year parameters are required'}, 
+                    {'error': 'user parameter is required'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
             try:
-                month = int(month)
-                year = int(year)
-                if month < 1 or month > 12:
-                    raise ValueError("Invalid month")
-            except ValueError:
+                user = CustomUser.objects.get(id=user_id, is_active=True)
+            except CustomUser.DoesNotExist:
                 return Response(
-                    {'error': 'Invalid month or year format'}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                    {'error': 'User not found or inactive'}, 
+                    status=status.HTTP_404_NOT_FOUND
                 )
             
-            # Calculate date range for the month
-            from datetime import date
-            start_date = date(year, month, 1)
-            if month == 12:
-                end_date = date(year + 1, 1, 1) - timedelta(days=1)
-            else:
-                end_date = date(year, month + 1, 1) - timedelta(days=1)
+            # Create target date for the month
+            target_date = date(year, month, 1)
             
-            # Get base queryset
-            queryset = self.get_queryset().filter(
+            # Get ALL days in the month (including weekends)
+            all_days = []
+            first_day = date(year, month, 1)
+            last_day = date(year, month, calendar.monthrange(year, month)[1])
+            current_date = first_day
+            
+            while current_date <= last_day:
+                all_days.append(current_date)
+                current_date += timedelta(days=1)
+            
+            # Get existing attendance records for the month
+            start_date = first_day
+            end_date = last_day
+            
+            existing_attendance = Attendance.objects.filter(
+                user=user,
                 date__gte=start_date,
                 date__lte=end_date
-            )
+            ).select_related('device')
             
-            # Apply additional filters
-            if user_id:
-                queryset = queryset.filter(user_id=user_id)
-            if office_id:
-                queryset = queryset.filter(user__office_id=office_id)
+            # Create a dictionary for quick lookup
+            attendance_dict = {att.date: att for att in existing_attendance}
             
-            # Get attendance records
-            attendance_records = queryset.order_by('date', 'user__first_name')
+            # Prepare monthly data with all days
+            monthly_data = []
             
-            # Calculate statistics
-            total_days_in_month = end_date.day
-            total_records = attendance_records.count()
-            present_days = attendance_records.filter(status='present').count()
-            absent_days = attendance_records.filter(status='absent').count()
-            late_days = attendance_records.filter(status='late').count()
+            for day in all_days:
+                if day in attendance_dict:
+                    # Existing attendance record
+                    attendance = attendance_dict[day]
+                    monthly_data.append({
+                        'id': str(attendance.id),
+                        'date': day.isoformat(),
+                        'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
+                        'check_out_time': attendance.check_out_time.isoformat() if attendance.check_out_time else None,
+                        'total_hours': float(attendance.total_hours) if attendance.total_hours else None,
+                        'status': attendance.status,
+                        'day_status': attendance.day_status,
+                        'is_late': attendance.is_late,
+                        'late_minutes': attendance.late_minutes,
+                        'device_name': attendance.device.name if attendance.device else None,
+                        'notes': attendance.notes,
+                        'created_at': attendance.created_at.isoformat() if attendance.created_at else None,
+                        'updated_at': attendance.updated_at.isoformat() if attendance.updated_at else None,
+                    })
+                else:
+                    # Create absent record for this day
+                    monthly_data.append({
+                        'id': None,
+                        'date': day.isoformat(),
+                        'check_in_time': None,
+                        'check_out_time': None,
+                        'total_hours': None,
+                        'status': 'absent',
+                        'day_status': 'absent',
+                        'is_late': False,
+                        'late_minutes': 0,
+                        'device_name': None,
+                        'notes': 'Automatically marked as absent',
+                        'created_at': None,
+                        'updated_at': None,
+                    })
             
-            # Calculate total hours - convert to float to avoid decimal type issues
-            total_hours = sum([
-                float(record.total_hours or 0) 
-                for record in attendance_records 
-                if record.total_hours is not None
-            ])
-            
-            # Calculate attendance percentage
-            attendance_percentage = (present_days / total_days_in_month * 100) if total_days_in_month > 0 else 0
-            
-            # Serialize attendance records
-            serializer = self.get_serializer(attendance_records, many=True)
+            # Calculate monthly statistics - Remove working days, make present days = working days
+            total_days_in_month = len(all_days)
+            present_days = sum(1 for day in monthly_data if day['status'] in ['present', 'half_day'])
+            absent_days = sum(1 for day in monthly_data if day['status'] == 'absent')
+            complete_days = sum(1 for day in monthly_data if day['day_status'] == 'complete_day')
+            half_days = sum(1 for day in monthly_data if day['day_status'] == 'half_day')
+            late_coming_days = sum(1 for day in monthly_data if day['is_late'] is True)
+            attendance_rate = (present_days / total_days_in_month * 100) if total_days_in_month > 0 else 0
             
             # Prepare response
             response_data = {
-                'month': month,
-                'year': year,
-                'start_date': start_date,
-                'end_date': end_date,
-                'total_days_in_month': total_days_in_month,
+                'user': {
+                    'id': str(user.id),
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'employee_id': user.employee_id,
+                    'department': user.department,
+                    'office_name': user.office.name if user.office else None,
+                },
+                'month': {
+                    'year': year,
+                    'month': month,
+                    'month_name': target_date.strftime('%B'),
+                    'total_days_in_month': total_days_in_month,
+                },
                 'statistics': {
-                    'total_records': total_records,
+                    'total_days_in_month': total_days_in_month,
                     'present_days': present_days,
                     'absent_days': absent_days,
-                    'late_days': late_days,
-                    'total_hours': round(total_hours, 2),
-                    'attendance_percentage': round(attendance_percentage, 2)
+                    'complete_days': complete_days,
+                    'half_days': half_days,
+                    'late_coming_days': late_coming_days,
+                    'attendance_rate': round(attendance_rate, 1),
                 },
-                'attendance_records': serializer.data
+                'monthly_data': monthly_data
             }
             
             return Response(response_data)
             
-        except Exception as e:
-            logger.error(f"Error in monthly attendance endpoint: {str(e)}")
+        except (ValueError, TypeError) as e:
             return Response(
-                {'error': 'Internal server error'}, 
+                {'error': f'Invalid parameters: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'An error occurred: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def update_status(self, request):
+        """Update attendance status for a specific date - Only for managers and admins"""
+        print(f"🔧 update_status called with data: {request.data}")
+        print(f"🔧 User: {request.user.username}, Role: {request.user.role}")
+        
+        try:
+            # Check if user has permission (manager or admin)
+            if request.user.role not in ['manager', 'admin']:
+                return Response(
+                    {'error': 'Only managers and admins can update attendance status'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            user_id = request.data.get('user_id')
+            date_str = request.data.get('date')
+            new_status = request.data.get('status')
+            new_day_status = request.data.get('day_status')
+            notes = request.data.get('notes', '')
+            
+            if not all([user_id, date_str, new_status]):
+                return Response(
+                    {'error': 'user_id, date, and status are required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if new_status not in ['present', 'absent']:
+                return Response(
+                    {'error': 'Status must be either "present" or "absent"'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if new_day_status and new_day_status not in ['complete_day', 'half_day', 'absent']:
+                return Response(
+                    {'error': 'Day status must be either "complete_day", "half_day", or "absent"'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                user = CustomUser.objects.get(id=user_id, is_active=True)
+            except CustomUser.DoesNotExist:
+                return Response(
+                    {'error': 'User not found or inactive'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Parse the date
+            try:
+                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid date format. Use YYYY-MM-DD'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get or create attendance record
+            attendance, created = Attendance.objects.get_or_create(
+                user=user,
+                date=target_date,
+                defaults={
+                    'status': new_status,
+                    'day_status': new_day_status or ('absent' if new_status == 'absent' else 'complete_day'),
+                    'notes': notes,
+                    'is_late': False,
+                    'late_minutes': 0,
+                }
+            )
+            
+            if not created:
+                # Update existing record using manual method to bypass automatic calculations
+                attendance.manual_update_status(
+                    new_status=new_status,
+                    new_day_status=new_day_status,
+                    notes=notes
+                )
+            else:
+                # For newly created records, also update using manual method to ensure consistency
+                attendance.manual_update_status(
+                    new_status=new_status,
+                    new_day_status=new_day_status,
+                    notes=notes
+                )
+            
+            # Return updated attendance data
+            response_data = {
+                'id': str(attendance.id),
+                'date': attendance.date.isoformat(),
+                'status': attendance.status,
+                'day_status': attendance.day_status,
+                'notes': attendance.notes,
+                'updated_at': attendance.updated_at.isoformat(),
+                'message': 'Attendance status updated successfully'
+            }
+            
+            print(f"✅ Returning response: {response_data}")
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print(f"❌ Error in update_status: {str(e)}")
+            traceback.print_exc()
+            return Response(
+                {'error': f'An error occurred: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -2372,19 +2543,23 @@ class DashboardViewSet(viewsets.ViewSet):
         last_month = today - timedelta(days=30)
         
         if user.is_admin:
-            # Calculate comprehensive statistics for admin
-            total_employees = CustomUser.objects.filter(role='employee').count()
-            total_managers = CustomUser.objects.filter(role='manager').count()
+            # Calculate comprehensive statistics for admin - only active users
+            total_employees = CustomUser.objects.filter(role='employee', is_active=True).count()
+            total_managers = CustomUser.objects.filter(role='manager', is_active=True).count()
             total_offices = Office.objects.count()
             total_devices = Device.objects.count()
             active_devices = Device.objects.filter(is_active=True).count()
             
-            # Attendance statistics
+            # Attendance statistics - only active users
             today_attendance = Attendance.objects.filter(
                 date=today, 
-                status='present'
+                status='present',
+                user__is_active=True
             ).count()
-            total_today_records = Attendance.objects.filter(date=today).count()
+            total_today_records = Attendance.objects.filter(
+                date=today,
+                user__is_active=True
+            ).count()
             attendance_rate = (today_attendance / total_today_records * 100) if total_today_records > 0 else 0
             
             # Leave statistics
@@ -2429,19 +2604,22 @@ class DashboardViewSet(viewsets.ViewSet):
             office = user.office
             total_employees = CustomUser.objects.filter(
                 office=office, 
-                role='employee'
+                role='employee',
+                is_active=True
             ).count()
             total_devices = Device.objects.filter(office=office).count()
             active_devices = Device.objects.filter(office=office, is_active=True).count()
             
-            # Office attendance statistics
+            # Office attendance statistics - only active users
             today_attendance = Attendance.objects.filter(
                 user__office=office,
+                user__is_active=True,
                 date=today, 
                 status='present'
             ).count()
             total_today_records = Attendance.objects.filter(
                 user__office=office,
+                user__is_active=True,
                 date=today
             ).count()
             attendance_rate = (today_attendance / total_today_records * 100) if total_today_records > 0 else 0

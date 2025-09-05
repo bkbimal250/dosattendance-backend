@@ -156,14 +156,14 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance
         fields = '__all__'
-        read_only_fields = ('id', 'total_hours', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'total_hours', 'day_status', 'is_late', 'late_minutes', 'created_at', 'updated_at')
 
 
 class AttendanceCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating attendance records"""
     class Meta:
         model = Attendance
-        fields = ['user', 'date', 'check_in_time', 'check_out_time', 'status', 'device', 'notes']
+        fields = ['user', 'date', 'check_in_time', 'check_out_time', 'status', 'day_status', 'device', 'notes']
 
 
 class LeaveSerializer(serializers.ModelSerializer):

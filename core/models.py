@@ -217,9 +217,12 @@ class Attendance(models.Model):
     STATUS_CHOICES = [
         ('present', 'Present'),
         ('absent', 'Absent'),
-        ('late', 'Late'),
+    ]
+    
+    DAY_STATUS_CHOICES = [
+        ('complete_day', 'Complete Day'),
         ('half_day', 'Half Day'),
-        ('leave', 'Leave'),
+        ('absent', 'Absent'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -229,10 +232,26 @@ class Attendance(models.Model):
     check_out_time = models.DateTimeField(null=True, blank=True)
     total_hours = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='present')
+    day_status = models.CharField(max_length=15, choices=DAY_STATUS_CHOICES, default='complete_day')
+    is_late = models.BooleanField(default=False, help_text="Whether employee came late")
+    late_minutes = models.IntegerField(default=0, help_text="Minutes late from start time")
     device = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Custom manager to ensure save method is called
+    class AttendanceManager(models.Manager):
+        def create(self, **kwargs):
+            # Create the instance
+            instance = self.model(**kwargs)
+            # Calculate attendance status
+            instance.calculate_attendance_status()
+            # Save to database
+            instance.save()
+            return instance
+    
+    objects = AttendanceManager()
 
     class Meta:
         unique_together = ['user', 'date']
@@ -262,6 +281,85 @@ class Attendance(models.Model):
             return round(duration.total_seconds() / 3600, 2)
         return None
 
+    def calculate_attendance_status(self):
+        """Calculate attendance status based on working hours and late coming"""
+        try:
+            from django.utils import timezone
+            from datetime import time, datetime
+            
+            # Get working hours settings for the user's office
+            office = self.user.office
+            if not office:
+                # Default settings if no office assigned
+                start_time = time(10, 0)  # 10:00 AM
+                late_threshold_minutes = 15
+                half_day_hours = 5.0
+                late_coming_threshold = time(11, 30)  # 11:30 AM
+            else:
+                # Get office-specific settings
+                settings = WorkingHoursSettings.objects.filter(office=office).first()
+                if settings:
+                    start_time = settings.start_time
+                    late_threshold_minutes = settings.late_threshold
+                    half_day_hours = float(settings.half_day_threshold) / 60  # Convert minutes to hours
+                    late_coming_threshold = settings.late_coming_threshold
+                else:
+                    # Default settings
+                    start_time = time(10, 0)
+                    late_threshold_minutes = 15
+                    half_day_hours = 5.0
+                    late_coming_threshold = time(11, 30)  # 11:30 AM
+            
+            # Check if present (has check-in time)
+            if not self.check_in_time:
+                self.status = 'absent'
+                self.day_status = 'absent'
+                self.is_late = False
+                self.late_minutes = 0
+                return
+            
+            # Check if late coming (after late_coming_threshold)
+            check_in_time_only = self.check_in_time.time()
+            
+            if check_in_time_only > late_coming_threshold:
+                self.is_late = True
+                # Calculate minutes late from late_coming_threshold (11:30 AM), not start_time
+                late_threshold_datetime = datetime.combine(self.date, late_coming_threshold)
+                
+                # Make both times timezone-aware for comparison
+                if timezone.is_naive(late_threshold_datetime):
+                    late_threshold_datetime = timezone.make_aware(late_threshold_datetime, timezone.get_current_timezone())
+                
+                check_in_time = self.check_in_time
+                if timezone.is_naive(check_in_time):
+                    check_in_time = timezone.make_aware(check_in_time, timezone.get_current_timezone())
+                
+                late_delta = check_in_time - late_threshold_datetime
+                self.late_minutes = max(0, int(late_delta.total_seconds() / 60))
+            else:
+                self.is_late = False
+                self.late_minutes = 0
+            
+            # Calculate day status based on working hours
+            if self.total_hours:
+                if self.total_hours < half_day_hours:
+                    self.day_status = 'half_day'
+                    self.status = 'present'  # Status is always present if checked in
+                else:
+                    self.day_status = 'complete_day'
+                    self.status = 'present'
+            else:
+                # If no check-out time, assume present for the day
+                self.day_status = 'complete_day'
+                self.status = 'present'
+                
+        except Exception as e:
+            # Fallback to default values if calculation fails
+            self.status = 'present'
+            self.day_status = 'complete_day'
+            self.is_late = False
+            self.late_minutes = 0
+
     def save(self, *args, **kwargs):
         # Check for existing attendance record for the same user on the same date
         if self.pk is None:  # Only check on creation
@@ -278,9 +376,43 @@ class Attendance(models.Model):
                 self.pk = existing.pk
                 return
         
+        # Calculate total hours if both check-in and check-out times are available
         if self.check_in_time and self.check_out_time:
             self.total_hours = self.calculate_total_hours()
+        
+        # Automatically calculate attendance status
+        self.calculate_attendance_status()
+        
         super().save(*args, **kwargs)
+
+    def manual_update_status(self, new_status, new_day_status=None, notes=None):
+        """Manually update attendance status without triggering automatic calculations"""
+        # Use Django's update() method to bypass the model's save method
+        update_data = {
+            'status': new_status,
+            'notes': notes if notes is not None else self.notes,
+            'updated_at': timezone.now()
+        }
+        
+        if new_day_status:
+            update_data['day_status'] = new_day_status
+        else:
+            # Auto-set day_status based on status
+            if new_status == 'absent':
+                update_data['day_status'] = 'absent'
+            else:
+                update_data['day_status'] = 'complete_day'
+        
+        # Update the instance attributes
+        self.status = update_data['status']
+        self.day_status = update_data['day_status']
+        self.notes = update_data['notes']
+        self.updated_at = update_data['updated_at']
+        
+        # Use update() to bypass the model's save method
+        Attendance.objects.filter(id=self.id).update(**update_data)
+        
+        return self
 
 
 class Leave(models.Model):
@@ -458,10 +590,11 @@ class WorkingHoursSettings(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     office = models.ForeignKey(Office, on_delete=models.CASCADE)
     standard_hours = models.DecimalField(max_digits=4, decimal_places=2, default=9.0, help_text="Standard working hours per day")
-    start_time = models.TimeField(default='09:00:00', help_text="Standard start time")
-    end_time = models.TimeField(default='18:00:00', help_text="Standard end time")
+    start_time = models.TimeField(default='10:00:00', help_text="Standard start time")
+    end_time = models.TimeField(default='19:00:00', help_text="Standard end time")
     late_threshold = models.IntegerField(default=15, help_text="Minutes after start time to consider late")
-    half_day_threshold = models.IntegerField(default=240, help_text="Minutes to consider half day (4 hours)")
+    half_day_threshold = models.IntegerField(default=300, help_text="Minutes to consider half day (5 hours)")
+    late_coming_threshold = models.TimeField(default='11:30:00', help_text="Time after which check-in is considered late coming")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

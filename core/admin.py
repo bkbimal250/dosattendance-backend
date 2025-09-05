@@ -70,12 +70,20 @@ class DeviceUserAdmin(admin.ModelAdmin):
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ['user', 'date', 'check_in_time', 'check_out_time', 'total_hours', 'status', 'device']
-    list_filter = ['status', 'date', 'device', 'user__office']
+    list_display = ['user', 'date', 'check_in_time', 'check_out_time', 'total_hours', 'status', 'day_status', 'is_late', 'device']
+    list_filter = ['status', 'day_status', 'is_late', 'date', 'device', 'user__office']
     search_fields = ['user__first_name', 'user__last_name', 'user__employee_id', 'notes']
     ordering = ['-date', '-check_in_time']
-    readonly_fields = ['id', 'total_hours', 'created_at', 'updated_at']
+    readonly_fields = ['id', 'total_hours', 'day_status', 'is_late', 'late_minutes', 'created_at', 'updated_at']
     date_hierarchy = 'date'
+    
+    fieldsets = (
+        (None, {'fields': ('user', 'date', 'device')}),
+        ('Time Records', {'fields': ('check_in_time', 'check_out_time', 'total_hours')}),
+        ('Status Information', {'fields': ('status', 'day_status', 'is_late', 'late_minutes')}),
+        ('Additional Info', {'fields': ('notes',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
 
 
 @admin.register(Leave)
@@ -169,11 +177,18 @@ class ESSLAttendanceLogAdmin(admin.ModelAdmin):
 
 @admin.register(WorkingHoursSettings)
 class WorkingHoursSettingsAdmin(admin.ModelAdmin):
-    list_display = ['office', 'standard_hours', 'start_time', 'end_time', 'late_threshold']
+    list_display = ['office', 'standard_hours', 'start_time', 'end_time', 'late_threshold', 'half_day_threshold', 'late_coming_threshold']
     list_filter = ['office', 'created_at']
     search_fields = ['office__name']
     ordering = ['office__name']
     readonly_fields = ['id', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        (None, {'fields': ('office',)}),
+        ('Working Hours', {'fields': ('standard_hours', 'start_time', 'end_time')}),
+        ('Attendance Rules', {'fields': ('late_threshold', 'half_day_threshold', 'late_coming_threshold')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
 
 
 # Customize admin site

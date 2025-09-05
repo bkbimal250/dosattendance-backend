@@ -196,38 +196,9 @@ class ESSLDeviceService:
     def _calculate_attendance_status(self, attendance, office):
         """Calculate attendance status based on working hours settings"""
         try:
-            # Get working hours settings for the office
-            settings = WorkingHoursSettings.objects.filter(office=office).first()
-            if not settings:
-                # Use default settings
-                settings = WorkingHoursSettings(
-                    office=office,
-                    standard_hours=9.0,
-                    start_time=time(9, 0),
-                    end_time=time(18, 0),
-                    late_threshold=15,
-                    half_day_threshold=240
-                )
-            
-            if not attendance.check_in_time:
-                return 'absent'
-            
-            # Check if late
-            start_datetime = timezone.make_aware(
-                datetime.combine(attendance.date, settings.start_time)
-            )
-            late_threshold = start_datetime + timedelta(minutes=settings.late_threshold)
-            
-            if attendance.check_in_time > late_threshold:
-                return 'late'
-            
-            # Check if half day
-            if attendance.check_out_time:
-                total_minutes = (attendance.check_out_time - attendance.check_in_time).total_seconds() / 60
-                if total_minutes < settings.half_day_threshold:
-                    return 'half_day'
-            
-            return 'present'
+            # Use the new automatic calculation method from the Attendance model
+            attendance.calculate_attendance_status()
+            return attendance.status
             
         except Exception as e:
             logger.error(f"Error calculating attendance status: {str(e)}")
