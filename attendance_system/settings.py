@@ -283,7 +283,7 @@ SIMPLE_JWT = {
 
 # CORS Settings
 if IS_PRODUCTION:
-    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOW_METHODS = [
