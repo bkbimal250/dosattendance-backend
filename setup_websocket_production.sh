@@ -50,12 +50,20 @@ a2enmod ssl
 print_status "Apache2 modules enabled successfully"
 
 print_header "2. Installing Daphne (ASGI server)"
-# Install Daphne if not already installed
-if ! command -v daphne &> /dev/null; then
-    print_status "Installing Daphne..."
-    pip3 install daphne
+# Install Daphne in the virtual environment
+PROJECT_DIR="/var/www/EmployeeAttendance"
+VENV_DIR="$PROJECT_DIR/venv"
+
+if [ -d "$VENV_DIR" ]; then
+    print_status "Installing Daphne in virtual environment..."
+    $VENV_DIR/bin/pip install daphne
+    print_status "Daphne installed in virtual environment"
 else
-    print_status "Daphne is already installed"
+    print_error "Virtual environment not found at $VENV_DIR"
+    print_status "Creating virtual environment..."
+    python3 -m venv $VENV_DIR
+    $VENV_DIR/bin/pip install daphne
+    print_status "Virtual environment created and Daphne installed"
 fi
 
 print_header "3. Configuring Apache2 Virtual Host"
@@ -71,7 +79,7 @@ cp apache2_websocket_virtualhost.conf /etc/apache2/sites-available/employee-atte
 
 # Update domain name in configuration
 print_status "Updating domain configuration..."
-sed -i 's/company.d0s369.co.in/company.d0s369.co.in/g' /etc/apache2/sites-available/employee-attendance.conf
+sed -i 's/your-domain.com/company.d0s369.co.in/g' /etc/apache2/sites-available/employee-attendance.conf
 
 print_header "4. Configuring systemd service for ASGI"
 # Copy systemd service file
@@ -105,7 +113,7 @@ print_status "Firewall rules added"
 
 print_header "7. Setting up environment variables"
 # Create environment file if it doesn't exist
-ENV_FILE="/var/www/EmployeeAttandance/.env"
+ENV_FILE="/var/www/EmployeeAttendance/.env"
 if [ ! -f "$ENV_FILE" ]; then
     print_status "Creating environment file..."
     cat > "$ENV_FILE" << EOF
@@ -136,8 +144,8 @@ fi
 
 print_header "8. Setting permissions"
 # Set proper permissions
-chown -R www-data:www-data /var/www/EmployeeAttandance
-chmod -R 755 /var/www/EmployeeAttandance
+chown -R www-data:www-data /var/www/EmployeeAttendance
+chmod -R 755 /var/www/EmployeeAttendance
 
 print_status "Permissions set correctly"
 

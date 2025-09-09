@@ -7,11 +7,11 @@ Wants=network.target
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/var/www/EmployeeAttandance
+WorkingDirectory=/var/www/EmployeeAttendance
 Environment=DJANGO_SETTINGS_MODULE=attendance_system.settings
 Environment=ENVIRONMENT=production
-Environment=PYTHONPATH=/var/www/EmployeeAttandance
-ExecStart=/var/www/EmployeeAttandance/venv/bin/daphne -b 127.0.0.1 -p 8001 attendance_system.asgi:application
+Environment=PYTHONPATH=/var/www/EmployeeAttendance
+ExecStart=/var/www/EmployeeAttendance/venv/bin/daphne -b 127.0.0.1 -p 8001 attendance_system.asgi:application
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=3
@@ -24,7 +24,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/www/EmployeeAttandance
+ReadWritePaths=/var/www/EmployeeAttendance
 ReadWritePaths=/var/log
 ReadWritePaths=/tmp
 
