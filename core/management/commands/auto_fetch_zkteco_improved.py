@@ -43,8 +43,9 @@ except ImportError:
 class ImprovedAutoFetchService:
     """Improved automatic ZKTeco data fetching service with proper check-in/check-out handling"""
     
-    def __init__(self, interval=30):
+    def __init__(self, interval=30, fetch_days=10):
         self.interval = interval
+        self.fetch_days = fetch_days  # Number of days to fetch (default: 10)
         self.running = False
         self.thread = None
         self.devices = []
@@ -77,11 +78,11 @@ class ImprovedAutoFetchService:
         self.thread = threading.Thread(target=self._run_service, daemon=True)
         self.thread.start()
         
-        logger.info(f"✅ Service started. Fetching data every {self.interval} seconds")
+        logger.info(f"[START] Service started. Fetching data every {self.interval} seconds (last {self.fetch_days} days only)")
         
     def stop(self):
         """Stop the automatic fetching service"""
-        logger.info("🛑 Stopping improved automatic ZKTeco data fetching service...")
+        logger.info("[STOP] Stopping improved automatic ZKTeco data fetching service...")
         self.running = False
         
         if self.thread and self.thread.is_alive():
@@ -89,7 +90,7 @@ class ImprovedAutoFetchService:
             
         # Cleanup device connections
         self.cleanup_connections()
-        logger.info("✅ Service stopped")
+        logger.info("[STOP] Service stopped")
         
     def cleanup_connections(self):
         """Clean up all device connections"""
@@ -97,13 +98,13 @@ class ImprovedAutoFetchService:
             if conn:
                 try:
                     conn.disconnect()
-                    logger.info(f"✅ Disconnected from device {device_id}")
+                    logger.info(f"[DISCONNECT] Disconnected from device {device_id}")
                 except:
                     pass
                 self.device_connections[device_id] = None
         
     def connect_to_device(self, device):
-        """Connect to a ZKTeco device"""
+        """Connect to a ZKTeco device with improved error handling"""
         try:
             if not ZK:
                 logger.error("pyzk library not available")
@@ -111,31 +112,62 @@ class ImprovedAutoFetchService:
                 
             # Check if we already have a connection
             if self.device_connections.get(device.id):
-                return self.device_connections[device.id]
+                try:
+                    # Test if connection is still alive
+                    self.device_connections[device.id].get_time()
+                    return self.device_connections[device.id]
+                except:
+                    # Connection is dead, remove it
+                    logger.warning(f"[WARNING] Dead connection detected for {device.name}, reconnecting...")
+                    self.device_connections[device.id] = None
                 
-            zk = ZK(device.ip_address, port=device.port, timeout=15)
-            conn = zk.connect()
-            
-            if conn:
-                self.device_connections[device.id] = conn
-                logger.info(f"✅ Connected to {device.name} ({device.ip_address}:{device.port})")
-                return conn
-            else:
-                logger.error(f"❌ Failed to connect to {device.name}")
-                return None
+            # Create new connection with retry logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    zk = ZK(device.ip_address, port=device.port, timeout=10)
+                    conn = zk.connect()
+                    
+                    if conn:
+                        self.device_connections[device.id] = conn
+                        logger.info(f"[CONNECT] Connected to {device.name} ({device.ip_address}:{device.port})")
+                        return conn
+                    else:
+                        logger.warning(f"[WARNING] Failed to connect to {device.name} (attempt {attempt + 1}/{max_retries})")
+                        
+                except Exception as e:
+                    logger.warning(f"[WARNING] Connection attempt {attempt + 1} failed for {device.name}: {str(e)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)  # Wait before retry
+                        
+            logger.error(f"[ERROR] Failed to connect to {device.name} after {max_retries} attempts")
+            return None
                 
         except Exception as e:
-            logger.error(f"❌ Connection error to {device.name}: {str(e)}")
+            logger.error(f"[ERROR] Connection error to {device.name}: {str(e)}")
             return None
     
     def get_device_attendance(self, conn, device):
-        """Get attendance records from device"""
+        """Get attendance records from device (last 10 days only)"""
         try:
-            attendance_logs = conn.get_attendance()
-            logger.info(f"📊 Found {len(attendance_logs)} attendance records on {device.name}")
-            return attendance_logs
+            # Get all attendance logs from device
+            all_attendance_logs = conn.get_attendance()
+            logger.info(f"[DATA] Found {len(all_attendance_logs)} total attendance records on {device.name}")
+            
+            # Filter to last N days only (configurable)
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.now() - timedelta(days=self.fetch_days)
+            
+            filtered_logs = []
+            for log in all_attendance_logs:
+                if log.timestamp >= cutoff_date:
+                    filtered_logs.append(log)
+            
+            logger.info(f"[DATA] Filtered to {len(filtered_logs)} records from last {self.fetch_days} days on {device.name}")
+            return filtered_logs
+            
         except Exception as e:
-            logger.error(f"❌ Error getting attendance from {device.name}: {str(e)}")
+            logger.error(f"[ERROR] Error getting attendance from {device.name}: {str(e)}")
             return []
     
     def process_attendance_records(self, logs, device):
@@ -165,7 +197,7 @@ class ImprovedAutoFetchService:
                 try:
                     user = CustomUser.objects.get(employee_id=str(user_id))
                 except CustomUser.DoesNotExist:
-                    logger.warning(f"⚠️ User with employee_id {user_id} not found")
+                    logger.warning(f"[WARNING] User with employee_id {user_id} not found")
                     error_count += 1
                     continue
                 
@@ -182,41 +214,71 @@ class ImprovedAutoFetchService:
                     }
                 )
                 
-                # Process check-in and check-out times
+                # Process check-in and check-out times with improved logic
                 check_in_time = None
                 check_out_time = None
                 
-                for log in user_logs:
-                    timestamp = log.timestamp
-                    
-                    # Determine if this is check-in or check-out
-                    # First log of the day is usually check-in
-                    # Last log of the day is usually check-out
-                    if len(user_logs) == 1:
-                        # Single log - determine by time
-                        if timestamp.hour < 12:
-                            check_in_time = timestamp
-                        else:
-                            check_out_time = timestamp
-                    else:
-                        # Multiple logs - first is check-in, last is check-out
-                        if log == user_logs[0]:  # First log
-                            check_in_time = timestamp
-                        elif log == user_logs[-1]:  # Last log
-                            check_out_time = timestamp
+                # Sort logs by timestamp to ensure proper order
+                user_logs.sort(key=lambda x: x.timestamp)
                 
-                # Update attendance record
+                if len(user_logs) == 1:
+                    # Single log - determine by time of day
+                    timestamp = user_logs[0].timestamp
+                    if timestamp.hour < 12:  # Morning - likely check-in
+                        check_in_time = timestamp
+                    else:  # Afternoon/Evening - likely check-out
+                        check_out_time = timestamp
+                else:
+                    # Multiple logs - use alternating pattern
+                    for i, log in enumerate(user_logs):
+                        timestamp = log.timestamp
+                        
+                        if i == 0:
+                            # First log is always check-in
+                            check_in_time = timestamp
+                        elif i == len(user_logs) - 1:
+                            # Last log is always check-out
+                            check_out_time = timestamp
+                        else:
+                            # Middle logs - determine by time gap
+                            prev_log = user_logs[i-1]
+                            time_gap = (timestamp - prev_log.timestamp).total_seconds() / 3600  # hours
+                            
+                            if time_gap > 1:  # More than 1 hour gap - likely check-out then check-in
+                                if not check_out_time:
+                                    check_out_time = prev_log.timestamp
+                                check_in_time = timestamp
+                            else:
+                                # Short gap - might be multiple check-ins or check-outs
+                                # Keep the latest times
+                                if timestamp.hour < 12:
+                                    check_in_time = timestamp
+                                else:
+                                    check_out_time = timestamp
+                
+                # Update attendance record with improved logic
                 updated = False
                 
-                if check_in_time and not attendance.check_in_time:
-                    attendance.check_in_time = check_in_time
-                    updated = True
-                    logger.info(f"✅ Check-in: {user.get_full_name()} at {check_in_time.strftime('%H:%M')}")
+                # Update check-in time (allow updates if new time is earlier)
+                if check_in_time:
+                    if not attendance.check_in_time or check_in_time < attendance.check_in_time:
+                        attendance.check_in_time = check_in_time
+                        updated = True
+                        logger.info(f"[CHECKIN] {user.get_full_name()} at {check_in_time.strftime('%H:%M')}")
                 
-                if check_out_time and not attendance.check_out_time:
-                    attendance.check_out_time = check_out_time
+                # Update check-out time (allow updates if new time is later)
+                if check_out_time:
+                    if not attendance.check_out_time or check_out_time > attendance.check_out_time:
+                        attendance.check_out_time = check_out_time
+                        updated = True
+                        logger.info(f"[CHECKOUT] {user.get_full_name()} at {check_out_time.strftime('%H:%M')}")
+                
+                # Calculate total hours if both times are available
+                if attendance.check_in_time and attendance.check_out_time:
+                    time_diff = attendance.check_out_time - attendance.check_in_time
+                    total_hours = time_diff.total_seconds() / 3600
+                    attendance.total_hours = round(total_hours, 2)
                     updated = True
-                    logger.info(f"✅ Check-out: {user.get_full_name()} at {check_out_time.strftime('%H:%M')}")
                 
                 if updated:
                     attendance.device = device
@@ -224,14 +286,26 @@ class ImprovedAutoFetchService:
                     synced_count += 1
                 
             except Exception as e:
-                logger.error(f"❌ Error processing attendance for user {user_id}: {str(e)}")
+                logger.error(f"[ERROR] Error processing attendance for user {user_id}: {str(e)}")
                 error_count += 1
         
         return synced_count, error_count
     
+    def should_fetch_from_device(self, device):
+        """Check if we should fetch data from this device based on last fetch time"""
+        current_time = datetime.now()
+        last_fetch = self.last_fetch_times.get(device.id)
+        
+        if not last_fetch:
+            return True
+            
+        # Check if enough time has passed since last fetch
+        time_since_last_fetch = (current_time - last_fetch).seconds
+        return time_since_last_fetch >= self.interval
+    
     def _run_service(self):
         """Main service loop"""
-        logger.info("🔄 Starting main service loop...")
+        logger.info("[SERVICE] Starting main service loop...")
         
         while self.running:
             try:
@@ -251,11 +325,10 @@ class ImprovedAutoFetchService:
         for device in self.devices:
             try:
                 # Check if we should fetch from this device
-                last_fetch = self.last_fetch_times.get(device.id)
-                if last_fetch and (current_time - last_fetch).seconds < self.interval:
+                if not self.should_fetch_from_device(device):
                     continue
                     
-                logger.info(f"🔄 Fetching data from device: {device.name} ({device.ip_address})")
+                logger.info(f"[FETCH] Fetching data from device: {device.name} ({device.ip_address})")
                 
                 # Connect to device
                 conn = self.connect_to_device(device)
@@ -269,20 +342,20 @@ class ImprovedAutoFetchService:
                     # Process attendance records
                     synced_count, error_count = self.process_attendance_records(attendance_logs, device)
                     
-                    logger.info(f"📊 {device.name}: {synced_count} synced, {error_count} errors")
+                    logger.info(f"[SYNC] {device.name}: {synced_count} synced, {error_count} errors")
                     
                     # Update device last sync time
                     device.last_sync = current_time
                     device.save(update_fields=['last_sync'])
                     
                 else:
-                    logger.warning(f"⚠️ No data fetched from device {device.name}")
+                    logger.warning(f"[WARNING] No data fetched from device {device.name}")
                     
                 # Update last fetch time
                 self.last_fetch_times[device.id] = current_time
                 
             except Exception as e:
-                logger.error(f"❌ Error fetching from device {device.name}: {str(e)}")
+                logger.error(f"[ERROR] Error fetching from device {device.name}: {str(e)}")
                 
     def get_status(self):
         """Get service status"""
@@ -298,11 +371,12 @@ class ImprovedAutoFetchService:
             'devices_count': len(self.devices),
             'last_fetch_times': self.last_fetch_times,
             'interval': self.interval,
+            'fetch_days': self.fetch_days,
             'active_connections': len([conn for conn in self.device_connections.values() if conn])
         }
 
-# Global service instance
-improved_auto_fetch_service = ImprovedAutoFetchService()
+# Global service instance with optimized settings
+improved_auto_fetch_service = ImprovedAutoFetchService(interval=30, fetch_days=10)
 
 def signal_handler(signum, frame):
     """Handle shutdown signals"""

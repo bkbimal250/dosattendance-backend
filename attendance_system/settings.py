@@ -38,8 +38,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-eg&hkh!w@e(%wx6aztj4+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not IS_PRODUCTION
 
-# Allow all hosts for testing
-ALLOWED_HOSTS = ['*']
+# Allowed hosts configuration
+if IS_PRODUCTION:
+    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+else:
+    ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -98,44 +101,76 @@ WSGI_APPLICATION = 'attendance_system.wsgi.application'
 ASGI_APPLICATION = 'attendance_system.asgi.application'
 
 # Channels Configuration
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        # For production, use Redis:
-        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        # 'CONFIG': {
-        #     "hosts": [('127.0.0.1', 6379)],
-        # },
-    },
-}
+if IS_PRODUCTION:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [(os.environ.get('REDIS_HOST', 'localhost'), int(os.environ.get('REDIS_PORT', 6379)))],
+                "capacity": 1500,
+                "expiry": 10,
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'u434975676_DOS',
-        'USER': 'u434975676_bimal',
-        'PASSWORD': 'DishaSolution@8989',
-        'HOST': '193.203.184.215',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'connect_timeout': 30,
-            'read_timeout': 30,
-            'write_timeout': 30,
-            'autocommit': True,
-            # Connection management settings
-            'max_allowed_packet': 16777216,  # 16MB
-            'sql_mode': 'STRICT_TRANS_TABLES',
-        },
-        'CONN_MAX_AGE': 3600,  # 1 hour - increased from 600
-        'ATOMIC_REQUESTS': False,
+# Database Configuration
+if IS_PRODUCTION:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
+            'NAME': os.environ.get('DB_NAME', 'u434975676_DOS'),
+            'USER': os.environ.get('DB_USER', 'u434975676_bimal'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'DishaSolution@8989'),
+            'HOST': os.environ.get('DB_HOST', '193.203.184.215'),
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'connect_timeout': 30,
+                'read_timeout': 30,
+                'write_timeout': 30,
+                'autocommit': True,
+                'max_allowed_packet': 16777216,  # 16MB
+                'sql_mode': 'STRICT_TRANS_TABLES',
+            },
+            'CONN_MAX_AGE': 3600,  # 1 hour for production
+            'ATOMIC_REQUESTS': False,
+        }
     }
-}
+else:
+    # Development database configuration
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'u434975676_DOS',
+            'USER': 'u434975676_bimal',
+            'PASSWORD': 'DishaSolution@8989',
+            'HOST': '193.203.184.215',
+            'PORT': '3306',
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'connect_timeout': 30,
+                'read_timeout': 30,
+                'write_timeout': 30,
+                'autocommit': True,
+                'max_allowed_packet': 16777216,  # 16MB
+                'sql_mode': 'STRICT_TRANS_TABLES',
+            },
+            'CONN_MAX_AGE': 60,  # 1 minute for development
+            'ATOMIC_REQUESTS': False,
+        }
+    }
 
 
 # Password validation
@@ -201,7 +236,7 @@ DB_OPTIMIZATION = {
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'core.authentication.CustomJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -221,7 +256,7 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
     ],
-    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'EXCEPTION_HANDLER': 'core.exception_handlers.custom_exception_handler',
 }
 
 # JWT Settings
@@ -246,39 +281,61 @@ SIMPLE_JWT = {
 }
 
 
-# CORS Settings - Allow all for testing
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-# Additional CORS settings for development
-CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
-
-# Additional CORS settings for better compatibility
-CORS_ALLOW_CREDENTIALS = True
-CORS_URLS_REGEX = r'^.*$'  # Allow CORS for all URLs
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'access-control-allow-origin',
-    'access-control-allow-methods',
-    'access-control-allow-headers',
-]
+# CORS Settings
+if IS_PRODUCTION:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOW_METHODS = [
+        'DELETE',
+        'GET',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PUT',
+    ]
+    CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+    CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+    CORS_ALLOW_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+    ]
+else:
+    # Development CORS settings - Allow all for testing
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOW_METHODS = [
+        'DELETE',
+        'GET',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PUT',
+    ]
+    CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+    CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+    CORS_URLS_REGEX = r'^.*$'  # Allow CORS for all URLs
+    CORS_ALLOW_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+        'access-control-allow-origin',
+        'access-control-allow-methods',
+        'access-control-allow-headers',
+    ]
 
 # Security Settings for Production
 # Security Settings for Production

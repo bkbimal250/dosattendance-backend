@@ -5,33 +5,57 @@ import uuid
 from .models import (
     CustomUser, Office, Device, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
-    WorkingHoursSettings
+    WorkingHoursSettings, DocumentTemplate, GeneratedDocument, Resignation
 )
 
 
 class OfficeSerializer(serializers.ModelSerializer):
     """Serializer for Office model"""
-    manager_name = serializers.CharField(source='manager.get_full_name', read_only=True)
-    manager_email = serializers.CharField(source='manager.email', read_only=True)
+    managers_data = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Office
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
 
-    def validate_manager(self, value):
-        """Validate that the assigned manager is actually a manager role"""
-        if value and value.role != 'manager':
-            raise serializers.ValidationError('Only users with manager role can be assigned as office managers.')
+    def get_managers_data(self, obj):
+        """Get detailed information about managers"""
+        return [
+            {
+                'id': manager.id,
+                'name': manager.get_full_name(),
+                'email': manager.email,
+                'username': manager.username
+            }
+            for manager in obj.managers.all()
+        ]
+
+    def validate_managers(self, value):
+        """Validate that managers are actually manager role and limit to 5"""
+        if len(value) > 5:
+            raise serializers.ValidationError('An office can have at most 5 managers.')
+        
+        for manager in value:
+            if manager.role != 'manager':
+                raise serializers.ValidationError(f'User {manager.get_full_name()} is not a manager.')
+        
         return value
 
     def validate(self, attrs):
         """Validate office data"""
-        # If a manager is being assigned, ensure they don't already manage another office
-        if 'manager' in attrs and attrs['manager']:
-            existing_office = Office.objects.filter(manager=attrs['manager']).exclude(id=self.instance.id if self.instance else None).first()
-            if existing_office:
-                raise serializers.ValidationError(f'Manager {attrs["manager"].get_full_name()} is already assigned to office {existing_office.name}.')
+        # Validate that managers don't already manage too many offices
+        if 'managers' in attrs:
+            for manager in attrs['managers']:
+                # Count how many offices this manager already manages (excluding current office)
+                existing_offices_count = Office.objects.filter(managers=manager).exclude(
+                    id=self.instance.id if self.instance else None
+                ).count()
+                
+                if existing_offices_count >= 3:  # Allow managers to manage up to 3 offices
+                    raise serializers.ValidationError(
+                        f'Manager {manager.get_full_name()} is already managing {existing_offices_count} offices. '
+                        'A manager can manage at most 3 offices.'
+                    )
         
         return attrs
 
@@ -50,7 +74,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'department', 'designation', 'salary', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
-            'is_active', 'last_login', 'created_at', 'updated_at'
+            'is_active', 'last_login', 'created_at', 'updated_at', 'password'
         ]
         read_only_fields = ('id', 'last_login', 'created_at', 'updated_at')
         extra_kwargs = {
@@ -72,6 +96,25 @@ class CustomUserSerializer(serializers.ModelSerializer):
             pass
         
         return attrs
+
+    def create(self, validated_data):
+        """Create a new user with hashed password"""
+        password = validated_data.pop('password', None)
+        user = CustomUser.objects.create_user(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        """Update user with hashed password if provided"""
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -497,5 +540,155 @@ class DeviceSyncSerializer(serializers.Serializer):
         end_date = attrs.get('end_date')
         if start_date and end_date and start_date > end_date:
             raise serializers.ValidationError("Start date cannot be after end date")
+        
+        return attrs
+
+
+class DocumentTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for DocumentTemplate model"""
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = DocumentTemplate
+        fields = [
+            'id', 'name', 'document_type', 'template_content', 'is_active',
+            'created_by', 'created_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class GeneratedDocumentSerializer(serializers.ModelSerializer):
+    """Serializer for GeneratedDocument model"""
+    employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
+    employee_email = serializers.CharField(source='employee.email', read_only=True)
+    generated_by_name = serializers.CharField(source='generated_by.get_full_name', read_only=True)
+    template_name = serializers.CharField(source='template.name', read_only=True)
+    
+    class Meta:
+        model = GeneratedDocument
+        fields = [
+            'id', 'employee', 'employee_name', 'employee_email', 'template', 'template_name',
+            'document_type', 'title', 'content', 'pdf_file', 'generated_by', 'generated_by_name',
+            'generated_at', 'sent_at', 'is_sent', 'offer_data', 'increment_data', 'salary_data'
+        ]
+        read_only_fields = ['id', 'generated_at']
+
+
+class DocumentGenerationSerializer(serializers.Serializer):
+    """Serializer for document generation requests"""
+    employee_id = serializers.UUIDField()
+    document_type = serializers.ChoiceField(choices=DocumentTemplate.DOCUMENT_TYPE_CHOICES)
+    template_id = serializers.UUIDField(required=False)
+    
+    # Offer letter specific fields
+    position = serializers.CharField(required=False, allow_blank=True)
+    start_date = serializers.DateField(required=False)
+    starting_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    
+    # Salary increment specific fields
+    previous_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    increment_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
+    new_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    effective_date = serializers.DateField(required=False)
+    
+    # Salary slip specific fields
+    salary_month = serializers.CharField(required=False, allow_blank=True)
+    salary_year = serializers.CharField(required=False, allow_blank=True)
+    basic_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    extra_days_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    
+    # Common fields
+    custom_message = serializers.CharField(required=False, allow_blank=True)
+    send_email = serializers.BooleanField(default=True)
+    
+    def validate(self, attrs):
+        document_type = attrs.get('document_type')
+        
+        if document_type == 'offer_letter':
+            if not attrs.get('position'):
+                raise serializers.ValidationError("Position is required for offer letters")
+            if not attrs.get('start_date'):
+                raise serializers.ValidationError("Start date is required for offer letters")
+            if not attrs.get('starting_salary'):
+                raise serializers.ValidationError("Starting salary is required for offer letters")
+                
+        elif document_type == 'salary_increment':
+            if not attrs.get('previous_salary'):
+                raise serializers.ValidationError("Previous salary is required for salary increment letters")
+            if not attrs.get('new_salary'):
+                raise serializers.ValidationError("New salary is required for salary increment letters")
+            if not attrs.get('effective_date'):
+                raise serializers.ValidationError("Effective date is required for salary increment letters")
+        
+        return attrs
+
+
+class ResignationSerializer(serializers.ModelSerializer):
+    """Serializer for Resignation model"""
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    user_employee_id = serializers.CharField(source='user.employee_id', read_only=True)
+    user_office_name = serializers.CharField(source='user.office.name', read_only=True)
+    user_department = serializers.CharField(source='user.department', read_only=True)
+    user_designation = serializers.CharField(source='user.designation', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = Resignation
+        fields = [
+            'id', 'user', 'user_name', 'user_email', 'user_employee_id', 
+            'user_office_name', 'user_department', 'user_designation', 'resignation_date', 
+            'notice_period_days', 'reason', 'status', 'approved_by', 
+            'approved_by_name', 'approved_at', 'rejection_reason', 
+            'handover_notes', 'last_working_date', 'is_handover_completed',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ('id', 'approved_at', 'created_at', 'updated_at', 'last_working_date')
+
+
+class ResignationCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating resignation requests"""
+    class Meta:
+        model = Resignation
+        fields = ['resignation_date', 'notice_period_days', 'reason', 'handover_notes']
+    
+    def validate_resignation_date(self, value):
+        """Validate resignation date"""
+        from django.utils import timezone
+        if value < timezone.now().date():
+            raise serializers.ValidationError("Resignation date cannot be in the past.")
+        return value
+    
+    def validate_notice_period_days(self, value):
+        """Validate notice period"""
+        if value not in [15, 30]:
+            raise serializers.ValidationError("Notice period must be either 15 or 30 days.")
+        return value
+    
+    def create(self, validated_data):
+        """Create resignation request"""
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class ResignationApprovalSerializer(serializers.ModelSerializer):
+    """Serializer for resignation approval/rejection"""
+    class Meta:
+        model = Resignation
+        fields = ['status', 'rejection_reason', 'handover_notes', 'is_handover_completed']
+    
+    def validate_status(self, value):
+        """Validate status change"""
+        if value not in ['approved', 'rejected']:
+            raise serializers.ValidationError("Status must be either 'approved' or 'rejected'.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate approval data"""
+        status = attrs.get('status')
+        rejection_reason = attrs.get('rejection_reason', '')
+        
+        if status == 'rejected' and not rejection_reason:
+            raise serializers.ValidationError("Rejection reason is required when rejecting a resignation.")
         
         return attrs

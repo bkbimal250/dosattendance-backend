@@ -1,20 +1,24 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, filters, viewsets, permissions, serializers
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
-from django.db import models
+from django.db import models, transaction, IntegrityError
 from datetime import datetime, timedelta, date
 import logging
-import calendar
 import traceback
+import sys
+from django.core.exceptions import ValidationError
+from rest_framework.exceptions import APIException, ValidationError as DRFValidationError
 
 from .models import (
     CustomUser, Office, Device, Attendance, WorkingHoursSettings, 
-    ESSLAttendanceLog, Leave, Document, Notification, SystemSettings
+    ESSLAttendanceLog, Leave, Document, Notification, SystemSettings,
+    DocumentTemplate, GeneratedDocument, Resignation
 )
 from .serializers import (
     CustomUserSerializer, OfficeSerializer, DeviceSerializer, AttendanceSerializer,
@@ -23,7 +27,9 @@ from .serializers import (
     DocumentSerializer, DocumentCreateSerializer, NotificationSerializer, SystemSettingsSerializer,
     UserRegistrationSerializer, UserProfileSerializer, PasswordChangeSerializer,
     DashboardStatsSerializer, AttendanceLogSerializer, OfficeStatsSerializer,
-    UserLoginSerializer, DeviceSyncSerializer
+    UserLoginSerializer, DeviceSyncSerializer, DocumentTemplateSerializer, 
+    GeneratedDocumentSerializer, DocumentGenerationSerializer, ResignationSerializer,
+    ResignationCreateSerializer, ResignationApprovalSerializer
 )
 # Permissions are defined inline in this file
 from .zkteco_service import zkteco_service
@@ -3036,6 +3042,275 @@ class DashboardViewSet(viewsets.ViewSet):
             'office_name': office.name,
             'office_id': str(office.id)
         })
+
+
+class ResignationViewSet(viewsets.ModelViewSet):
+    """ViewSet for Resignation model"""
+    serializer_class = ResignationSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'user__office', 'resignation_date']
+    search_fields = ['user__first_name', 'user__last_name', 'user__employee_id', 'user__office__name', 'reason', 'status']
+    ordering_fields = ['resignation_date', 'created_at', 'status']
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Get queryset based on user role"""
+        user = self.request.user
+        
+        if user.is_admin:
+            # Admin can see all resignations
+            return Resignation.objects.select_related('user', 'approved_by').all()
+        elif user.is_manager:
+            # Manager can see resignations from their office
+            if user.office:
+                return Resignation.objects.select_related('user', 'approved_by').filter(
+                    user__office=user.office
+                )
+            else:
+                return Resignation.objects.none()
+        else:
+            # Employee can only see their own resignations
+            return Resignation.objects.select_related('user', 'approved_by').filter(
+                user=user
+            )
+
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.action == 'create':
+            return ResignationCreateSerializer
+        elif self.action in ['approve', 'reject']:
+            return ResignationApprovalSerializer
+        return ResignationSerializer
+
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action in ['create']:
+            # Only employees can create resignation requests
+            permission_classes = [IsAuthenticated]
+        elif self.action in ['approve', 'reject']:
+            # Only admin and manager can approve/reject
+            permission_classes = [IsAdminOrManager]
+        else:
+            # Default permissions
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permission_classes]
+
+    def create(self, request, *args, **kwargs):
+        """Create a new resignation request"""
+        # Ensure only employees can create resignation requests
+        if request.user.role != 'employee':
+            return Response({
+                'error': 'Only employees can submit resignation requests'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user already has a pending resignation
+        existing_resignation = Resignation.objects.filter(
+            user=request.user,
+            status='pending'
+        ).first()
+        
+        if existing_resignation:
+            return Response({
+                'error': 'You already have a pending resignation request'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resignation = serializer.save()
+        
+        # Create notification for managers/admins
+        self._create_resignation_notification(resignation)
+        
+        return Response(
+            ResignationSerializer(resignation).data,
+            status=status.HTTP_201_CREATED
+        )
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve a resignation request"""
+        resignation = self.get_object()
+        
+        if resignation.status != 'pending':
+            return Response({
+                'error': 'Only pending resignations can be approved'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ResignationApprovalSerializer(
+            resignation, 
+            data={'status': 'approved'}, 
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        # Save the status using the serializer
+        resignation = serializer.save()
+        
+        # Update approval details
+        resignation.approved_by = request.user
+        resignation.approved_at = timezone.now()
+        resignation.save()
+        
+        # Create notification for the employee
+        self._create_approval_notification(resignation, 'approved')
+        
+        # Broadcast resignation update via WebSocket
+        try:
+            from .consumers import broadcast_resignation_update_sync
+            resignation_data = ResignationSerializer(resignation).data
+            broadcast_resignation_update_sync(resignation_data)
+        except Exception as e:
+            print(f"Error broadcasting resignation update: {e}")
+        
+        return Response(ResignationSerializer(resignation).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject a resignation request"""
+        resignation = self.get_object()
+        
+        if resignation.status != 'pending':
+            return Response({
+                'error': 'Only pending resignations can be rejected'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ResignationApprovalSerializer(
+            resignation, 
+            data=request.data, 
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        # Update rejection details
+        resignation.approved_by = request.user
+        resignation.approved_at = timezone.now()
+        resignation.status = 'rejected'
+        resignation.rejection_reason = serializer.validated_data.get('rejection_reason', '')
+        resignation.save()
+        
+        # Create notification for the employee
+        self._create_approval_notification(resignation, 'rejected')
+        
+        # Broadcast resignation update via WebSocket
+        try:
+            from .consumers import broadcast_resignation_update_sync
+            resignation_data = ResignationSerializer(resignation).data
+            broadcast_resignation_update_sync(resignation_data)
+        except Exception as e:
+            print(f"Error broadcasting resignation update: {e}")
+        
+        return Response(ResignationSerializer(resignation).data)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        """Cancel a resignation request (only by the employee who created it)"""
+        resignation = self.get_object()
+        
+        if resignation.user != request.user:
+            return Response({
+                'error': 'You can only cancel your own resignation requests'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if resignation.status != 'pending':
+            return Response({
+                'error': 'Only pending resignations can be cancelled'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        resignation.status = 'cancelled'
+        resignation.save()
+        
+        return Response(ResignationSerializer(resignation).data)
+
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Get pending resignation requests"""
+        queryset = self.get_queryset().filter(status='pending')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def my_resignations(self, request):
+        """Get current user's resignation requests"""
+        if request.user.role != 'employee':
+            return Response({
+                'error': 'Only employees can access their resignation requests'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        queryset = Resignation.objects.filter(user=request.user)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get resignation statistics"""
+        user = request.user
+        
+        # Get base queryset based on user role
+        if user.is_admin:
+            # Admin can see all resignations
+            queryset = Resignation.objects.all()
+        elif user.is_manager:
+            # Manager can see resignations from their office
+            if user.office:
+                queryset = Resignation.objects.filter(user__office=user.office)
+            else:
+                queryset = Resignation.objects.none()
+        else:
+            # Employee can only see their own resignations
+            queryset = Resignation.objects.filter(user=user)
+        
+        # Calculate statistics
+        stats = {
+            'total': queryset.count(),
+            'pending': queryset.filter(status='pending').count(),
+            'approved': queryset.filter(status='approved').count(),
+            'rejected': queryset.filter(status='rejected').count(),
+            'cancelled': queryset.filter(status='cancelled').count(),
+        }
+        
+        # Add recent resignations (last 30 days)
+        from datetime import timedelta
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+        stats['recent'] = queryset.filter(created_at__date__gte=thirty_days_ago).count()
+        
+        return Response(stats)
+
+    def _create_resignation_notification(self, resignation):
+        """Create notification for managers/admins about new resignation"""
+        # Get managers and admins who should be notified
+        if resignation.user.office:
+            # Notify office manager and admins
+            managers = CustomUser.objects.filter(
+                Q(role='manager', office=resignation.user.office) | 
+                Q(role='admin')
+            ).distinct()
+        else:
+            # Notify all admins if user has no office
+            managers = CustomUser.objects.filter(role='admin')
+        
+        for manager in managers:
+            Notification.objects.create(
+                user=manager,
+                title='New Resignation Request',
+                message=f'{resignation.user.get_full_name()} has submitted a resignation request with last working date {resignation.resignation_date}.',
+                notification_type='system'
+            )
+
+    def _create_approval_notification(self, resignation, action):
+        """Create notification for employee about resignation approval/rejection"""
+        action_text = 'approved' if action == 'approved' else 'rejected'
+        message = f'Your resignation request has been {action_text} by {resignation.approved_by.get_full_name()}.'
+        
+        if action == 'rejected' and resignation.rejection_reason:
+            message += f' Reason: {resignation.rejection_reason}'
+        
+        Notification.objects.create(
+            user=resignation.user,
+            title=f'Resignation Request {action_text.title()}',
+            message=message,
+            notification_type='system'
+        )
 
 
 # Custom error handlers for production

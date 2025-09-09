@@ -72,8 +72,8 @@ class APIAuthenticationDebugMiddleware:
         self.get_response = get_response
         
     def __call__(self, request):
-        # Debug authentication headers for API requests
-        if request.path.startswith('/api/'):
+        # Skip authentication debug for login/register endpoints
+        if request.path.startswith('/api/') and not request.path in ['/api/auth/login/', '/api/auth/register/']:
             logger.debug(f"API Request: {request.method} {request.path}")
             logger.debug(f"Authorization Header: {request.headers.get('Authorization', 'Not present')}")
             logger.debug(f"HTTP_AUTHORIZATION: {request.META.get('HTTP_AUTHORIZATION', 'Not present')}")
@@ -81,8 +81,8 @@ class APIAuthenticationDebugMiddleware:
         
         response = self.get_response(request)
         
-        # Debug response for API requests
-        if request.path.startswith('/api/'):
+        # Debug response for API requests (except login/register)
+        if request.path.startswith('/api/') and not request.path in ['/api/auth/login/', '/api/auth/register/']:
             logger.debug(f"API Response: {response.status_code} for {request.path}")
         
         return response

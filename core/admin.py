@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
-    WorkingHoursSettings
+    WorkingHoursSettings, Resignation
 )
 
 
@@ -189,6 +189,46 @@ class WorkingHoursSettingsAdmin(admin.ModelAdmin):
         ('Attendance Rules', {'fields': ('late_threshold', 'half_day_threshold', 'late_coming_threshold')}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
+
+
+@admin.register(Resignation)
+class ResignationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'resignation_date', 'notice_period_days', 'status', 'approved_by', 'created_at']
+    list_filter = ['status', 'resignation_date', 'created_at', 'user__office']
+    search_fields = ['user__first_name', 'user__last_name', 'reason', 'approved_by__first_name', 'approved_by__last_name']
+    ordering = ['-created_at']
+    readonly_fields = ['id', 'last_working_date', 'approved_at', 'created_at', 'updated_at']
+    date_hierarchy = 'resignation_date'
+    
+    fieldsets = (
+        (None, {'fields': ('user', 'resignation_date', 'notice_period_days')}),
+        ('Resignation Details', {'fields': ('reason', 'handover_notes', 'is_handover_completed')}),
+        ('Approval Information', {'fields': ('status', 'approved_by', 'approved_at', 'rejection_reason')}),
+        ('Calculated Fields', {'fields': ('last_working_date',)}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
+    
+    actions = ['approve_resignations', 'reject_resignations']
+    
+    def approve_resignations(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='approved', 
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} resignation requests approved.')
+    approve_resignations.short_description = "Approve selected resignation requests"
+    
+    def reject_resignations(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(status='pending').update(
+            status='rejected', 
+            approved_by=request.user,
+            approved_at=timezone.now()
+        )
+        self.message_user(request, f'{updated} resignation requests rejected.')
+    reject_resignations.short_description = "Reject selected resignation requests"
 
 
 # Customize admin site

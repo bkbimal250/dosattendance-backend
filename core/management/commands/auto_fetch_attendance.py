@@ -31,7 +31,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/auto_fetch_attendance.log'),
+        logging.FileHandler('logs/auto_fetch_attendance.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -292,7 +292,7 @@ class AutoAttendanceService:
                 timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
                 
             # Log every biometric scan for audit purposes
-            logger.info(f"📱 BIOMETRIC SCAN: {user.get_full_name()} (ID: {log.user_id}) scanned at {timestamp.strftime('%H:%M:%S')} on {device.name}")
+            logger.info(f"BIOMETRIC SCAN: {user.get_full_name()} (ID: {log.user_id}) scanned at {timestamp.strftime('%H:%M:%S')} on {device.name}")
                 
             # Get or create attendance record for this user and date
             attendance, created = Attendance.objects.get_or_create(
@@ -307,7 +307,7 @@ class AutoAttendanceService:
             
             if created:
                 # First scan of the day - this is the check-in
-                logger.info(f"✅ FIRST SCAN: Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                logger.info(f"FIRST SCAN: Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
             else:
                 # Subsequent scans - determine if this should update check-in or check-out
                 # FIXED LOGIC: Only process if we have a valid check-in time
@@ -317,7 +317,7 @@ class AutoAttendanceService:
                         old_checkin = attendance.check_in_time
                         attendance.check_in_time = timestamp
                         attendance.save()
-                        logger.info(f"🔄 EARLIER SCAN: Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                        logger.info(f"EARLIER SCAN: Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                     elif timestamp > attendance.check_in_time:
                         # Later timestamp - update check-out time (last scan of the day)
                         if not attendance.check_out_time or timestamp > attendance.check_out_time:
@@ -325,18 +325,18 @@ class AutoAttendanceService:
                             attendance.check_out_time = timestamp
                             attendance.save()
                             if old_checkout:
-                                logger.info(f"🔄 LATER SCAN: Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                                logger.info(f"LATER SCAN: Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                             else:
-                                logger.info(f"✅ LAST SCAN: Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                                logger.info(f"LAST SCAN: Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
                         else:
                             # This scan is between check-in and check-out, log it but don't change times
-                            logger.debug(f"📝 MIDDLE SCAN: {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                            logger.debug(f"MIDDLE SCAN: {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
                 else:
                     # No check-in time exists - this should be the check-in
                     attendance.check_in_time = timestamp
                     attendance.status = 'present'
                     attendance.save()
-                    logger.info(f"✅ FIXED: Set check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')} (was missing check-in)")
+                    logger.info(f"FIXED: Set check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')} (was missing check-in)")
                         
             return True
                 

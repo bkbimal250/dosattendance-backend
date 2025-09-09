@@ -2,8 +2,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from datetime import timedelta
 import uuid
 from django.core.exceptions import ValidationError
+from django.template import Template, Context
 
 
 class Office(models.Model):
@@ -18,8 +20,9 @@ class Office(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     description = models.TextField(blank=True)
-    manager = models.ForeignKey('CustomUser', on_delete=models.SET_NULL, null=True, blank=True, 
-                               related_name='managed_office', limit_choices_to={'role': 'manager'})
+    managers = models.ManyToManyField('CustomUser', blank=True, 
+                                     related_name='managed_offices', limit_choices_to={'role': 'manager'},
+                                     help_text="Up to 5 managers can be assigned to an office")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -32,15 +35,10 @@ class Office(models.Model):
         return self.name
 
     def clean(self):
-        """Validate that manager is actually a manager role"""
-        if self.manager and self.manager.role != 'manager':
-            raise ValidationError('Only users with manager role can be assigned as office managers.')
-        
-        # Ensure manager is not already assigned to another office
-        if self.manager:
-            existing_office = Office.objects.filter(manager=self.manager).exclude(id=self.id).first()
-            if existing_office:
-                raise ValidationError(f'Manager {self.manager.get_full_name()} is already assigned to office {existing_office.name}.')
+        """Validate that managers are actually manager role and limit to 5"""
+        # This validation will be handled in the serializer since ManyToMany fields
+        # are not available during model.clean() for new instances
+        pass
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -604,3 +602,123 @@ class WorkingHoursSettings(models.Model):
 
     def __str__(self):
         return f"{self.office.name} - {self.standard_hours} hours"
+
+
+class DocumentTemplate(models.Model):
+    """Template for generating documents like offer letters, salary increment letters"""
+    DOCUMENT_TYPE_CHOICES = [
+        ('offer_letter', 'Offer Letter'),
+        ('salary_increment', 'Salary Increment Letter'),
+        ('salary_slip', 'Salary Slip'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200)
+    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    template_content = models.TextField(help_text="HTML template with Django template variables")
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Document Templates"
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_document_type_display()})"
+
+
+class GeneratedDocument(models.Model):
+    """Generated documents for employees"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='generated_documents')
+    template = models.ForeignKey(DocumentTemplate, on_delete=models.CASCADE)
+    document_type = models.CharField(max_length=50, choices=DocumentTemplate.DOCUMENT_TYPE_CHOICES)
+    title = models.CharField(max_length=200)
+    content = models.TextField(help_text="Generated HTML content")
+    pdf_file = models.FileField(upload_to='generated_documents/', null=True, blank=True)
+    generated_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_documents_by')
+    generated_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    is_sent = models.BooleanField(default=False)
+    
+    # Additional data for specific document types
+    offer_data = models.JSONField(null=True, blank=True, help_text="Data specific to offer letters")
+    increment_data = models.JSONField(null=True, blank=True, help_text="Data specific to salary increment letters")
+    salary_data = models.JSONField(null=True, blank=True, help_text="Data specific to salary slips")
+
+    class Meta:
+        verbose_name_plural = "Generated Documents"
+        ordering = ['-generated_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.employee.get_full_name()} ({self.generated_at.date()})"
+
+
+class Resignation(models.Model):
+    """Resignation model for employee resignation"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='resignations')
+    resignation_date = models.DateField(help_text="Resignation submission date")
+    notice_period_days = models.IntegerField(default=30, help_text="Notice period in days (15 or 30)")
+    reason = models.TextField(help_text="Reason for resignation")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    approved_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='approved_resignations',
+        limit_choices_to={'role__in': ['admin', 'manager']}
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, help_text="Reason for rejection if applicable")
+    handover_notes = models.TextField(blank=True, help_text="Handover notes and pending work")
+    last_working_date = models.DateField(null=True, blank=True, help_text="Automatically calculated last working date (resignation_date + notice_period)")
+    is_handover_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Resignation"
+        verbose_name_plural = "Resignations"
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.resignation_date} ({self.status})"
+
+    def clean(self):
+        """Validate resignation data"""
+        # Ensure resignation date is today or in the future (submission date)
+        if self.resignation_date and self.resignation_date < timezone.now().date():
+            raise ValidationError('Resignation date cannot be in the past.')
+        
+        # Ensure notice period is reasonable (15 or 30 days)
+        if self.notice_period_days and self.notice_period_days not in [15, 30]:
+            raise ValidationError('Notice period must be either 15 or 30 days.')
+        
+        # Ensure approved_by is admin or manager
+        if self.approved_by and self.approved_by.role not in ['admin', 'manager']:
+            raise ValidationError('Only admin or manager can approve resignations.')
+        
+        # Ensure user is an employee
+        if self.user.role != 'employee':
+            raise ValidationError('Only employees can submit resignation requests.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        
+        # Calculate last working date based on notice period
+        # Last working day = resignation_date + notice_period_days
+        if self.resignation_date and self.notice_period_days:
+            self.last_working_date = self.resignation_date + timedelta(days=self.notice_period_days)
+        
+        super().save(*args, **kwargs)

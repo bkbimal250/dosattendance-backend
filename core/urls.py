@@ -8,7 +8,11 @@ from rest_framework_simplejwt.views import (
 from .views import (
     OfficeViewSet, CustomUserViewSet, DeviceViewSet, AttendanceViewSet,
     LeaveViewSet, DocumentViewSet, NotificationViewSet, SystemSettingsViewSet,
-    AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet
+    AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
+    ResignationViewSet
+)
+from .document_views import (
+    DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
 )
 from .essl_views import (
     ESSLDeviceViewSet, ESSLAttendanceLogViewSet, WorkingHoursSettingsViewSet,
@@ -23,6 +27,7 @@ router.register(r'users', CustomUserViewSet, basename='user')
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
 router.register(r'leaves', LeaveViewSet, basename='leave')
+router.register(r'resignations', ResignationViewSet, basename='resignation')
 router.register(r'documents', DocumentViewSet, basename='document')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'settings', SystemSettingsViewSet)
@@ -30,6 +35,11 @@ router.register(r'attendance-logs', AttendanceLogViewSet, basename='attendance-l
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 router.register(r'zkteco-attendance', ZKTecoAttendanceViewSet, basename='zkteco-attendance')
 router.register(r'reports', ReportsViewSet, basename='reports')
+
+# Document generation endpoints
+router.register(r'document-templates', DocumentTemplateViewSet, basename='document-template')
+router.register(r'generated-documents', GeneratedDocumentViewSet, basename='generated-document')
+router.register(r'document-generation', DocumentGenerationViewSet, basename='document-generation')
 
 # ESSL Device Management
 router.register(r'essl-devices', ESSLDeviceViewSet, basename='essl-device')
