@@ -19,6 +19,9 @@ from .essl_views import (
     ESSLDeviceManagerView, UserRegistrationView, MonthlyAttendanceReportView,
     GetAllUsersFromDevicesView, ExportUsersToCSVView
 )
+from .push_views import (
+    DevicePushDataView, receive_attendance_push, device_health_check
+)
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -71,4 +74,9 @@ urlpatterns = [
     path('api/essl/get-all-users/', GetAllUsersFromDevicesView.as_view(), name='get-all-users'),
     path('api/essl/export-users-csv/', ExportUsersToCSVView.as_view(), name='export-users-csv'),
     path('api/essl/monthly-report/', MonthlyAttendanceReportView.as_view(), name='monthly-report'),
+    
+    # Device Push Data endpoints (for receiving data from biometric devices)
+    path('api/device/push-attendance/', DevicePushDataView.as_view(), name='device-push-attendance'),
+    path('api/device/receive-attendance/', receive_attendance_push, name='receive-attendance-push'),
+    path('api/device/health-check/', device_health_check, name='device-health-check'),
 ]
