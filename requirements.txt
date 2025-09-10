@@ -41,3 +41,6 @@ reportlab>=4.0.0,<5.0.0
 
 # Development (optional - remove for production)
 # django-debug-toolbar>=4.2.0
+
+# Push data reception dependencies
+pyzk>=0.9,<1.0.0
