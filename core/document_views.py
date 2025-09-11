@@ -13,11 +13,36 @@ from datetime import datetime, date
 from django.utils.dateparse import parse_date
 try:
     import weasyprint
+    import pydyf
     WEASYPRINT_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info(f"WeasyPrint is available for PDF generation - Version: {weasyprint.__version__}")
+    logger.info(f"pydyf version: {pydyf.__version__}")
+    
+    # Test if pydyf.PDF constructor is compatible
+    try:
+        # Test the PDF constructor with different argument counts
+        test_pdf = pydyf.PDF()
+        logger.info("pydyf.PDF() constructor test: SUCCESS (0 args)")
+        PDF_CONSTRUCTOR_ARGS = 0
+    except TypeError as e:
+        try:
+            test_pdf = pydyf.PDF('1.7')
+            logger.info("pydyf.PDF() constructor test: SUCCESS (1 arg)")
+            PDF_CONSTRUCTOR_ARGS = 1
+        except TypeError as e2:
+            try:
+                test_pdf = pydyf.PDF('1.7', 'test')
+                logger.info("pydyf.PDF() constructor test: SUCCESS (2 args)")
+                PDF_CONSTRUCTOR_ARGS = 2
+            except TypeError as e3:
+                logger.error(f"pydyf.PDF() constructor test: FAILED - {e3}")
+                PDF_CONSTRUCTOR_ARGS = -1
+                WEASYPRINT_AVAILABLE = False
+                
 except (ImportError, OSError) as e:
     WEASYPRINT_AVAILABLE = False
+    PDF_CONSTRUCTOR_ARGS = -1
     logger = logging.getLogger(__name__)
     logger.error(f"WeasyPrint not available: {e}. PDF generation will be disabled.")
 
