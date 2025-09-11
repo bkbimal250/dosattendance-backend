@@ -460,3 +460,6 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Create logs directory if it doesn't exist
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+# Attendance Service Configuration
+AUTO_START_ATTENDANCE_SERVICE = os.environ.get('AUTO_START_ATTENDANCE_SERVICE', 'false').lower() == 'true'
