@@ -72,15 +72,40 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
     def download_pdf(self, request, pk=None):
         """Download PDF version of the document"""
         document = self.get_object()
+        logger.info(f"Download PDF request for document {document.id}: {document.title}")
+        
+        # Debug: Check document state
+        logger.info(f"Document PDF file field: {document.pdf_file}")
+        if document.pdf_file:
+            logger.info(f"PDF file name: {document.pdf_file.name}")
+            logger.info(f"PDF file size: {document.pdf_file.size}")
+            logger.info(f"PDF file URL: {document.pdf_file.url}")
+        
+        # Debug: Check MEDIA_ROOT setting
+        from django.conf import settings
+        logger.info(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        logger.info(f"MEDIA_URL: {settings.MEDIA_URL}")
         
         # Check if PDF file exists and is valid
         if document.pdf_file and document.pdf_file.size > 0:
             try:
                 import os
+                logger.info(f"PDF file exists in database: {document.pdf_file.name}, size: {document.pdf_file.size}")
+                logger.info(f"PDF file path: {document.pdf_file.path}")
                 # Check if the file actually exists on disk
                 if os.path.exists(document.pdf_file.path):
                     filename = self.generate_document_filename(document)
+                    logger.info(f"Reading PDF file content...")
+                    
+                    # Check file permissions
+                    import stat
+                    file_stat = os.stat(document.pdf_file.path)
+                    logger.info(f"File permissions: {stat.filemode(file_stat.st_mode)}")
+                    logger.info(f"File size on disk: {file_stat.st_size} bytes")
+                    
                     pdf_content = document.pdf_file.read()
+                    logger.info(f"PDF content size: {len(pdf_content)} bytes")
+                    logger.info(f"PDF content starts with: {pdf_content[:10]}")
                     
                     # Verify it's actually a PDF by checking the header
                     if pdf_content.startswith(b'%PDF'):
@@ -91,12 +116,21 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     else:
                         logger.warning(f"PDF file for document {document.id} is corrupted, regenerating...")
                 else:
-                    logger.warning(f"PDF file for document {document.id} does not exist on disk, cleaning up and regenerating...")
+                    logger.warning(f"PDF file for document {document.id} does not exist on disk: {document.pdf_file.path}")
+                    logger.warning(f"Cleaning up orphaned files and regenerating...")
                     self.cleanup_orphaned_files(document)
             except Exception as e:
                 logger.error(f"Error reading existing PDF file for document {document.id}: {e}")
+                import traceback
+                logger.error(f"PDF file read error traceback: {traceback.format_exc()}")
                 # Try to clean up orphaned files
                 self.cleanup_orphaned_files(document)
+                # Return error response instead of continuing
+                return JsonResponse({
+                    'error': 'PDF file read error',
+                    'detail': str(e),
+                    'traceback': traceback.format_exc()
+                }, status=500)
         
         # If no valid PDF file, generate one on-demand
         if WEASYPRINT_AVAILABLE:
@@ -263,6 +297,8 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         logger.info(f"PDF file saved successfully: {document.pdf_file.path}")
                     except Exception as save_error:
                         logger.warning(f"Could not save PDF file: {save_error}")
+                        import traceback
+                        logger.warning(f"PDF save error traceback: {traceback.format_exc()}")
                         # Continue with download even if saving fails
                     
                     # Return the PDF response
@@ -276,10 +312,13 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 
             except Exception as e:
                 logger.error(f"PDF generation failed for document {document.id}: {e}")
-                # Return a proper error response instead of HTML fallback
+                import traceback
+                logger.error(f"PDF generation traceback: {traceback.format_exc()}")
+                # Return a proper error response with detailed error information
                 return JsonResponse({
                     'error': 'PDF generation failed',
                     'detail': str(e),
+                    'traceback': traceback.format_exc(),
                     'fallback_available': True
                 }, status=500)
         else:
