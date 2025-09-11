@@ -15,7 +15,7 @@ try:
     import weasyprint
     WEASYPRINT_AVAILABLE = True
     logger = logging.getLogger(__name__)
-    logger.info("WeasyPrint is available for PDF generation")
+    logger.info(f"WeasyPrint is available for PDF generation - Version: {weasyprint.__version__}")
 except (ImportError, OSError) as e:
     WEASYPRINT_AVAILABLE = False
     logger = logging.getLogger(__name__)
@@ -136,6 +136,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
         if WEASYPRINT_AVAILABLE:
             try:
                 logger.info(f"Generating PDF for document {document.id}")
+                logger.info(f"Using WeasyPrint version: {weasyprint.__version__}")
                 
                 # Generate proper filename
                 filename = self.generate_document_filename(document)
@@ -271,14 +272,27 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 # Create WeasyPrint HTML object with better configuration
                 html_doc = weasyprint.HTML(string=html_content)
                 
-                # Generate PDF with high quality settings
-                html_doc.write_pdf(
-                    pdf_buffer,
-                    stylesheets=None,  # We're using inline styles
-                    optimize_images=True,
-                    jpeg_quality=95,
-                    presentational_hints=True
-                )
+                # Generate PDF with version-compatible settings
+                try:
+                    # Try with newer WeasyPrint parameters first
+                    html_doc.write_pdf(
+                        pdf_buffer,
+                        stylesheets=None,  # We're using inline styles
+                        optimize_images=True
+                    )
+                except TypeError as e:
+                    if "PDF.__init__()" in str(e):
+                        logger.warning(f"WeasyPrint version compatibility issue: {e}")
+                        # Fallback to basic PDF generation without advanced options
+                        pdf_buffer = BytesIO()  # Reset buffer
+                        html_doc.write_pdf(pdf_buffer)
+                    else:
+                        raise e
+                except Exception as e:
+                    logger.error(f"Unexpected error in PDF generation: {e}")
+                    # Try basic PDF generation as last resort
+                    pdf_buffer = BytesIO()  # Reset buffer
+                    html_doc.write_pdf(pdf_buffer)
                 pdf_buffer.seek(0)
                 pdf_content = pdf_buffer.getvalue()
                 
