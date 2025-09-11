@@ -1,3 +1,9 @@
+"""
+Production app configuration with auto-start attendance service
+Use this in production by setting CORE_APP_CONFIG = 'core.production_apps.CoreConfig'
+in your settings.py
+"""
+
 from django.apps import AppConfig
 import logging
 import threading
@@ -16,11 +22,10 @@ class CoreConfig(AppConfig):
         self._service_lock = threading.Lock()
     
     def ready(self):
-        """Called when Django starts up"""
-        # Skip auto-start completely to avoid reentrant errors
-        # Service can be started manually using management commands
-        logger.info("Core app ready - attendance service auto-start disabled")
-        return
+        """Called when Django starts up - Production mode with auto-start"""
+        # Only start the service in production
+        if self._should_start_attendance_service():
+            self._start_attendance_service()
     
     def _should_start_attendance_service(self):
         """Determine if we should start the attendance service"""
@@ -32,7 +37,6 @@ class CoreConfig(AppConfig):
         if getattr(settings, 'AUTO_START_ATTENDANCE_SERVICE', False):
             return True
         
-        # Don't start in development mode by default
         return False
     
     def _start_attendance_service(self):
