@@ -2,6 +2,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, filters, viewsets, permissions, serializers
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters import rest_framework as django_filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
@@ -37,6 +38,46 @@ from .zkteco_service import zkteco_service
 from .db_manager import DatabaseConnectionManager
 
 logger = logging.getLogger(__name__)
+
+
+class CustomUserFilter(django_filters.FilterSet):
+    """FilterSet for CustomUser with proper filtering capabilities"""
+    office = django_filters.CharFilter(method='filter_office')
+    department = django_filters.CharFilter(field_name='department', lookup_expr='icontains')
+    role = django_filters.CharFilter(field_name='role')
+    is_active = django_filters.BooleanFilter(field_name='is_active')
+    search = django_filters.CharFilter(method='filter_search')
+    
+    class Meta:
+        model = CustomUser
+        fields = ['office', 'department', 'role', 'is_active', 'search']
+    
+    def filter_office(self, queryset, name, value):
+        """Custom office filter to handle null values"""
+        if not value:
+            return queryset
+        if value == 'null':
+            return queryset.filter(office__isnull=True)
+        try:
+            # Try to parse as UUID
+            import uuid
+            office_uuid = uuid.UUID(value)
+            return queryset.filter(office__id=office_uuid)
+        except (ValueError, TypeError):
+            # If not a valid UUID, try to filter by office name
+            return queryset.filter(office__name__icontains=value)
+    
+    def filter_search(self, queryset, name, value):
+        """Custom search filter across multiple fields"""
+        if not value:
+            return queryset
+        return queryset.filter(
+            Q(username__icontains=value) |
+            Q(first_name__icontains=value) |
+            Q(last_name__icontains=value) |
+            Q(email__icontains=value) |
+            Q(employee_id__icontains=value)
+        )
 
 
 class IsAdminUser(IsAuthenticated):
@@ -543,6 +584,9 @@ class ReportsViewSet(viewsets.ViewSet):
             month = request.query_params.get('month')
             office_id = request.query_params.get('office')
             user_id = request.query_params.get('user')
+            
+            logger.info(f"📊 Monthly summary request - Year: {year}, Month: {month}, Office: {office_id}, User: {user_id}")
+            logger.info(f"📊 All query params: {dict(request.query_params)}")
 
             # Convert to integers
             if year:
@@ -560,10 +604,16 @@ class ReportsViewSet(viewsets.ViewSet):
             
             # Get users
             users_query = CustomUser.objects.filter(role='employee', is_active=True)
+            total_users_before_filter = users_query.count()
+            
             if office_id:
                 users_query = users_query.filter(office_id=office_id)
+                logger.info(f"📊 Filtering by office_id: {office_id}")
             
             users = users_query.select_related('office')
+            total_users_after_filter = users.count()
+            
+            logger.info(f"📊 Users count - Before filter: {total_users_before_filter}, After filter: {total_users_after_filter}")
             
             report_data = []
             for user in users:
@@ -746,6 +796,28 @@ class OfficeViewSet(viewsets.ModelViewSet):
             return [IsAdminUser()]  # Only admin can modify offices
         return [permissions.IsAuthenticated()]  # Anyone authenticated can read offices
 
+    def get_queryset(self):
+        """Get queryset based on user role"""
+        user = self.request.user
+        
+        if user.is_admin:
+            # Admin can see all offices
+            return Office.objects.all()
+        elif user.is_manager:
+            # Manager can only see their assigned office
+            if user.office:
+                return Office.objects.filter(id=user.office.id)
+            else:
+                # If manager has no office assigned, return empty queryset
+                return Office.objects.none()
+        else:
+            # Regular employees can see their assigned office
+            if user.office:
+                return Office.objects.filter(id=user.office.id)
+            else:
+                # If employee has no office assigned, return empty queryset
+                return Office.objects.none()
+
     @action(detail=True, methods=['get'])
     def stats(self, request, pk=None):
         """Get office-specific statistics"""
@@ -816,9 +888,9 @@ class OfficeViewSet(viewsets.ModelViewSet):
 class CustomUserViewSet(viewsets.ModelViewSet):
     """ViewSet for CustomUser model"""
     serializer_class = CustomUserSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id']
+    filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['username', 'first_name', 'last_name', 'created_at']
+    filterset_class = CustomUserFilter
     
     def get_pagination_class(self):
         """Disable pagination for list action to show all users"""
@@ -829,17 +901,34 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """Override list method to ensure all users are returned without pagination"""
         queryset = self.get_queryset()
+        
+        # Debug logging for filtering
+        logger.info(f"🔍 CustomUserViewSet - Query params: {request.query_params}")
+        logger.info(f"🔍 CustomUserViewSet - Initial queryset count: {queryset.count()}")
+        
+        # Apply filters
+        filterset = self.filterset_class(request.query_params, queryset=queryset, request=request)
+        if filterset.is_valid():
+            queryset = filterset.qs
+            logger.info(f"🔍 CustomUserViewSet - Filtered queryset count: {queryset.count()}")
+        else:
+            logger.warning(f"🔍 CustomUserViewSet - Filter errors: {filterset.errors}")
+        
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def get_queryset(self):
         user = self.request.user
+        queryset = CustomUser.objects.select_related('office')
+        
         if user.is_admin:
-            return CustomUser.objects.all()
+            queryset = queryset.all()
         elif user.is_manager:
-            return CustomUser.objects.filter(office=user.office)
+            queryset = queryset.filter(office=user.office)
         else:
-            return CustomUser.objects.filter(id=user.id)
+            queryset = queryset.filter(id=user.id)
+        
+        return queryset
 
     def get_permissions(self):
         if self.action in ['login', 'register']:

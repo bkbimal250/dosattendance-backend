@@ -37,7 +37,9 @@ cryptography>=41.0.0,<42.0.0
 
 # File handling
 openpyxl>=3.1.0,<4.0.0
-reportlab>=4.0.0,<5.0.0
+
+# PDF Generation (Ubuntu/Linux only)
+weasyprint>=60.0,<61.0
 
 # Development (optional - remove for production)
 # django-debug-toolbar>=4.2.0

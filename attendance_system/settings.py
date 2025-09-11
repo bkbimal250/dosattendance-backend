@@ -40,7 +40,7 @@ DEBUG = not IS_PRODUCTION
 
 # Allowed hosts configuration
 if IS_PRODUCTION:
-    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,company.d0s369.co.in,').split(',')
 else:
     ALLOWED_HOSTS = ['*']
 

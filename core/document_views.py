@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.template import Template, Context
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 import logging
@@ -14,8 +14,12 @@ from django.utils.dateparse import parse_date
 try:
     import weasyprint
     WEASYPRINT_AVAILABLE = True
-except (ImportError, OSError):
+    logger = logging.getLogger(__name__)
+    logger.info("WeasyPrint is available for PDF generation")
+except (ImportError, OSError) as e:
     WEASYPRINT_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.error(f"WeasyPrint not available: {e}. PDF generation will be disabled.")
 
 from io import BytesIO
 
@@ -69,47 +73,248 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
         """Download PDF version of the document"""
         document = self.get_object()
         
-        # Check if PDF file exists
-        if document.pdf_file:
-            filename = self.generate_document_filename(document)
-            response = HttpResponse(document.pdf_file.read(), content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
-            return response
+        # Check if PDF file exists and is valid
+        if document.pdf_file and document.pdf_file.size > 0:
+            try:
+                import os
+                # Check if the file actually exists on disk
+                if os.path.exists(document.pdf_file.path):
+                    filename = self.generate_document_filename(document)
+                    pdf_content = document.pdf_file.read()
+                    
+                    # Verify it's actually a PDF by checking the header
+                    if pdf_content.startswith(b'%PDF'):
+                        response = HttpResponse(pdf_content, content_type='application/pdf')
+                        response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+                        response['Content-Length'] = len(pdf_content)
+                        return response
+                    else:
+                        logger.warning(f"PDF file for document {document.id} is corrupted, regenerating...")
+                else:
+                    logger.warning(f"PDF file for document {document.id} does not exist on disk, cleaning up and regenerating...")
+                    self.cleanup_orphaned_files(document)
+            except Exception as e:
+                logger.error(f"Error reading existing PDF file for document {document.id}: {e}")
+                # Try to clean up orphaned files
+                self.cleanup_orphaned_files(document)
         
-        # If no PDF file, generate one on-demand
+        # If no valid PDF file, generate one on-demand
         if WEASYPRINT_AVAILABLE:
             try:
-                pdf_buffer = BytesIO()
-                weasyprint.HTML(string=document.content).write_pdf(pdf_buffer)
-                pdf_buffer.seek(0)
+                logger.info(f"Generating PDF for document {document.id}")
                 
                 # Generate proper filename
                 filename = self.generate_document_filename(document)
                 
-                # Save PDF file for future use
-                document.pdf_file.save(f"{filename}.pdf", pdf_buffer, save=True)
+                # Enhance the document content with proper CSS for WeasyPrint
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>{document.title}</title>
+                    <style>
+                        @page {{
+                            margin: 0.75in;
+                            size: A4;
+                        }}
+                        
+                        body {{
+                            font-family: 'Arial', 'Helvetica', sans-serif;
+                            font-size: 12pt;
+                            line-height: 1.4;
+                            color: #333;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        
+                        .document-container {{
+                            max-width: 100%;
+                            margin: 0 auto;
+                        }}
+                        
+                        h1, h2, h3, h4, h5, h6 {{
+                            color: #2c3e50;
+                            margin-top: 20px;
+                            margin-bottom: 10px;
+                            page-break-after: avoid;
+                        }}
+                        
+                        h1 {{
+                            font-size: 18pt;
+                            font-weight: bold;
+                            text-align: center;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                            margin-bottom: 30px;
+                        }}
+                        
+                        h2 {{
+                            font-size: 16pt;
+                            font-weight: bold;
+                        }}
+                        
+                        h3 {{
+                            font-size: 14pt;
+                            font-weight: bold;
+                        }}
+                        
+                        p {{
+                            margin: 8px 0;
+                            text-align: justify;
+                        }}
+                        
+                        .header {{
+                            text-align: center;
+                            margin-bottom: 30px;
+                            border-bottom: 1px solid #ddd;
+                            padding-bottom: 15px;
+                        }}
+                        
+                        .company-info {{
+                            font-size: 10pt;
+                            color: #666;
+                            margin-bottom: 20px;
+                        }}
+                        
+                        .content {{
+                            margin: 20px 0;
+                        }}
+                        
+                        .footer {{
+                            margin-top: 40px;
+                            padding-top: 15px;
+                            border-top: 1px solid #ddd;
+                            font-size: 10pt;
+                            color: #666;
+                        }}
+                        
+                        table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin: 15px 0;
+                        }}
+                        
+                        th, td {{
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: left;
+                        }}
+                        
+                        th {{
+                            background-color: #f5f5f5;
+                            font-weight: bold;
+                        }}
+                        
+                        .signature-section {{
+                            margin-top: 40px;
+                            page-break-inside: avoid;
+                        }}
+                        
+                        .signature-line {{
+                            border-bottom: 1px solid #333;
+                            width: 200px;
+                            margin: 20px 0 5px 0;
+                        }}
+                        
+                        @media print {{
+                            body {{ margin: 0; }}
+                            .no-print {{ display: none; }}
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="document-container">
+                        {document.content}
+                    </div>
+                </body>
+                </html>
+                """
                 
-                response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
-                return response
+                # Use WeasyPrint to generate PDF with high quality settings
+                pdf_buffer = BytesIO()
+                
+                # Create WeasyPrint HTML object with better configuration
+                html_doc = weasyprint.HTML(string=html_content)
+                
+                # Generate PDF with high quality settings
+                html_doc.write_pdf(
+                    pdf_buffer,
+                    stylesheets=None,  # We're using inline styles
+                    optimize_images=True,
+                    jpeg_quality=95,
+                    presentational_hints=True
+                )
+                pdf_buffer.seek(0)
+                pdf_content = pdf_buffer.getvalue()
+                
+                # Verify the generated PDF
+                if pdf_content.startswith(b'%PDF') and len(pdf_content) > 100:
+                    # Save PDF file for future use
+                    try:
+                        import os
+                        from django.conf import settings
+                        
+                        # Ensure the directory exists
+                        pdf_dir = os.path.join(settings.MEDIA_ROOT, 'generated_documents')
+                        os.makedirs(pdf_dir, exist_ok=True)
+                        
+                        document.pdf_file.save(f"{filename}.pdf", BytesIO(pdf_content), save=True)
+                        logger.info(f"PDF file saved successfully: {document.pdf_file.path}")
+                    except Exception as save_error:
+                        logger.warning(f"Could not save PDF file: {save_error}")
+                        # Continue with download even if saving fails
+                    
+                    # Return the PDF response
+                    response = HttpResponse(pdf_content, content_type='application/pdf')
+                    response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+                    response['Content-Length'] = len(pdf_content)
+                    return response
+                else:
+                    logger.error(f"Generated PDF is invalid for document {document.id}")
+                    raise Exception("Generated PDF is invalid")
                 
             except Exception as e:
                 logger.error(f"PDF generation failed for document {document.id}: {e}")
-                # Fallback to HTML with proper filename
-                filename = self.generate_document_filename(document)
-                response = HttpResponse(document.content, content_type='text/html')
-                response['Content-Disposition'] = f'attachment; filename="{filename}.html"'
-                return response
+                # Return a proper error response instead of HTML fallback
+                return JsonResponse({
+                    'error': 'PDF generation failed',
+                    'detail': str(e),
+                    'fallback_available': True
+                }, status=500)
         else:
-            # If weasyprint is not available, return HTML content with proper filename
-            filename = self.generate_document_filename(document)
-            response = HttpResponse(document.content, content_type='text/html')
-            response['Content-Disposition'] = f'attachment; filename="{filename}.html"'
-            return response
+            logger.warning("WeasyPrint not available, cannot generate PDF")
+            # Return a proper error response when WeasyPrint is not available
+            return JsonResponse({
+                'error': 'PDF generation not available',
+                'detail': 'WeasyPrint library is not properly installed or configured. Please install WeasyPrint and its dependencies.',
+                'fallback_available': True,
+                'html_content': document.content,
+                'suggested_action': 'Download as HTML file instead'
+            }, status=503)
+    
+
+    def cleanup_orphaned_files(self, document):
+        """Clean up orphaned file references"""
+        try:
+            if document.pdf_file and document.pdf_file.name:
+                import os
+                from django.conf import settings
+                
+                file_path = os.path.join(settings.MEDIA_ROOT, document.pdf_file.name)
+                if not os.path.exists(file_path):
+                    logger.warning(f"Cleaning up orphaned file reference for document {document.id}")
+                    document.pdf_file = None
+                    document.save(update_fields=['pdf_file'])
+                    return True
+        except Exception as e:
+            logger.error(f"Error cleaning up orphaned files for document {document.id}: {e}")
+        return False
     
     def generate_document_filename(self, document):
         """Generate a proper filename for the document"""
         from datetime import datetime
+        import re
         
         # Get employee first name
         employee_name = document.employee.first_name.lower() if document.employee.first_name else "employee"
@@ -145,6 +350,11 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
             filename = f"{employee_name}_{month_name}_salaryincrement_{year}"
         else:
             filename = f"{employee_name}_{month_name}_{document.document_type}_{year}"
+        
+        # Clean filename to be filesystem-safe
+        filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        filename = re.sub(r'\s+', '_', filename)  # Replace spaces with underscores
+        filename = filename.strip('_')  # Remove leading/trailing underscores
         
         return filename
     

@@ -161,12 +161,10 @@ Thumbs.db
 .env.production
 .env.staging
 
-# ===== FRONTEND - COMPLETELY EXCLUDED =====
-# All frontend code will be deployed separately on another hosting service
-frontend/
-src/
-public/
-static/
+# Frontend build files (keep source, exclude build)
+frontend/*/build/
+frontend/*/dist/
+frontend/*/node_modules/
 
 # Python virtual environment
 venv/
@@ -212,9 +210,9 @@ push_*.py
 *.bat
 *.ps1
 
-# Documentation files (optional - you can keep these if you want)
-*.md
-!README.md
+# Keep important documentation files
+# *.md
+# !README.md
 
 # Configuration files with sensitive data
 config.py

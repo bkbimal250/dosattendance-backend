@@ -171,7 +171,7 @@ class AutoAttendanceService:
     def _fetch_device_data(self, device):
         """Fetch data from a specific device"""
         try:
-            logger.info(f"📥 Fetching data from {device.name} ({device.device_type})")
+            logger.info(f"Fetching data from {device.name} ({device.device_type})")
             
             if device.device_type == 'zkteco':
                 self._fetch_zkteco_data(device)
@@ -225,13 +225,13 @@ class AutoAttendanceService:
             zk = ZK(device.ip_address, port=device.port, timeout=10, force_udp=False, verbose=False)
             conn = zk.connect()
             if conn:
-                logger.info(f"✅ Connected to ZKTeco device {device.name}")
+                logger.info(f"Connected to ZKTeco device {device.name}")
                 return conn
             else:
-                logger.error(f"❌ Failed to connect to ZKTeco device {device.name}")
+                logger.error(f"Failed to connect to ZKTeco device {device.name}")
                 return None
         except Exception as e:
-            logger.error(f"❌ Connection error to ZKTeco device {device.name}: {str(e)}")
+            logger.error(f"Connection error to ZKTeco device {device.name}: {str(e)}")
             return None
             
     def _process_zkteco_attendance(self, device, attendance_logs):
@@ -239,7 +239,7 @@ class AutoAttendanceService:
         if not attendance_logs:
             return
             
-        logger.info(f"📊 Processing {len(attendance_logs)} attendance records from {device.name}")
+        logger.info(f"Processing {len(attendance_logs)} attendance records from {device.name}")
         
         new_records = 0
         duplicates = 0
@@ -269,7 +269,7 @@ class AutoAttendanceService:
         self.stats['total_records'] += new_records
         self.stats['duplicates_prevented'] += duplicates
         
-        logger.info(f"✅ Processed {new_records} new records, prevented {duplicates} duplicates from {device.name}")
+        logger.info(f"Processed {new_records} new records, prevented {duplicates} duplicates from {device.name}")
         
     def _create_attendance_hash(self, device_id, log):
         """Create unique hash for attendance record"""
@@ -312,13 +312,18 @@ class AutoAttendanceService:
                 # Subsequent scans - determine if this should update check-in or check-out
                 # FIXED LOGIC: Only process if we have a valid check-in time
                 if attendance.check_in_time:
-                    if timestamp < attendance.check_in_time:
+                    # Ensure check_in_time is timezone-aware for comparison
+                    check_in_time = attendance.check_in_time
+                    if timezone.is_naive(check_in_time):
+                        check_in_time = timezone.make_aware(check_in_time, timezone.get_current_timezone())
+                    
+                    if timestamp < check_in_time:
                         # Earlier timestamp - update check-in time (first scan of the day)
                         old_checkin = attendance.check_in_time
                         attendance.check_in_time = timestamp
                         attendance.save()
                         logger.info(f"EARLIER SCAN: Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
-                    elif timestamp > attendance.check_in_time:
+                    elif timestamp > check_in_time:
                         # Later timestamp - update check-out time (last scan of the day)
                         if not attendance.check_out_time or timestamp > attendance.check_out_time:
                             old_checkout = attendance.check_out_time

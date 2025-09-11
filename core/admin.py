@@ -4,7 +4,7 @@ from django.utils.html import format_html
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
-    WorkingHoursSettings, Resignation
+    WorkingHoursSettings, Resignation, DocumentTemplate, GeneratedDocument
 )
 
 
@@ -229,6 +229,113 @@ class ResignationAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} resignation requests rejected.')
     reject_resignations.short_description = "Reject selected resignation requests"
+
+
+@admin.register(DocumentTemplate)
+class DocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'document_type', 'is_active', 'created_by', 'created_at']
+    list_filter = ['document_type', 'is_active', 'created_at', 'created_by']
+    search_fields = ['name', 'description', 'content']
+    ordering = ['-created_at']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        (None, {'fields': ('name', 'document_type', 'is_active')}),
+        ('Template Content', {'fields': ('description', 'content')}),
+        ('Template Data', {'fields': ('template_data',)}),
+        ('Metadata', {'fields': ('created_by', 'created_at', 'updated_at')}),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # If creating new object
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(GeneratedDocument)
+class GeneratedDocumentAdmin(admin.ModelAdmin):
+    list_display = ['document_type', 'employee_name', 'employee', 'generated_at', 'has_pdf_file', 'is_sent']
+    list_filter = ['document_type', 'generated_at', 'is_sent', 'employee__office']
+    search_fields = ['employee__first_name', 'employee__last_name', 'employee__employee_id', 'document_type', 'title']
+    ordering = ['-generated_at']
+    readonly_fields = ['id', 'generated_at', 'pdf_file_size', 'pdf_file_exists']
+    date_hierarchy = 'generated_at'
+    
+    fieldsets = (
+        (None, {'fields': ('employee', 'template', 'document_type', 'title')}),
+        ('Document Content', {'fields': ('content',)}),
+        ('Document Data', {'fields': ('offer_data', 'increment_data', 'salary_data')}),
+        ('PDF File', {'fields': ('pdf_file', 'pdf_file_size', 'pdf_file_exists')}),
+        ('Email Status', {'fields': ('is_sent', 'sent_at', 'generated_by')}),
+        ('Timestamps', {'fields': ('generated_at',)}),
+    )
+    
+    def employee_name(self, obj):
+        return f"{obj.employee.first_name} {obj.employee.last_name}" if obj.employee else "No Employee"
+    employee_name.short_description = "Employee Name"
+    employee_name.admin_order_field = 'employee__first_name'
+    
+    def has_pdf_file(self, obj):
+        if obj.pdf_file:
+            return format_html(
+                '<span style="color: green;">✓ PDF Available</span>' if obj.pdf_file.size > 0 
+                else '<span style="color: red;">✗ Empty File</span>'
+            )
+        return format_html('<span style="color: gray;">No PDF</span>')
+    has_pdf_file.short_description = "PDF Status"
+    
+    def pdf_file_size(self, obj):
+        if obj.pdf_file and obj.pdf_file.size > 0:
+            size_kb = obj.pdf_file.size / 1024
+            return f"{size_kb:.1f} KB"
+        return "N/A"
+    pdf_file_size.short_description = "PDF Size"
+    
+    def pdf_file_exists(self, obj):
+        if obj.pdf_file:
+            import os
+            from django.conf import settings
+            file_path = os.path.join(settings.MEDIA_ROOT, obj.pdf_file.name)
+            exists = os.path.exists(file_path)
+            return format_html(
+                '<span style="color: green;">✓ Exists</span>' if exists 
+                else '<span style="color: red;">✗ Missing</span>'
+            )
+        return format_html('<span style="color: gray;">No File</span>')
+    pdf_file_exists.short_description = "File Exists"
+    
+    actions = ['regenerate_pdf', 'cleanup_orphaned_files']
+    
+    def regenerate_pdf(self, request, queryset):
+        """Regenerate PDF files for selected documents"""
+        from core.document_views import GeneratedDocumentViewSet
+        viewset = GeneratedDocumentViewSet()
+        count = 0
+        
+        for document in queryset:
+            try:
+                # Clear existing PDF file to force regeneration
+                document.pdf_file = None
+                document.save(update_fields=['pdf_file'])
+                count += 1
+            except Exception as e:
+                self.message_user(request, f'Error regenerating PDF for document {document.id}: {e}', level='ERROR')
+        
+        self.message_user(request, f'{count} documents marked for PDF regeneration.')
+    regenerate_pdf.short_description = "Regenerate PDF files"
+    
+    def cleanup_orphaned_files(self, request, queryset):
+        """Clean up orphaned file references"""
+        from core.document_views import GeneratedDocumentViewSet
+        viewset = GeneratedDocumentViewSet()
+        count = 0
+        
+        for document in queryset:
+            if viewset.cleanup_orphaned_files(document):
+                count += 1
+        
+        self.message_user(request, f'{count} orphaned file references cleaned up.')
+    cleanup_orphaned_files.short_description = "Clean up orphaned files"
 
 
 # Customize admin site

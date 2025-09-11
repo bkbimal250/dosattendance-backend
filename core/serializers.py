@@ -275,23 +275,35 @@ class DocumentSerializer(serializers.ModelSerializer):
     
     def get_file_url(self, obj):
         """Get the full URL for the file"""
-        if obj.file:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.file.url)
-            return obj.file.url
+        try:
+            if obj.file:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.file.url)
+                return obj.file.url
+        except (FileNotFoundError, OSError, ValueError):
+            # File doesn't exist or can't be accessed
+            return None
         return None
     
     def get_file_type(self, obj):
         """Get the file type from the filename"""
-        if obj.file:
-            return obj.file.name.split('.')[-1].lower() if '.' in obj.file.name else 'unknown'
+        try:
+            if obj.file:
+                return obj.file.name.split('.')[-1].lower() if '.' in obj.file.name else 'unknown'
+        except (FileNotFoundError, OSError, ValueError, AttributeError):
+            # File doesn't exist or can't be accessed
+            return 'unknown'
         return None
     
     def get_file_size(self, obj):
         """Get the file size in bytes"""
-        if obj.file and hasattr(obj.file, 'size'):
-            return obj.file.size
+        try:
+            if obj.file and hasattr(obj.file, 'size'):
+                return obj.file.size
+        except (FileNotFoundError, OSError, ValueError):
+            # File doesn't exist or can't be accessed
+            return 0
         return 0
 
 

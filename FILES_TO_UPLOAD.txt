@@ -1,0 +1,112 @@
+FILES TO UPLOAD TO YOUR UBUNTU APACHE2 SERVER
+================================================
+
+Upload these files to your server at: /var/www/EmployeeAttendance/
+
+1. TESTING FILES:
+   - test_push_functionality.py
+   - manual_test_commands.sh
+   - verify_database_records.py
+   - TESTING_GUIDE.md
+
+2. DEPLOYMENT SCRIPTS:
+   - deploy_testing_files.sh
+   - upload_testing_files.bat
+   - server_test_script.sh
+
+3. CORE FILES (if not already uploaded):
+   - core/push_views.py
+   - core/urls.py (updated version)
+
+UPLOAD METHODS:
+===============
+
+Method 1: Using SCP (from Windows):
+scp test_push_functionality.py root@82.25.109.137:/var/www/EmployeeAttendance/
+scp manual_test_commands.sh root@82.25.109.137:/var/www/EmployeeAttendance/
+scp verify_database_records.py root@82.25.109.137:/var/www/EmployeeAttendance/
+scp TESTING_GUIDE.md root@82.25.109.137:/var/www/EmployeeAttendance/
+scp core/push_views.py root@82.25.109.137:/var/www/EmployeeAttendance/core/
+
+Method 2: Using the batch script:
+Run: upload_testing_files.bat
+
+Method 3: Using the shell script:
+Run: ./deploy_testing_files.sh
+
+AFTER UPLOADING:
+================
+
+1. SSH into your server:
+   ssh root@82.25.109.137
+
+2. Navigate to project directory:
+   cd /var/www/EmployeeAttendance
+
+3. Set permissions:
+   chmod +x test_push_functionality.py
+   chmod +x manual_test_commands.sh
+   chmod +x verify_database_records.py
+   chmod +x server_test_script.sh
+
+4. Run the server test script:
+   ./server_test_script.sh
+
+5. Run automated tests:
+   python3 test_push_functionality.py --production
+
+6. Run database verification:
+   python3 verify_database_records.py
+
+7. Run manual tests:
+   ./manual_test_commands.sh
+
+TESTING ENDPOINTS:
+==================
+
+Your push attendance endpoints will be available at:
+- Health Check: https://company.d0s369.co.in:8081/api/device/health-check/
+- Push Data: https://company.d0s369.co.in:8081/api/device/push-attendance/
+- Alternative: https://company.d0s369.co.in:8081/api/device/receive-attendance/
+
+DEVICE CONFIGURATION:
+=====================
+
+Configure your biometric devices with:
+- Server Mode: ADMS
+- Server Address: 82.25.109.137
+- Server Port: 8081
+- Enable Domain Name: NO
+- Enable Proxy Server: NO
+
+MONITORING:
+===========
+
+Monitor logs in real-time:
+- Apache2 Access: tail -f /var/log/apache2/device_push_access.log
+- Apache2 Error: tail -f /var/log/apache2/device_push_error.log
+- Django Logs: tail -f /var/www/EmployeeAttendance/logs/django.log
+
+SUCCESS CRITERIA:
+=================
+
+Your push attendance system is working if:
+✅ Health check endpoint returns 200 OK
+✅ Push endpoint accepts POST requests
+✅ Attendance records are created in database
+✅ New devices are created automatically
+✅ Real biometric device can push data
+✅ Logs show successful processing
+
+TROUBLESHOOTING:
+================
+
+If tests fail:
+1. Check if push_views.py is uploaded
+2. Check if users have biometric_id set
+3. Check if server is running on port 8081
+4. Check Apache2 configuration
+5. Check database connection
+6. Review error logs
+
+For detailed troubleshooting, see: TESTING_GUIDE.md
