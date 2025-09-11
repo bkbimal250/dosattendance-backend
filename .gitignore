@@ -161,10 +161,11 @@ Thumbs.db
 .env.production
 .env.staging
 
-# Frontend build files (keep source, exclude build)
-frontend/*/build/
-frontend/*/dist/
-frontend/*/node_modules/
+# Frontend - Completely excluded
+frontend/
+src/
+public/
+static/
 
 # Python virtual environment
 venv/
