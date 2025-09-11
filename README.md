@@ -36,12 +36,13 @@ A comprehensive Django-based web application for managing employee attendance, d
 - **PDF Generation**: WeasyPrint (Ubuntu optimized)
 - **Background Tasks**: Custom service with threading
 
-### Frontend
+### Frontend (Deployed Separately)
 - **Framework**: React.js
 - **UI Components**: Custom components with Tailwind CSS
 - **State Management**: React hooks
 - **HTTP Client**: Axios
 - **Real-time**: WebSocket connections
+- **Note**: Frontend is deployed separately from this backend repository
 
 ### Infrastructure
 - **Web Server**: Apache2 with mod_wsgi

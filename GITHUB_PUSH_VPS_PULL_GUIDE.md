@@ -10,7 +10,7 @@ This guide will help you push your project to GitHub and then pull it on your VP
 
 ### ✅ Files to Keep in Repository
 - [x] **Core Django Application**: All Django code and models
-- [x] **Frontend Source**: React components and source code
+- [x] **Backend API**: Django REST API endpoints
 - [x] **Requirements**: `requirements.txt` with WeasyPrint
 - [x] **Configuration Templates**: `env.example`, Apache configs
 - [x] **Deployment Scripts**: `deploy_apache2_vps.sh`
@@ -18,6 +18,7 @@ This guide will help you push your project to GitHub and then pull it on your VP
 - [x] **Static Files**: Django static files (not collected)
 
 ### ✅ Files Excluded (in .gitignore)
+- [x] **Frontend**: `frontend/` (deployed separately)
 - [x] **Environment Files**: `.env` (contains sensitive data)
 - [x] **Virtual Environment**: `venv/` (will be created on VPS)
 - [x] **Collected Static Files**: `staticfiles/` (generated on VPS)
@@ -25,7 +26,6 @@ This guide will help you push your project to GitHub and then pull it on your VP
 - [x] **Log Files**: `logs/` (runtime logs)
 - [x] **Database Files**: `*.db`, `*.sqlite3`
 - [x] **Test Scripts**: `test_*.py`, `check_*.py`, etc.
-- [x] **Build Files**: `frontend/*/build/`, `frontend/*/node_modules/`
 
 ---
 
