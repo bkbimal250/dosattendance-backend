@@ -166,7 +166,43 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 # Generate proper filename
                 filename = self.generate_document_filename(document)
                 
-                # Enhance the document content with proper CSS for WeasyPrint
+                # Get company logo path and information
+                logo_path = ""
+                company_name = "Your Company Name"
+                company_address = "Company Address, City, State, ZIP"
+                
+                try:
+                    import os
+                    from django.conf import settings
+                    
+                    # Try different logo locations
+                    logo_locations = [
+                        os.path.join(settings.MEDIA_ROOT, 'documents', 'companylogo.png'),
+                        os.path.join(settings.MEDIA_ROOT, 'companylogo.png'),
+                        os.path.join(settings.MEDIA_ROOT, 'logo.png'),
+                        os.path.join(settings.STATIC_ROOT, 'images', 'logo.png') if hasattr(settings, 'STATIC_ROOT') else None
+                    ]
+                    
+                    for logo_file in logo_locations:
+                        if logo_file and os.path.exists(logo_file):
+                            logo_path = f"file://{logo_file}"
+                            logger.info(f"Company logo found: {logo_path}")
+                            break
+                    
+                    if not logo_path:
+                        logger.warning("Company logo not found, using text header")
+                    
+                    # Get company information from settings or use defaults
+                    company_name = getattr(settings, 'COMPANY_NAME', 'Your Company Name')
+                    company_address = getattr(settings, 'COMPANY_ADDRESS', 'Company Address, City, State, ZIP')
+                    company_phone = getattr(settings, 'COMPANY_PHONE', '+1 (555) 123-4567')
+                    company_email = getattr(settings, 'COMPANY_EMAIL', 'info@company.com')
+                    company_website = getattr(settings, 'COMPANY_WEBSITE', 'www.company.com')
+                    
+                except Exception as e:
+                    logger.warning(f"Could not load company information: {e}")
+                
+                # Enhance the document content with proper CSS for single-page layout
                 html_content = f"""
                 <!DOCTYPE html>
                 <html>
@@ -175,14 +211,14 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     <title>{document.title}</title>
                     <style>
                         @page {{
-                            margin: 0.75in;
+                            margin: 0.5in;
                             size: A4;
                         }}
                         
                         body {{
                             font-family: 'Arial', 'Helvetica', sans-serif;
-                            font-size: 12pt;
-                            line-height: 1.4;
+                            font-size: 11pt;
+                            line-height: 1.3;
                             color: #333;
                             margin: 0;
                             padding: 0;
@@ -193,88 +229,145 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                             margin: 0 auto;
                         }}
                         
+                        .header {{
+                            text-align: center;
+                            margin-bottom: 20px;
+                            border-bottom: 2px solid #2c3e50;
+                            padding-bottom: 15px;
+                        }}
+                        
+                        .company-logo {{
+                            max-height: 60px;
+                            max-width: 200px;
+                            margin-bottom: 10px;
+                        }}
+                        
+                        .company-name {{
+                            font-size: 16pt;
+                            font-weight: bold;
+                            color: #2c3e50;
+                            margin: 5px 0;
+                        }}
+                        
+                        .company-address {{
+                            font-size: 9pt;
+                            color: #666;
+                            margin: 5px 0;
+                        }}
+                        
+                        .company-contact {{
+                            font-size: 8pt;
+                            color: #888;
+                            margin: 5px 0;
+                        }}
+                        
+                        .document-title {{
+                            font-size: 14pt;
+                            font-weight: bold;
+                            color: #2c3e50;
+                            text-align: center;
+                            margin: 20px 0 15px 0;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }}
+                        
                         h1, h2, h3, h4, h5, h6 {{
                             color: #2c3e50;
-                            margin-top: 20px;
-                            margin-bottom: 10px;
+                            margin-top: 15px;
+                            margin-bottom: 8px;
                             page-break-after: avoid;
                         }}
                         
                         h1 {{
-                            font-size: 18pt;
-                            font-weight: bold;
-                            text-align: center;
-                            border-bottom: 2px solid #3498db;
-                            padding-bottom: 10px;
-                            margin-bottom: 30px;
-                        }}
-                        
-                        h2 {{
-                            font-size: 16pt;
-                            font-weight: bold;
-                        }}
-                        
-                        h3 {{
                             font-size: 14pt;
                             font-weight: bold;
                         }}
                         
+                        h2 {{
+                            font-size: 13pt;
+                            font-weight: bold;
+                        }}
+                        
+                        h3 {{
+                            font-size: 12pt;
+                            font-weight: bold;
+                        }}
+                        
                         p {{
-                            margin: 8px 0;
+                            margin: 6px 0;
                             text-align: justify;
-                        }}
-                        
-                        .header {{
-                            text-align: center;
-                            margin-bottom: 30px;
-                            border-bottom: 1px solid #ddd;
-                            padding-bottom: 15px;
-                        }}
-                        
-                        .company-info {{
-                            font-size: 10pt;
-                            color: #666;
-                            margin-bottom: 20px;
+                            font-size: 11pt;
                         }}
                         
                         .content {{
-                            margin: 20px 0;
+                            margin: 15px 0;
                         }}
                         
                         .footer {{
-                            margin-top: 40px;
-                            padding-top: 15px;
+                            margin-top: 30px;
+                            padding-top: 10px;
                             border-top: 1px solid #ddd;
-                            font-size: 10pt;
+                            font-size: 9pt;
                             color: #666;
+                            text-align: center;
                         }}
                         
                         table {{
                             width: 100%;
                             border-collapse: collapse;
-                            margin: 15px 0;
+                            margin: 10px 0;
+                            font-size: 10pt;
                         }}
                         
                         th, td {{
                             border: 1px solid #ddd;
-                            padding: 8px;
+                            padding: 6px;
                             text-align: left;
                         }}
                         
                         th {{
                             background-color: #f5f5f5;
                             font-weight: bold;
+                            font-size: 10pt;
                         }}
                         
                         .signature-section {{
-                            margin-top: 40px;
+                            margin-top: 25px;
                             page-break-inside: avoid;
                         }}
                         
                         .signature-line {{
                             border-bottom: 1px solid #333;
                             width: 200px;
-                            margin: 20px 0 5px 0;
+                            margin: 15px 0 5px 0;
+                        }}
+                        
+                        .employee-info {{
+                            display: flex;
+                            justify-content: space-between;
+                            margin: 15px 0;
+                            font-size: 10pt;
+                        }}
+                        
+                        .employee-info div {{
+                            flex: 1;
+                            margin: 0 10px;
+                        }}
+                        
+                        .date-info {{
+                            text-align: right;
+                            font-size: 10pt;
+                            color: #666;
+                            margin: 10px 0;
+                        }}
+                        
+                        /* Compact spacing for single page */
+                        .compact {{
+                            margin: 5px 0;
+                        }}
+                        
+                        .compact p {{
+                            margin: 3px 0;
                         }}
                         
                         @media print {{
@@ -285,7 +378,29 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 </head>
                 <body>
                     <div class="document-container">
-                        {document.content}
+                        <div class="header">
+                            {f'<img src="{logo_path}" alt="Company Logo" class="company-logo">' if logo_path else ''}
+                            <div class="company-name">{company_name}</div>
+                            <div class="company-address">{company_address}</div>
+                            <div class="company-contact">
+                                Phone: {company_phone} | Email: {company_email} | Website: {company_website}
+                            </div>
+                        </div>
+                        
+                        <div class="document-title">{document.title}</div>
+                        
+                        <div class="date-info">
+                            Date: {document.generated_at.strftime('%B %d, %Y') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}
+                        </div>
+                        
+                        <div class="content compact">
+                            {document.content}
+                        </div>
+                        
+                        <div class="footer">
+                            <p>This document was generated on {document.generated_at.strftime('%B %d, %Y at %I:%M %p') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}</p>
+                            <p>Employee Management System</p>
+                        </div>
                     </div>
                 </body>
                 </html>

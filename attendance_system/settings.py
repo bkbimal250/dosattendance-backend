@@ -463,3 +463,10 @@ os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 
 # Attendance Service Configuration
 AUTO_START_ATTENDANCE_SERVICE = os.environ.get('AUTO_START_ATTENDANCE_SERVICE', 'false').lower() == 'true'
+
+# Company Information for PDF Documents
+COMPANY_NAME = os.environ.get('COMPANY_NAME', 'Your Company Name')
+COMPANY_ADDRESS = os.environ.get('COMPANY_ADDRESS', 'Company Address, City, State, ZIP')
+COMPANY_PHONE = os.environ.get('COMPANY_PHONE', '+1 (555) 123-4567')
+COMPANY_EMAIL = os.environ.get('COMPANY_EMAIL', 'info@company.com')
+COMPANY_WEBSITE = os.environ.get('COMPANY_WEBSITE', 'www.company.com')
