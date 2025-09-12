@@ -1048,7 +1048,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             'all_meta': {k: v for k, v in request.META.items() if k.startswith('HTTP_')}
         })
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post','patch'])
     def change_password(self, request):
         """Change user password"""
         serializer = PasswordChangeSerializer(data=request.data)
