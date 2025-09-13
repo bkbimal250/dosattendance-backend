@@ -2157,26 +2157,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         print(f"🚀 Returning real employee data: {len(employee_data)} employees")
         logger.info(f"🚀 Returning real employee data: {len(employee_data)} employees")
         
-        # TEMPORARY: If no real data, return test data to confirm endpoint is working
-        if len(employee_data) == 0:
-            print("🚨 NO REAL EMPLOYEES FOUND - RETURNING TEST DATA!")
-            test_data = [
-                {
-                    'id': 'test-1',
-                    'name': 'Test Employee 1',
-                    'email': 'test1@company.com',
-                    'employee_id': 'TEST001',
-                    'designation': 'Developer',
-                    'department': 'IT',
-                    'office': 'Test Office',
-                    'current_salary': 50000,
-                    'joining_date': '2024-01-01',
-                    'phone': '1234567890',
-                    'address': 'Test Address'
-                }
-            ]
-            return Response(test_data)
-        
+        # Return real data (no test data fallback)
+        print(f"🚀 FINAL RESULT: Returning {len(employee_data)} real users from database")
+        logger.info(f"🚀 FINAL RESULT: Returning {len(employee_data)} real users from database")
         return Response(employee_data)
 
     @action(detail=False, methods=['get'])
