@@ -2122,7 +2122,21 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     {'error': 'Manager has no office assigned'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            employees = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
+            # Debug: Check office object details
+            logger.info(f"Manager's office object: {user.office}")
+            logger.info(f"Manager's office ID: {user.office.id}")
+            logger.info(f"Manager's office name: {user.office.name}")
+            
+            # Try different filtering approaches
+            employees_by_office_object = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
+            employees_by_office_id = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
+            
+            logger.info(f"Employees by office object: {employees_by_office_object.count()}")
+            logger.info(f"Employees by office ID: {employees_by_office_id.count()}")
+            
+            # Use the working query
+            employees = employees_by_office_id
+            
             logger.info(f"Manager user in office {user.office.name} - found {employees.count()} employees")
             # Debug: List all employees and their offices
             all_employees = CustomUser.objects.filter(role='employee')
