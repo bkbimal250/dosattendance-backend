@@ -261,21 +261,58 @@ class ImprovedAutoFetchService:
                 
                 # Update check-in time (allow updates if new time is earlier)
                 if check_in_time:
-                    if not attendance.check_in_time or check_in_time < attendance.check_in_time:
+                    # Make timezone-aware for comparison
+                    if timezone.is_naive(check_in_time):
+                        check_in_time = timezone.make_aware(check_in_time, timezone.get_current_timezone())
+                    
+                    if not attendance.check_in_time:
                         attendance.check_in_time = check_in_time
                         updated = True
                         logger.info(f"[CHECKIN] {user.get_full_name()} at {check_in_time.strftime('%H:%M')}")
+                    else:
+                        # Make existing time timezone-aware for comparison
+                        existing_checkin = attendance.check_in_time
+                        if timezone.is_naive(existing_checkin):
+                            existing_checkin = timezone.make_aware(existing_checkin, timezone.get_current_timezone())
+                        
+                        if check_in_time < existing_checkin:
+                            attendance.check_in_time = check_in_time
+                            updated = True
+                            logger.info(f"[CHECKIN] {user.get_full_name()} at {check_in_time.strftime('%H:%M')}")
                 
                 # Update check-out time (allow updates if new time is later)
                 if check_out_time:
-                    if not attendance.check_out_time or check_out_time > attendance.check_out_time:
+                    # Make timezone-aware for comparison
+                    if timezone.is_naive(check_out_time):
+                        check_out_time = timezone.make_aware(check_out_time, timezone.get_current_timezone())
+                    
+                    if not attendance.check_out_time:
                         attendance.check_out_time = check_out_time
                         updated = True
                         logger.info(f"[CHECKOUT] {user.get_full_name()} at {check_out_time.strftime('%H:%M')}")
+                    else:
+                        # Make existing time timezone-aware for comparison
+                        existing_checkout = attendance.check_out_time
+                        if timezone.is_naive(existing_checkout):
+                            existing_checkout = timezone.make_aware(existing_checkout, timezone.get_current_timezone())
+                        
+                        if check_out_time > existing_checkout:
+                            attendance.check_out_time = check_out_time
+                            updated = True
+                            logger.info(f"[CHECKOUT] {user.get_full_name()} at {check_out_time.strftime('%H:%M')}")
                 
                 # Calculate total hours if both times are available
                 if attendance.check_in_time and attendance.check_out_time:
-                    time_diff = attendance.check_out_time - attendance.check_in_time
+                    # Ensure both times are timezone-aware
+                    checkin_time = attendance.check_in_time
+                    checkout_time = attendance.check_out_time
+                    
+                    if timezone.is_naive(checkin_time):
+                        checkin_time = timezone.make_aware(checkin_time, timezone.get_current_timezone())
+                    if timezone.is_naive(checkout_time):
+                        checkout_time = timezone.make_aware(checkout_time, timezone.get_current_timezone())
+                    
+                    time_diff = checkout_time - checkin_time
                     total_hours = time_diff.total_seconds() / 3600
                     attendance.total_hours = round(total_hours, 2)
                     updated = True

@@ -317,6 +317,10 @@ class AutoAttendanceService:
                     if timezone.is_naive(check_in_time):
                         check_in_time = timezone.make_aware(check_in_time, timezone.get_current_timezone())
                     
+                    # Make timestamp timezone-aware for comparison
+                    if timezone.is_naive(timestamp):
+                        timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
+                    
                     if timestamp < check_in_time:
                         # Earlier timestamp - update check-in time (first scan of the day)
                         old_checkin = attendance.check_in_time
@@ -325,17 +329,24 @@ class AutoAttendanceService:
                         logger.info(f"EARLIER SCAN: Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                     elif timestamp > check_in_time:
                         # Later timestamp - update check-out time (last scan of the day)
-                        if not attendance.check_out_time or timestamp > attendance.check_out_time:
-                            old_checkout = attendance.check_out_time
+                        if not attendance.check_out_time:
                             attendance.check_out_time = timestamp
                             attendance.save()
-                            if old_checkout:
+                            logger.info(f"LAST SCAN: Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                        else:
+                            # Make existing checkout time timezone-aware for comparison
+                            existing_checkout = attendance.check_out_time
+                            if timezone.is_naive(existing_checkout):
+                                existing_checkout = timezone.make_aware(existing_checkout, timezone.get_current_timezone())
+                            
+                            if timestamp > existing_checkout:
+                                old_checkout = attendance.check_out_time
+                                attendance.check_out_time = timestamp
+                                attendance.save()
                                 logger.info(f"LATER SCAN: Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                             else:
-                                logger.info(f"LAST SCAN: Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
-                        else:
-                            # This scan is between check-in and check-out, log it but don't change times
-                            logger.debug(f"MIDDLE SCAN: {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                                # This scan is between check-in and check-out, log it but don't change times
+                                logger.debug(f"MIDDLE SCAN: {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
                 else:
                     # No check-in time exists - this should be the check-in
                     attendance.check_in_time = timestamp
@@ -426,25 +437,41 @@ class AutoAttendanceService:
                 # Subsequent scans - determine if this should update check-in or check-out
                 # FIXED LOGIC: Only process if we have a valid check-in time
                 if attendance.check_in_time:
-                    if timestamp < attendance.check_in_time:
+                    # Make timestamp timezone-aware for comparison
+                    if timezone.is_naive(timestamp):
+                        timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
+                    
+                    # Make existing check-in time timezone-aware for comparison
+                    existing_checkin = attendance.check_in_time
+                    if timezone.is_naive(existing_checkin):
+                        existing_checkin = timezone.make_aware(existing_checkin, timezone.get_current_timezone())
+                    
+                    if timestamp < existing_checkin:
                         # Earlier timestamp - update check-in time (first scan of the day)
                         old_checkin = attendance.check_in_time
                         attendance.check_in_time = timestamp
                         attendance.save()
                         logger.info(f"🔄 EARLIER SCAN (ESSL): Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
-                    elif timestamp > attendance.check_in_time:
+                    elif timestamp > existing_checkin:
                         # Later timestamp - update check-out time (last scan of the day)
-                        if not attendance.check_out_time or timestamp > attendance.check_out_time:
-                            old_checkout = attendance.check_out_time
+                        if not attendance.check_out_time:
                             attendance.check_out_time = timestamp
                             attendance.save()
-                            if old_checkout:
+                            logger.info(f"✅ LAST SCAN (ESSL): Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                        else:
+                            # Make existing checkout time timezone-aware for comparison
+                            existing_checkout = attendance.check_out_time
+                            if timezone.is_naive(existing_checkout):
+                                existing_checkout = timezone.make_aware(existing_checkout, timezone.get_current_timezone())
+                            
+                            if timestamp > existing_checkout:
+                                old_checkout = attendance.check_out_time
+                                attendance.check_out_time = timestamp
+                                attendance.save()
                                 logger.info(f"🔄 LATER SCAN (ESSL): Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                             else:
-                                logger.info(f"✅ LAST SCAN (ESSL): Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
-                        else:
-                            # This scan is between check-in and check-out, log it but don't change times
-                            logger.debug(f"📝 MIDDLE SCAN (ESSL): {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                                # This scan is between check-in and check-out, log it but don't change times
+                                logger.debug(f"📝 MIDDLE SCAN (ESSL): {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
                 else:
                     # No check-in time exists - this should be the check-in
                     attendance.check_in_time = timestamp
