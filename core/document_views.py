@@ -2098,112 +2098,24 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='employees')
     def get_employees(self, request):
         """Get list of employees for document generation"""
-        print("🚀🚀🚀 GET_EMPLOYEES METHOD CALLED - PRINT STATEMENT!")
-        print("🔥🔥🔥 THIS IS THE UPDATED CODE - SERVER IS RUNNING NEW VERSION! 🔥🔥🔥")
-        print("🚨🚨🚨 IF YOU SEE THIS MESSAGE, THE SERVER IS RUNNING UPDATED CODE! 🚨🚨🚨")
-        print("🚨🚨🚨 IF YOU DON'T SEE THIS MESSAGE, RESTART THE DJANGO SERVER! 🚨🚨🚨")
-        logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
-        logger.info(f"🚀🚀🚀 TIMESTAMP: {datetime.now().isoformat()}")
         
-        # Now that we know the endpoint works, restore real employee logic
         user = request.user
-        logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
-        
-        # Debug: Check what's in the database
-        total_users = CustomUser.objects.count()
-        all_employees = CustomUser.objects.filter(role='employee').count()
-        active_employees = CustomUser.objects.filter(role='employee', is_active=True).count()
-        
-        print(f"🔍 DATABASE DEBUG: Total users: {total_users}")
-        print(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
-        print(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
-        logger.info(f"🔍 DATABASE DEBUG: Total users: {total_users}")
-        logger.info(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
-        logger.info(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
-        
-        # Use the EXACT same logic as CustomUserViewSet (working sidebar)
         queryset = CustomUser.objects.select_related('office')
         
         if user.is_admin:
             queryset = queryset.all()
-            print(f"🚀 ADMIN: Found {queryset.count()} total users")
-            logger.info(f"🚀 ADMIN: Found {queryset.count()} total users")
         elif user.is_manager:
             queryset = queryset.filter(office=user.office)
-            print(f"🚀 MANAGER: Found {queryset.count()} users in office '{user.office.name if user.office else 'No Office'}'")
-            logger.info(f"🚀 MANAGER: Found {queryset.count()} users in office '{user.office.name if user.office else 'No Office'}'")
         else:
             queryset = queryset.filter(id=user.id)
-            print(f"🚀 EMPLOYEE: Found {queryset.count()} user (self only)")
-            logger.info(f"🚀 EMPLOYEE: Found {queryset.count()} user (self only)")
         
         # Use the same serializer as CustomUserViewSet
         from .serializers import CustomUserSerializer
         serializer = CustomUserSerializer(queryset, many=True)
         
-        print(f"🚀 FINAL RESULT: Returning {len(serializer.data)} users using CustomUserSerializer")
-        logger.info(f"🚀 FINAL RESULT: Returning {len(serializer.data)} users using CustomUserSerializer")
-        
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
-    def test_employees(self, request):
-        """Simple test endpoint to return basic employee data"""
-        try:
-            user = request.user
-            logger.info(f"Test endpoint - User: {user.email}, Role: {user.role}")
-            
-            # Get all active employees
-            employees = CustomUser.objects.filter(role='employee', is_active=True)
-            logger.info(f"Test endpoint - Found {employees.count()} employees")
-            
-            # Return simple data
-            simple_data = []
-            for emp in employees[:5]:  # Limit to first 5 for testing
-                simple_data.append({
-                    'id': str(emp.id),
-                    'name': f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email,
-                    'email': emp.email,
-                    'employee_id': emp.employee_id or str(emp.id)[:8].upper()
-                })
-            
-            logger.info(f"Test endpoint - Returning {len(simple_data)} employees")
-            return Response(simple_data)
-            
-        except Exception as e:
-            logger.error(f"Test endpoint error: {e}")
-            return Response({'error': str(e)}, status=500)
 
-    @action(detail=False, methods=['get'])
-    def debug_database_state(self, request):
-        """Debug endpoint to check database state"""
-        try:
-            user = request.user
-            all_users = CustomUser.objects.all()
-            all_employees = CustomUser.objects.filter(role='employee')
-            all_offices = Office.objects.all()
-            
-            debug_info = {
-                'current_user': {
-                    'email': user.email,
-                    'role': user.role,
-                    'office': user.office.name if user.office else None,
-                    'office_id': user.office.id if user.office else None,
-                    'is_active': user.is_active
-                },
-                'total_users': all_users.count(),
-                'total_employees': all_employees.count(),
-                'active_employees': CustomUser.objects.filter(role='employee', is_active=True).count(),
-                'all_users': [(u.email, u.role, u.office.name if u.office else 'No Office', u.is_active) for u in all_users],
-                'all_employees': [(e.email, e.office.name if e.office else 'No Office', e.is_active) for e in all_employees],
-                'active_employees_list': [(e.email, e.office.name if e.office else 'No Office') for e in CustomUser.objects.filter(role='employee', is_active=True)],
-                'all_offices': [office.name for office in all_offices] if all_offices else []
-            }
-            
-            return Response(debug_info)
-        except Exception as e:
-            logger.error(f"Debug endpoint error: {e}")
-            return Response({'error': str(e)}, status=500)
 
     @action(detail=False, methods=['get'])
     def get_employee_details(self, request):
