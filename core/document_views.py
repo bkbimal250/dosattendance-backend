@@ -2098,13 +2098,16 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='employees')
     def get_employees(self, request):
         """Get list of employees for document generation"""
+        print("🚀🚀🚀 GET_EMPLOYEES METHOD CALLED - PRINT STATEMENT!")
         logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
+        logger.info(f"🚀🚀🚀 TIMESTAMP: {datetime.now().isoformat()}")
         
         # Main endpoint is working! Now restore real employee logic
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
         logger.info(f"🚀 Request method: {request.method}")
         logger.info(f"🚀 Request path: {request.path}")
+        logger.info(f"🚀 Request query params: {request.GET}")
         
         # Debug: Test basic queries
         logger.info(f"Total CustomUser count: {CustomUser.objects.count()}")
