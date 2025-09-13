@@ -2125,9 +2125,20 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
             
+            # Debug: Check all employees and their offices
+            all_employees_debug = CustomUser.objects.filter(role='employee', is_active=True)
+            logger.info(f"All active employees: {all_employees_debug.count()}")
+            logger.info(f"First 5 employees and their offices:")
+            for emp in all_employees_debug[:5]:
+                logger.info(f"  - {emp.email}: office={emp.office.name if emp.office else 'No Office'}")
+            
             # Try office filtering first
             employees = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
-            logger.info(f"Employees in manager's office: {employees.count()}")
+            logger.info(f"Employees in manager's office (office_id={user.office.id}): {employees.count()}")
+            
+            # Also try with office object
+            employees_by_object = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
+            logger.info(f"Employees in manager's office (office object): {employees_by_object.count()}")
             
             # If no employees found by office, fallback to all active employees
             if employees.count() == 0:
