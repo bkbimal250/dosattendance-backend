@@ -2171,18 +2171,21 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     logger.info(f"Employee full name: '{emp.get_full_name()}'")
                     logger.info(f"Employee first_name: '{emp.first_name}', last_name: '{emp.last_name}'")
                     
+                    # TEMPORARY FIX: Use simple name construction to avoid get_full_name() issues
+                    simple_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email
+                    
                     emp_data = {
                         'id': emp.id,
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
-                        'name': emp.get_full_name(),
+                        'name': simple_name,
                         'email': emp.email,
-                        'designation': emp.designation,
-                        'department': emp.department,
-                        'office': emp.office.name if emp.office else None,
-                        'current_salary': emp.salary,
+                        'designation': emp.designation or 'Employee',
+                        'department': emp.department or 'General',
+                        'office': emp.office.name if emp.office else 'No Office',
+                        'current_salary': emp.salary or 0,
                         'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
-                        'phone': emp.phone_number,
-                        'address': emp.address
+                        'phone': emp.phone_number or '',
+                        'address': emp.address or ''
                     }
                     employee_data.append(emp_data)
                     logger.info(f"Added employee {i+1}: {emp_data['name']} ({emp_data['email']})")
@@ -2204,6 +2207,34 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 {'error': 'Failed to fetch employee data'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'])
+    def test_employees(self, request):
+        """Simple test endpoint to return basic employee data"""
+        try:
+            user = request.user
+            logger.info(f"Test endpoint - User: {user.email}, Role: {user.role}")
+            
+            # Get all active employees
+            employees = CustomUser.objects.filter(role='employee', is_active=True)
+            logger.info(f"Test endpoint - Found {employees.count()} employees")
+            
+            # Return simple data
+            simple_data = []
+            for emp in employees[:5]:  # Limit to first 5 for testing
+                simple_data.append({
+                    'id': str(emp.id),
+                    'name': f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email,
+                    'email': emp.email,
+                    'employee_id': emp.employee_id or str(emp.id)[:8].upper()
+                })
+            
+            logger.info(f"Test endpoint - Returning {len(simple_data)} employees")
+            return Response(simple_data)
+            
+        except Exception as e:
+            logger.error(f"Test endpoint error: {e}")
+            return Response({'error': str(e)}, status=500)
 
     @action(detail=False, methods=['get'])
     def debug_database_state(self, request):
