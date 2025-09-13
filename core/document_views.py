@@ -2099,34 +2099,58 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     def get_employees(self, request):
         """Get list of employees for document generation"""
         user = request.user
+        logger.info(f"Getting employees for user: {user.email}, role: {user.role}")
         
         if user.role == 'admin':
             employees = CustomUser.objects.filter(role='employee')
+            logger.info(f"Admin user - found {employees.count()} employees")
         elif user.role == 'manager':
+            if not user.office:
+                logger.error(f"Manager {user.email} has no office assigned")
+                return Response(
+                    {'error': 'Manager has no office assigned'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             employees = CustomUser.objects.filter(role='employee', office=user.office)
+            logger.info(f"Manager user in office {user.office.name} - found {employees.count()} employees")
         else:
+            logger.warning(f"Access denied for user {user.email} with role {user.role}")
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied. Only admin and manager roles can access this endpoint.'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        employee_data = []
-        for emp in employees:
-            employee_data.append({
-                'id': emp.id,
-                'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
-                'name': emp.get_full_name(),
-                'email': emp.email,
-                'designation': emp.designation,
-                'department': emp.department,
-                'office': emp.office.name if emp.office else None,
-                'current_salary': emp.salary,
-                'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
-                'phone': emp.phone_number,
-                'address': emp.address
-            })
-        
-        return Response(employee_data)
+        try:
+            employee_data = []
+            for emp in employees:
+                try:
+                    employee_data.append({
+                        'id': emp.id,
+                        'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
+                        'name': emp.get_full_name(),
+                        'email': emp.email,
+                        'designation': emp.designation,
+                        'department': emp.department,
+                        'office': emp.office.name if emp.office else None,
+                        'current_salary': emp.salary,
+                        'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
+                        'phone': emp.phone_number,
+                        'address': emp.address
+                    })
+                except Exception as e:
+                    logger.error(f"Error processing employee {emp.id}: {e}")
+                    # Continue with other employees even if one fails
+                    continue
+            
+            logger.info(f"Successfully processed {len(employee_data)} employees")
+            return Response(employee_data)
+            
+        except Exception as e:
+            logger.error(f"Error in get_employees: {e}")
+            return Response(
+                {'error': 'Failed to fetch employee data'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['get'])
     def get_employee_details(self, request):
