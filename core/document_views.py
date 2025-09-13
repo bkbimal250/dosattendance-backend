@@ -2165,8 +2165,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             logger.info(f"Starting to process {employees.count()} employees")
             employee_list = list(employees)
             logger.info(f"Employee list length: {len(employee_list)}")
-            
-            employee_data = []
+        
+        employee_data = []
             for emp in employee_list:
                 try:
                     # Simple name construction (same as test endpoint)
@@ -2176,7 +2176,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         'id': str(emp.id),  # Convert to string for consistency
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
                         'name': simple_name,
-                        'email': emp.email,
+                'email': emp.email,
                         'designation': emp.designation or 'Employee',
                         'department': emp.department or 'General',
                         'office': emp.office.name if emp.office else 'No Office',
@@ -2314,7 +2314,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'created_at': employee.date_joined.strftime('%Y-%m-%d %H:%M:%S') if employee.date_joined else None
             }
             
-            return Response(employee_data)
+        return Response(employee_data)
             
         except Exception as e:
             logger.error(f"Error fetching employee details: {e}")
