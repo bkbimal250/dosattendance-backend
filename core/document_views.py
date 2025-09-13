@@ -2100,6 +2100,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """Get list of employees for document generation"""
         print("🚀🚀🚀 GET_EMPLOYEES METHOD CALLED - PRINT STATEMENT!")
         print("🔥🔥🔥 THIS IS THE UPDATED CODE - SERVER IS RUNNING NEW VERSION! 🔥🔥🔥")
+        print("🚨🚨🚨 IF YOU SEE THIS MESSAGE, THE SERVER IS RUNNING UPDATED CODE! 🚨🚨🚨")
+        print("🚨🚨🚨 IF YOU DON'T SEE THIS MESSAGE, RESTART THE DJANGO SERVER! 🚨🚨🚨")
         logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
         logger.info(f"🚀🚀🚀 TIMESTAMP: {datetime.now().isoformat()}")
         
