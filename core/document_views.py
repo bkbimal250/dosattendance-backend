@@ -2100,15 +2100,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """Get list of employees for document generation"""
         logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
         
-        # TEMPORARY TEST: Return simple data to verify method is called
-        test_response = [
-            {'id': 'test1', 'name': 'Test Employee 1', 'email': 'test1@company.com'},
-            {'id': 'test2', 'name': 'Test Employee 2', 'email': 'test2@company.com'}
-        ]
-        logger.info(f"🚀 RETURNING TEST DATA FROM MAIN ENDPOINT: {test_response}")
-        return Response(test_response)
-        
-        # Original logic below (commented out for testing)
+        # Main endpoint is working! Now restore real employee logic
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
         logger.info(f"🚀 Request method: {request.method}")
@@ -2119,13 +2111,13 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         logger.info(f"Users with role 'employee': {CustomUser.objects.filter(role='employee').count()}")
         logger.info(f"Active users with role 'employee': {CustomUser.objects.filter(role='employee', is_active=True).count()}")
         
-        # SIMPLIFIED APPROACH: Use the same logic as working test endpoint
+        # Use the exact same logic as the working test endpoint
         if user.role == 'admin':
             # Admin can see all employees
             employees = CustomUser.objects.filter(role='employee', is_active=True)
             logger.info(f"Admin user - found {employees.count()} employees")
         elif user.role == 'manager':
-            # Manager can see employees in their office
+            # Manager can see employees in their office, but fallback to all if none found
             if not user.office:
                 logger.error(f"Manager {user.email} has no office assigned")
                 return Response(
@@ -2135,22 +2127,11 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
             
-            # Debug: Check all employees and their offices
-            all_employees_debug = CustomUser.objects.filter(role='employee', is_active=True)
-            logger.info(f"All active employees: {all_employees_debug.count()}")
-            logger.info(f"First 5 employees and their offices:")
-            for emp in all_employees_debug[:5]:
-                logger.info(f"  - {emp.email}: office={emp.office.name if emp.office else 'No Office'}")
-            
             # Try office filtering first
             employees = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
-            logger.info(f"Employees in manager's office (office_id={user.office.id}): {employees.count()}")
+            logger.info(f"Employees in manager's office: {employees.count()}")
             
-            # Also try with office object
-            employees_by_object = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
-            logger.info(f"Employees in manager's office (office object): {employees_by_object.count()}")
-            
-            # If no employees found by office, fallback to all active employees
+            # If no employees found by office, fallback to all active employees (same as test endpoint)
             if employees.count() == 0:
                 logger.warning("No employees found by office, falling back to all active employees")
                 employees = CustomUser.objects.filter(role='employee', is_active=True)
