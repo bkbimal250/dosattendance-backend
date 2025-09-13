@@ -2111,37 +2111,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         logger.info(f"Users with role 'employee': {CustomUser.objects.filter(role='employee').count()}")
         logger.info(f"Active users with role 'employee': {CustomUser.objects.filter(role='employee', is_active=True).count()}")
         
-        # Use the exact same logic as the working test endpoint
-        if user.role == 'admin':
-            # Admin can see all employees
-            employees = CustomUser.objects.filter(role='employee', is_active=True)
-            logger.info(f"Admin user - found {employees.count()} employees")
-        elif user.role == 'manager':
-            # Manager can see employees in their office, but fallback to all if none found
-            if not user.office:
-                logger.error(f"Manager {user.email} has no office assigned")
-                return Response(
-                    {'error': 'Manager has no office assigned'}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
-            
-            # Try office filtering first
-            employees = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
-            logger.info(f"Employees in manager's office: {employees.count()}")
-            
-            # If no employees found by office, fallback to all active employees (same as test endpoint)
-            if employees.count() == 0:
-                logger.warning("No employees found by office, falling back to all active employees")
-                employees = CustomUser.objects.filter(role='employee', is_active=True)
-                logger.info(f"Fallback query found {employees.count()} employees")
-        else:
-            logger.warning(f"Access denied for user {user.email} with role {user.role}")
-            return Response(
-                {'error': 'Access denied. Only admin and manager roles can access this endpoint.'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # SIMPLE LOGIC: Just return all active employees (same as test endpoint)
+        employees = CustomUser.objects.filter(role='employee', is_active=True)
+        logger.info(f"Found {employees.count()} active employees")
         
         # Use the exact same logic as the working test endpoint
         logger.info(f"Processing {employees.count()} employees")
