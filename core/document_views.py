@@ -2099,6 +2099,16 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     def get_employees(self, request):
         """Get list of employees for document generation"""
         logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
+        
+        # TEMPORARY TEST: Return simple data to verify method is called
+        test_response = [
+            {'id': 'test1', 'name': 'Test Employee 1', 'email': 'test1@company.com'},
+            {'id': 'test2', 'name': 'Test Employee 2', 'email': 'test2@company.com'}
+        ]
+        logger.info(f"🚀 RETURNING TEST DATA FROM MAIN ENDPOINT: {test_response}")
+        return Response(test_response)
+        
+        # Original logic below (commented out for testing)
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
         logger.info(f"🚀 Request method: {request.method}")
