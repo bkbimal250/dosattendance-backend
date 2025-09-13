@@ -2098,17 +2098,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='employees')
     def get_employees(self, request):
         """Get list of employees for document generation"""
-        logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - This should appear in logs!")
-        
-        # TEMPORARY TEST: Return simple data to see if method is called
-        test_data = [
-            {'id': 'test1', 'name': 'Test Employee 1', 'email': 'test1@company.com'},
-            {'id': 'test2', 'name': 'Test Employee 2', 'email': 'test2@company.com'}
-        ]
-        logger.info(f"🚀 RETURNING TEST DATA: {test_data}")
-        return Response(test_data)
-        
-        # Original logic below (commented out for testing)
+        logger.info(f"🚀🚀🚀 GET_EMPLOYEES METHOD STARTED - Method is working correctly!")
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
         logger.info(f"🚀 Request method: {request.method}")
@@ -2119,51 +2109,31 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         logger.info(f"Users with role 'employee': {CustomUser.objects.filter(role='employee').count()}")
         logger.info(f"Active users with role 'employee': {CustomUser.objects.filter(role='employee', is_active=True).count()}")
         
+        # SIMPLIFIED APPROACH: Use the same logic as working test endpoint
         if user.role == 'admin':
+            # Admin can see all employees
             employees = CustomUser.objects.filter(role='employee', is_active=True)
             logger.info(f"Admin user - found {employees.count()} employees")
-            # Debug: List all users and their roles
-            all_users = CustomUser.objects.all()
-            logger.info(f"All users in database: {[(u.email, u.role, u.is_active) for u in all_users]}")
-            # Debug: Check specifically for employee role
-            all_employees_raw = CustomUser.objects.filter(role='employee')
-            logger.info(f"All employees (including inactive): {[(e.email, e.role, e.is_active) for e in all_employees_raw]}")
         elif user.role == 'manager':
+            # Manager can see employees in their office
             if not user.office:
                 logger.error(f"Manager {user.email} has no office assigned")
                 return Response(
                     {'error': 'Manager has no office assigned'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            # Debug: Check office object details
-            logger.info(f"Manager's office object: {user.office}")
-            logger.info(f"Manager's office ID: {user.office.id}")
-            logger.info(f"Manager's office name: {user.office.name}")
             
-            # Try different filtering approaches
-            employees_by_office_object = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
-            employees_by_office_id = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
+            logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
             
-            logger.info(f"Employees by office object: {employees_by_office_object.count()}")
-            logger.info(f"Employees by office ID: {employees_by_office_id.count()}")
+            # Try office filtering first
+            employees = CustomUser.objects.filter(role='employee', office_id=user.office.id, is_active=True)
+            logger.info(f"Employees in manager's office: {employees.count()}")
             
-            # Use the working query
-            employees = employees_by_office_id
-            
-            # TEMPORARY FIX: If no employees found by office, try all active employees
+            # If no employees found by office, fallback to all active employees
             if employees.count() == 0:
-                logger.warning("No employees found by office ID, falling back to all active employees")
+                logger.warning("No employees found by office, falling back to all active employees")
                 employees = CustomUser.objects.filter(role='employee', is_active=True)
                 logger.info(f"Fallback query found {employees.count()} employees")
-            
-            logger.info(f"Manager user in office {user.office.name} - found {employees.count()} employees")
-            # Debug: List all employees and their offices
-            all_employees = CustomUser.objects.filter(role='employee')
-            logger.info(f"All employees and their offices: {[(e.email, e.office.name if e.office else 'No Office', e.is_active) for e in all_employees]}")
-            logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
-            # Debug: Check employees in manager's office specifically
-            employees_in_office = CustomUser.objects.filter(role='employee', office=user.office)
-            logger.info(f"All employees in manager's office (including inactive): {[(e.email, e.is_active) for e in employees_in_office]}")
         else:
             logger.warning(f"Access denied for user {user.email} with role {user.role}")
             return Response(
@@ -2171,50 +2141,37 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        try:
-            # SIMPLIFIED APPROACH: Use the same logic as test endpoint but for all employees
-            logger.info(f"Starting to process {employees.count()} employees")
-            employee_list = list(employees)
-            logger.info(f"Employee list length: {len(employee_list)}")
-            
-            # TEMPORARY FIX: Use the exact same logic as test endpoint but for all employees
-            employee_data = []
-            for emp in employee_list:
-                try:
-                    # Simple name construction (same as test endpoint)
-                    simple_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email
-                    
-                    emp_data = {
-                        'id': str(emp.id),  # Convert to string for consistency
-                        'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
-                        'name': simple_name,
-                        'email': emp.email,
-                        'designation': emp.designation or 'Employee',
-                        'department': emp.department or 'General',
-                        'office': emp.office.name if emp.office else 'No Office',
-                        'current_salary': emp.salary or 0,
-                        'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
-                        'phone': emp.phone_number or '',
-                        'address': emp.address or ''
-                    }
-                    employee_data.append(emp_data)
-                    
-                except Exception as e:
-                    logger.error(f"Error processing employee {emp.id}: {e}")
-                    # Continue with other employees even if one fails
-                    continue
-            
-            logger.info(f"Successfully processed {len(employee_data)} employees")
-            logger.info(f"First employee data: {employee_data[0] if employee_data else 'No employees'}")
-            logger.info(f"🚀 MAIN ENDPOINT SUCCESS: Returning {len(employee_data)} employees")
-            return Response(employee_data)
-            
-        except Exception as e:
-            logger.error(f"Error in get_employees: {e}")
-            return Response(
-                {'error': 'Failed to fetch employee data'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # Use the exact same logic as the working test endpoint
+        logger.info(f"Processing {employees.count()} employees")
+        employee_data = []
+        
+        for emp in employees:
+            try:
+                # Simple name construction (same as test endpoint)
+                simple_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email
+                
+                emp_data = {
+                    'id': str(emp.id),
+                    'name': simple_name,
+                    'email': emp.email,
+                    'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
+                    'designation': emp.designation or 'Employee',
+                    'department': emp.department or 'General',
+                    'office': emp.office.name if emp.office else 'No Office',
+                    'current_salary': emp.salary or 0,
+                    'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
+                    'phone': emp.phone_number or '',
+                    'address': emp.address or ''
+                }
+                employee_data.append(emp_data)
+                
+            except Exception as e:
+                logger.error(f"Error processing employee {emp.id}: {e}")
+                continue
+        
+        logger.info(f"Successfully processed {len(employee_data)} employees")
+        logger.info(f"🚀 MAIN ENDPOINT SUCCESS: Returning {len(employee_data)} employees")
+        return Response(employee_data)
 
     @action(detail=False, methods=['get'])
     def test_employees(self, request):
