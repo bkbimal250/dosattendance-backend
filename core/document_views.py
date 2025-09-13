@@ -2121,10 +2121,23 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         logger.info(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
         logger.info(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
         
-        # Get ALL users (as requested by user)
-        employees = CustomUser.objects.all()
-        print(f"🚀 FETCHING ALL USERS: Found {employees.count()} total users")
-        logger.info(f"🚀 FETCHING ALL USERS: Found {employees.count()} total users")
+        # Use the same logic as the working sidebar (from ReportsViewSet)
+        if user.is_manager and not user.is_admin:
+            # Managers can only see users from their assigned office
+            if user.office:
+                employees = CustomUser.objects.select_related('office').filter(office=user.office)
+                print(f"🚀 MANAGER: Found {employees.count()} users in office '{user.office.name}'")
+                logger.info(f"🚀 MANAGER: Found {employees.count()} users in office '{user.office.name}'")
+            else:
+                # If manager has no office assigned, return empty result
+                employees = CustomUser.objects.none()
+                print("🚨 MANAGER: No office assigned, returning empty result")
+                logger.info("🚨 MANAGER: No office assigned, returning empty result")
+        else:
+            # Admins can see all users
+            employees = CustomUser.objects.select_related('office').all()
+            print(f"🚀 ADMIN: Found {employees.count()} total users")
+            logger.info(f"🚀 ADMIN: Found {employees.count()} total users")
         
         # Process employee data
         employee_data = []
