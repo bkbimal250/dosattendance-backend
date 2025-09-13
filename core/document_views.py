@@ -2095,8 +2095,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['get'])
-    def get_employees_for_documents(self, request):
+    @action(detail=False, methods=['get'], url_path='employees')
+    def get_employees(self, request):
         """Get list of employees for document generation"""
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
