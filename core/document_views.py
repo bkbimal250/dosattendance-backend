@@ -202,7 +202,10 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     logger.warning(f"Could not load company information: {e}")
                 
-                # Enhance the document content with proper CSS for single-page layout
+                # Get employee ID from user
+                employee_id = document.user.employee_id if hasattr(document.user, 'employee_id') and document.user.employee_id else '8B6A76E7'
+                
+                # Enhance the document content with professional, compact CSS for A4 printing
                 html_content = f"""
                 <!DOCTYPE html>
                 <html>
@@ -211,17 +214,22 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     <title>{document.title}</title>
                     <style>
                         @page {{
-                            margin: 0.5in;
+                            margin: 0.75in;
                             size: A4;
+                        }}
+                        
+                        * {{
+                            box-sizing: border-box;
                         }}
                         
                         body {{
                             font-family: 'Arial', 'Helvetica', sans-serif;
-                            font-size: 11pt;
-                            line-height: 1.3;
-                            color: #333;
+                            font-size: 10pt;
+                            line-height: 1.2;
+                            color: #000000;
                             margin: 0;
                             padding: 0;
+                            background: white;
                         }}
                         
                         .document-container {{
@@ -231,148 +239,213 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         
                         .header {{
                             text-align: center;
-                            margin-bottom: 20px;
-                            border-bottom: 2px solid #2c3e50;
-                            padding-bottom: 15px;
+                            margin-bottom: 15px;
+                            border-bottom: 1px solid #000;
+                            padding-bottom: 10px;
                         }}
                         
                         .company-logo {{
-                            max-height: 60px;
-                            max-width: 200px;
-                            margin-bottom: 10px;
+                            max-height: 50px;
+                            max-width: 150px;
+                            margin-bottom: 8px;
                         }}
                         
                         .company-name {{
-                            font-size: 16pt;
-                            font-weight: bold;
-                            color: #2c3e50;
-                            margin: 5px 0;
-                        }}
-                        
-                        .company-address {{
-                            font-size: 9pt;
-                            color: #666;
-                            margin: 5px 0;
-                        }}
-                        
-                        .company-contact {{
-                            font-size: 8pt;
-                            color: #888;
-                            margin: 5px 0;
-                        }}
-                        
-                        .document-title {{
                             font-size: 14pt;
                             font-weight: bold;
-                            color: #2c3e50;
-                            text-align: center;
-                            margin: 20px 0 15px 0;
+                            color: #000000;
+                            margin: 3px 0;
                             text-transform: uppercase;
                             letter-spacing: 1px;
                         }}
                         
+                        .company-address {{
+                            font-size: 8pt;
+                            color: #000000;
+                            margin: 2px 0;
+                            line-height: 1.1;
+                        }}
+                        
+                        .company-contact {{
+                            font-size: 7pt;
+                            color: #000000;
+                            margin: 2px 0;
+                        }}
+                        
+                        .document-title {{
+                            font-size: 12pt;
+                            font-weight: bold;
+                            color: #000000;
+                            text-align: center;
+                            margin: 15px 0 10px 0;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }}
+                        
+                        .employee-header {{
+                            display: flex;
+                            justify-content: space-between;
+                            margin: 10px 0;
+                            font-size: 9pt;
+                            border-bottom: 1px solid #000;
+                            padding-bottom: 8px;
+                        }}
+                        
+                        .employee-id {{
+                            font-weight: bold;
+                            color: #000000;
+                        }}
+                        
+                        .document-date {{
+                            color: #000000;
+                        }}
+                        
                         h1, h2, h3, h4, h5, h6 {{
-                            color: #2c3e50;
-                            margin-top: 15px;
-                            margin-bottom: 8px;
+                            color: #000000;
+                            margin-top: 10px;
+                            margin-bottom: 5px;
                             page-break-after: avoid;
                         }}
                         
                         h1 {{
-                            font-size: 14pt;
-                            font-weight: bold;
-                        }}
-                        
-                        h2 {{
-                            font-size: 13pt;
-                            font-weight: bold;
-                        }}
-                        
-                        h3 {{
                             font-size: 12pt;
                             font-weight: bold;
                         }}
                         
-                        p {{
-                            margin: 6px 0;
-                            text-align: justify;
+                        h2 {{
                             font-size: 11pt;
+                            font-weight: bold;
+                        }}
+                        
+                        h3 {{
+                            font-size: 10pt;
+                            font-weight: bold;
+                        }}
+                        
+                        p {{
+                            margin: 4px 0;
+                            text-align: justify;
+                            font-size: 9pt;
+                            line-height: 1.2;
                         }}
                         
                         .content {{
-                            margin: 15px 0;
+                            margin: 10px 0;
                         }}
                         
                         .footer {{
-                            margin-top: 30px;
-                            padding-top: 10px;
-                            border-top: 1px solid #ddd;
-                            font-size: 9pt;
-                            color: #666;
+                            margin-top: 20px;
+                            padding-top: 8px;
+                            border-top: 1px solid #000;
+                            font-size: 7pt;
+                            color: #000000;
                             text-align: center;
                         }}
                         
                         table {{
                             width: 100%;
                             border-collapse: collapse;
-                            margin: 10px 0;
-                            font-size: 10pt;
+                            margin: 8px 0;
+                            font-size: 9pt;
+                            border: 1px solid #000;
                         }}
                         
                         th, td {{
-                            border: 1px solid #ddd;
-                            padding: 6px;
+                            border: 1px solid #000;
+                            padding: 4px 6px;
                             text-align: left;
+                            vertical-align: top;
                         }}
                         
                         th {{
-                            background-color: #f5f5f5;
+                            background-color: #f0f0f0;
                             font-weight: bold;
-                            font-size: 10pt;
+                            font-size: 9pt;
+                            color: #000000;
+                        }}
+                        
+                        .salary-table {{
+                            margin: 10px 0;
+                        }}
+                        
+                        .salary-table th {{
+                            background-color: #e0e0e0;
+                            text-align: center;
+                            font-weight: bold;
+                        }}
+                        
+                        .salary-table td {{
+                            text-align: right;
+                        }}
+                        
+                        .salary-table .label {{
+                            text-align: left;
+                            font-weight: bold;
                         }}
                         
                         .signature-section {{
-                            margin-top: 25px;
+                            margin-top: 20px;
                             page-break-inside: avoid;
                         }}
                         
                         .signature-line {{
-                            border-bottom: 1px solid #333;
-                            width: 200px;
-                            margin: 15px 0 5px 0;
+                            border-bottom: 1px solid #000;
+                            width: 150px;
+                            margin: 10px 0 3px 0;
                         }}
                         
                         .employee-info {{
                             display: flex;
                             justify-content: space-between;
-                            margin: 15px 0;
-                            font-size: 10pt;
+                            margin: 8px 0;
+                            font-size: 9pt;
                         }}
                         
                         .employee-info div {{
                             flex: 1;
-                            margin: 0 10px;
+                            margin: 0 5px;
                         }}
                         
                         .date-info {{
                             text-align: right;
-                            font-size: 10pt;
-                            color: #666;
-                            margin: 10px 0;
-                        }}
-                        
-                        /* Compact spacing for single page */
-                        .compact {{
+                            font-size: 8pt;
+                            color: #000000;
                             margin: 5px 0;
                         }}
                         
-                        .compact p {{
+                        /* Compact spacing for A4 */
+                        .compact {{
                             margin: 3px 0;
+                        }}
+                        
+                        .compact p {{
+                            margin: 2px 0;
+                        }}
+                        
+                        .text-center {{
+                            text-align: center;
+                        }}
+                        
+                        .text-right {{
+                            text-align: right;
+                        }}
+                        
+                        .text-bold {{
+                            font-weight: bold;
+                        }}
+                        
+                        .mt-10 {{
+                            margin-top: 10px;
+                        }}
+                        
+                        .mb-5 {{
+                            margin-bottom: 5px;
                         }}
                         
                         @media print {{
                             body {{ margin: 0; }}
                             .no-print {{ display: none; }}
+                            @page {{ margin: 0.75in; }}
                         }}
                     </style>
                 </head>
@@ -389,8 +462,9 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         
                         <div class="document-title">{document.title}</div>
                         
-                        <div class="date-info">
-                            Date: {document.generated_at.strftime('%B %d, %Y') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}
+                        <div class="employee-header">
+                            <div class="employee-id">Employee ID: {employee_id}</div>
+                            <div class="document-date">Date: {document.generated_at.strftime('%B %d, %Y') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}</div>
                         </div>
                         
                         <div class="content compact">
@@ -597,150 +671,172 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <style>
+                @page {
+                    margin: 0.75in;
+                    size: A4;
+                }
+                
+                * {
+                    box-sizing: border-box;
+                }
+                
                 body { 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.6; 
-                    color: #333;
+                    line-height: 1.2; 
+                    color: #000000;
                     background-color: #ffffff;
+                    font-size: 10pt;
                 }
+                
                 .page { 
-                    max-width: 800px; 
+                    max-width: 100%; 
                     margin: 0 auto; 
-                    padding: 40px; 
+                    padding: 0; 
                     background: white;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
                 }
-                .header-strip { 
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
-                    height: 3px; 
-                    margin-bottom: 20px; 
-                }
+                
                 .header { 
-                    display: flex; 
-                    align-items: center; 
-                    margin-bottom: 30px; 
-                    padding-bottom: 20px; 
-                    border-bottom: 2px solid #e5e7eb; 
+                    text-align: center; 
+                    margin-bottom: 15px; 
+                    padding-bottom: 10px; 
+                    border-bottom: 1px solid #000; 
                 }
-                .logo-container { 
-                    margin-right: 20px; 
-                }
+                
                 .company-logo { 
-                    max-height: 80px; 
-                    max-width: 120px; 
-                    object-fit: contain; 
+                    max-height: 50px; 
+                    max-width: 150px; 
+                    margin-bottom: 8px; 
                 }
-                .company-info { 
-                    flex: 1; 
-                }
+                
                 .company-name { 
-                    font-size: 28px; 
-                    font-weight: 700; 
-                    color: #1e40af; 
-                    margin: 0 0 8px 0; 
+                    font-size: 14pt; 
+                    font-weight: bold; 
+                    color: #000000; 
+                    margin: 3px 0; 
+                    text-transform: uppercase;
                     letter-spacing: 1px;
                 }
+                
                 .company-address { 
-                    font-size: 13px; 
-                    color: #6b7280; 
-                    line-height: 1.4; 
-                    margin: 0;
+                    font-size: 8pt; 
+                    color: #000000; 
+                    line-height: 1.1; 
+                    margin: 2px 0;
                 }
-                .document-date { 
-                    font-size: 14px; 
-                    color: #374151; 
-                    margin-bottom: 30px; 
-                    text-align: right;
-                }
-                .title { 
+                .document-title { 
                     text-align: center; 
-                    font-size: 24px; 
-                    font-weight: 700; 
-                    margin: 40px 0; 
-                    color: #1e40af;
+                    font-size: 12pt; 
+                    font-weight: bold; 
+                    margin: 15px 0 10px 0; 
+                    color: #000000; 
                     text-transform: uppercase;
-                    letter-spacing: 2px;
+                    letter-spacing: 1px;
                 }
+                
+                .employee-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 10px 0;
+                    font-size: 9pt;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 8px;
+                }
+                
+                .employee-id {
+                    font-weight: bold;
+                    color: #000000;
+                }
+                
+                .document-date {
+                    color: #000000;
+                }
+                
                 .letter-info {
-                    background: #f8fafc;
-                    padding: 20px;
-                    border-left: 4px solid #1e40af;
-                    margin-bottom: 30px;
-                }
-                .letter-info p {
-                    margin: 5px 0;
-                    font-size: 14px;
-                }
-                .content { 
-                    margin: 30px 0; 
-                    font-size: 15px;
-                    line-height: 1.7;
-                }
-                .content p {
                     margin-bottom: 15px;
+                    border: 1px solid #000;
+                    padding: 8px;
                 }
+                
+                .letter-info p {
+                    margin: 3px 0;
+                    font-size: 9pt;
+                }
+                
+                .content { 
+                    margin: 15px 0; 
+                    font-size: 9pt;
+                    line-height: 1.3;
+                }
+                
+                .content p {
+                    margin-bottom: 8px;
+                }
+                
                 .highlight {
-                    background: #dbeafe;
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin: 20px 0;
-                    border-left: 4px solid #3b82f6;
+                    background-color: #f0f0f0;
+                    padding: 8px;
+                    margin: 10px 0;
+                    border: 1px solid #000;
                 }
+                
                 .signature { 
-                    margin-top: 50px; 
+                    margin-top: 25px; 
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-end;
                 }
+                
                 .signature-left {
                     flex: 1;
                 }
+                
                 .signature-right {
                     text-align: right;
                 }
+                
                 .footer { 
-                    margin-top: 50px; 
+                    margin-top: 25px; 
                     text-align: center; 
-                    font-size: 12px; 
-                    color: #6b7280; 
-                    border-top: 1px solid #e5e7eb; 
-                    padding-top: 20px; 
+                    font-size: 8pt; 
+                    color: #000000; 
+                    border-top: 1px solid #000; 
+                    padding-top: 8px; 
                 }
-                .footer-strip {
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-                    height: 2px;
-                    margin-top: 20px;
-                }
+                
                 .employee-name {
-                    font-weight: 700;
-                    color: #1e40af;
-                    font-size: 16px;
+                    font-weight: bold;
+                    color: #000000;
+                    font-size: 10pt;
+                }
+                
+                .signature-line {
+                    border-bottom: 1px solid #000;
+                    width: 150px;
+                    margin: 10px 0 3px 0;
                 }
             </style>
         </head>
         <body>
             <div class="page">
-                <div class="header-strip"></div>
-                
-            <div class="header">
-                    <div class="logo-container">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                <div class="header">
+                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+                    <div class="company-address">
+                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
-                    <div class="company-info">
-                        <h1 class="company-name">DISHA ONLINE SOLUTIONS</h1>
-                        <p class="company-address">
-                    Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                        </p>
                 </div>
-            </div>
-            
-                <div class="document-date">{{ current_date }}</div>
                 
-                <div class="title">Offer Letter</div>
+                <div class="document-title">Offer Letter</div>
+                
+                <div class="employee-header">
+                    <div class="employee-id">Employee ID: {{ employee_id }}</div>
+                    <div class="document-date">Date: {{ current_date }}</div>
+                </div>
                 
                 <div class="letter-info">
                     <p><strong>Date:</strong> {{ current_date }}</p>
@@ -790,191 +886,215 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def get_salary_increment_template(self):
-        """Default salary increment template"""
+        """Professional salary increment template"""
         return """
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <style>
+                @page {
+                    margin: 0.75in;
+                    size: A4;
+                }
+                
+                * {
+                    box-sizing: border-box;
+                }
+                
                 body { 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.6; 
-                    color: #333;
+                    line-height: 1.2; 
+                    color: #000000;
                     background-color: #ffffff;
+                    font-size: 10pt;
                 }
+                
                 .page { 
-                    max-width: 800px; 
+                    max-width: 100%; 
                     margin: 0 auto; 
-                    padding: 40px; 
+                    padding: 0; 
                     background: white;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
                 }
-                .header-strip { 
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
-                    height: 3px; 
-                    margin-bottom: 20px; 
-                }
+                
                 .header { 
-                    display: flex; 
-                    align-items: center; 
-                    margin-bottom: 30px; 
-                    padding-bottom: 20px; 
-                    border-bottom: 2px solid #e5e7eb; 
+                    text-align: center; 
+                    margin-bottom: 15px; 
+                    padding-bottom: 10px; 
+                    border-bottom: 1px solid #000; 
                 }
-                .logo-container { 
-                    margin-right: 20px; 
-                }
+                
                 .company-logo { 
-                    max-height: 80px; 
-                    max-width: 120px; 
-                    object-fit: contain; 
+                    max-height: 50px; 
+                    max-width: 150px; 
+                    margin-bottom: 8px; 
                 }
-                .company-info { 
-                    flex: 1; 
-                }
+                
                 .company-name { 
-                    font-size: 28px; 
-                    font-weight: 700; 
-                    color: #1e40af; 
-                    margin: 0 0 8px 0; 
+                    font-size: 14pt; 
+                    font-weight: bold; 
+                    color: #000000; 
+                    margin: 3px 0; 
+                    text-transform: uppercase;
                     letter-spacing: 1px;
                 }
+                
                 .company-address { 
-                    font-size: 13px; 
-                    color: #6b7280; 
-                    line-height: 1.4; 
-                    margin: 0;
+                    font-size: 8pt; 
+                    color: #000000; 
+                    line-height: 1.1; 
+                    margin: 2px 0;
                 }
-                .document-date { 
-                    font-size: 14px; 
-                    color: #374151; 
-                    margin-bottom: 30px; 
-                    text-align: right;
-                }
-                .title { 
+                .document-title { 
                     text-align: center; 
-                    font-size: 24px; 
-                    font-weight: 700; 
-                    margin: 40px 0; 
-                    color: #1e40af;
+                    font-size: 12pt; 
+                    font-weight: bold; 
+                    margin: 15px 0 10px 0; 
+                    color: #000000; 
                     text-transform: uppercase;
-                    letter-spacing: 2px;
+                    letter-spacing: 1px;
                 }
+                
+                .employee-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 10px 0;
+                    font-size: 9pt;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 8px;
+                }
+                
+                .employee-id {
+                    font-weight: bold;
+                    color: #000000;
+                }
+                
+                .document-date {
+                    color: #000000;
+                }
+                
                 .letter-info {
-                    background: #f8fafc;
-                    padding: 20px;
-                    border-left: 4px solid #1e40af;
-                    margin-bottom: 30px;
-                }
-                .letter-info p {
-                    margin: 5px 0;
-                    font-size: 14px;
-                }
-                .content { 
-                    margin: 30px 0; 
-                    font-size: 15px;
-                    line-height: 1.7;
-                }
-                .content p {
                     margin-bottom: 15px;
+                    border: 1px solid #000;
+                    padding: 8px;
                 }
+                
+                .letter-info p {
+                    margin: 3px 0;
+                    font-size: 9pt;
+                }
+                
+                .content { 
+                    margin: 15px 0; 
+                    font-size: 9pt;
+                    line-height: 1.3;
+                }
+                
+                .content p {
+                    margin-bottom: 8px;
+                }
+                
                 .salary-details {
-                    background: #f0f9ff;
-                    padding: 20px;
-                    border-radius: 8px;
-                    margin: 25px 0;
-                    border-left: 4px solid #0ea5e9;
+                    background-color: #f0f0f0;
+                    padding: 10px;
+                    margin: 15px 0;
+                    border: 1px solid #000;
                 }
+                
                 .salary-details h3 {
-                    margin: 0 0 15px 0;
-                    color: #0c4a6e;
-                    font-size: 16px;
+                    margin: 0 0 8px 0;
+                    color: #000000;
+                    font-size: 10pt;
+                    font-weight: bold;
                 }
+                
                 .salary-row {
                     display: flex;
                     justify-content: space-between;
-                    margin: 8px 0;
-                    padding: 5px 0;
-                    border-bottom: 1px solid #e0f2fe;
+                    margin: 4px 0;
+                    padding: 2px 0;
                 }
+                
                 .salary-row:last-child {
-                    border-bottom: none;
-                    font-weight: 700;
-                    color: #0c4a6e;
-                    background: #e0f2fe;
-                    padding: 10px;
-                    border-radius: 4px;
-                    margin-top: 10px;
+                    font-weight: bold;
+                    color: #000000;
+                    background-color: #e0e0e0;
+                    padding: 6px;
+                    margin-top: 8px;
                 }
+                
                 .salary-label {
-                    font-weight: 600;
-                    color: #374151;
+                    font-weight: bold;
+                    color: #000000;
                 }
+                
                 .salary-value {
-                    font-weight: 500;
-                    color: #1e40af;
+                    color: #000000;
                 }
+                
                 .signature { 
-                    margin-top: 50px; 
+                    margin-top: 25px; 
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-end;
                 }
+                
                 .signature-left {
                     flex: 1;
                 }
+                
                 .signature-right {
                     text-align: right;
                 }
+                
                 .footer { 
-                    margin-top: 50px; 
+                    margin-top: 25px; 
                     text-align: center; 
-                    font-size: 12px; 
-                    color: #6b7280; 
-                    border-top: 1px solid #e5e7eb; 
-                    padding-top: 20px; 
+                    font-size: 8pt; 
+                    color: #000000; 
+                    border-top: 1px solid #000; 
+                    padding-top: 8px; 
                 }
-                .footer-strip {
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-                    height: 2px;
-                    margin-top: 20px;
-                }
+                
                 .employee-name {
-                    font-weight: 700;
-                    color: #1e40af;
-                    font-size: 16px;
+                    font-weight: bold;
+                    color: #000000;
+                    font-size: 10pt;
                 }
+                
                 .appreciation {
-                    background: #fef3c7;
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin: 20px 0;
-                    border-left: 4px solid #f59e0b;
+                    background-color: #f8f8f8;
+                    padding: 8px;
+                    margin: 10px 0;
+                    border: 1px solid #000;
+                }
+                
+                .signature-line {
+                    border-bottom: 1px solid #000;
+                    width: 150px;
+                    margin: 10px 0 3px 0;
                 }
             </style>
         </head>
         <body>
             <div class="page">
-                <div class="header-strip"></div>
-                
-            <div class="header">
-                    <div class="logo-container">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                <div class="header">
+                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+                    <div class="company-address">
+                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
-                    <div class="company-info">
-                        <h1 class="company-name">DISHA ONLINE SOLUTIONS</h1>
-                        <p class="company-address">
-                    Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                        </p>
                 </div>
-            </div>
-            
-                <div class="document-date">{{ effective_date }}</div>
                 
-                <div class="title">Salary Increment Letter</div>
+                <div class="document-title">Salary Increment Letter</div>
+                
+                <div class="employee-header">
+                    <div class="employee-id">Employee ID: {{ employee_id }}</div>
+                    <div class="document-date">Date: {{ effective_date }}</div>
+                </div>
                 
                 <div class="letter-info">
                     <p><strong>Date:</strong> {{ effective_date }}</p>
@@ -1045,207 +1165,217 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8">
             <style>
+                @page {
+                    margin: 0.75in;
+                    size: A4;
+                }
+                
+                * {
+                    box-sizing: border-box;
+                }
+                
                 body { 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                    font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.6; 
-                    color: #333;
+                    line-height: 1.2; 
+                    color: #000000;
                     background-color: #ffffff;
+                    font-size: 10pt;
                 }
+                
                 .page { 
-                    max-width: 800px; 
+                    max-width: 100%; 
                     margin: 0 auto; 
-                    padding: 40px; 
+                    padding: 0; 
                     background: white;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
                 }
-                .header-strip { 
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); 
-                    height: 3px; 
-                    margin-bottom: 20px; 
-                }
+                
                 .header { 
-                    display: flex; 
-                    align-items: center; 
-                    margin-bottom: 30px; 
-                    padding-bottom: 20px; 
-                    border-bottom: 2px solid #e5e7eb; 
+                    text-align: center; 
+                    margin-bottom: 15px; 
+                    padding-bottom: 10px; 
+                    border-bottom: 1px solid #000; 
                 }
-                .logo-container { 
-                    margin-right: 20px; 
-                }
+                
                 .company-logo { 
-                    max-height: 80px; 
-                    max-width: 120px; 
-                    object-fit: contain; 
+                    max-height: 50px; 
+                    max-width: 150px; 
+                    margin-bottom: 8px; 
                 }
-                .company-info { 
-                    flex: 1; 
-                }
+                
                 .company-name { 
-                    font-size: 28px; 
-                    font-weight: 700; 
-                    color: #1e40af; 
-                    margin: 0 0 8px 0; 
+                    font-size: 14pt; 
+                    font-weight: bold; 
+                    color: #000000; 
+                    margin: 3px 0; 
+                    text-transform: uppercase;
                     letter-spacing: 1px;
                 }
+                
                 .company-address { 
-                    font-size: 13px; 
-                    color: #6b7280; 
-                    line-height: 1.4; 
-                    margin: 0;
+                    font-size: 8pt; 
+                    color: #000000; 
+                    line-height: 1.1; 
+                    margin: 2px 0;
                 }
                 .document-title { 
                     text-align: center; 
-                    font-size: 24px; 
-                    font-weight: 700; 
-                    margin: 30px 0; 
-                    color: #1e40af;
-                    text-transform: uppercase;
-                    letter-spacing: 2px;
-                }
-                .salary-month {
-                    text-align: center;
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #374151;
-                    margin-bottom: 30px;
-                    background: #f8fafc;
-                    padding: 10px;
-                    border-radius: 8px;
-                }
-                .employee-section {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 30px;
-                    margin-bottom: 30px;
-                }
-                .employee-info, .bank-info {
-                    background: #f8fafc;
-                    padding: 20px;
-                    border-radius: 8px;
-                    border-left: 4px solid #1e40af;
-                }
-                .section-title {
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: #1e40af;
-                    margin-bottom: 15px;
+                    font-size: 12pt; 
+                    font-weight: bold; 
+                    margin: 15px 0 10px 0; 
+                    color: #000000; 
                     text-transform: uppercase;
                     letter-spacing: 1px;
                 }
+                
+                .salary-month {
+                    text-align: center;
+                    font-size: 10pt;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    color: #000000;
+                }
+                
+                .employee-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 10px 0;
+                    font-size: 9pt;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 8px;
+                }
+                
+                .employee-id {
+                    font-weight: bold;
+                    color: #000000;
+                }
+                
+                .document-date {
+                    color: #000000;
+                }
+                .employee-section {
+                    margin-bottom: 15px;
+                }
+                
+                .employee-info, .bank-info {
+                    margin-bottom: 10px;
+                }
+                
+                .section-title {
+                    font-size: 10pt;
+                    font-weight: bold;
+                    color: #000000;
+                    margin-bottom: 8px;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 3px;
+                }
+                
                 .info-row {
                     display: flex;
                     justify-content: space-between;
-                    margin: 8px 0;
-                    padding: 5px 0;
-                    border-bottom: 1px solid #e5e7eb;
+                    margin: 4px 0;
+                    padding: 2px 0;
                 }
-                .info-row:last-child {
-                    border-bottom: none;
-                }
+                
                 .info-label {
-                    font-weight: 600;
-                    color: #374151;
+                    font-weight: bold;
+                    color: #000000;
                 }
+                
                 .info-value {
-                    font-weight: 500;
-                    color: #1e40af;
+                    color: #000000;
                 }
                 .salary-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 30px 0;
-                    background: white;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    margin: 10px 0;
+                    font-size: 9pt;
+                    border: 1px solid #000;
                 }
+                
                 .salary-table th {
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-                    color: white;
-                    padding: 15px;
+                    background-color: #f0f0f0;
+                    color: #000000;
+                    padding: 6px 8px;
                     text-align: left;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
+                    font-weight: bold;
+                    font-size: 9pt;
+                    border: 1px solid #000;
                 }
+                
                 .salary-table td {
-                    padding: 12px 15px;
-                    border-bottom: 1px solid #e5e7eb;
+                    padding: 4px 8px;
+                    border: 1px solid #000;
+                    font-size: 9pt;
                 }
+                
                 .salary-table tr:nth-child(even) {
-                    background: #f8fafc;
+                    background-color: #f8f8f8;
                 }
+                
                 .salary-table tr:last-child td {
-                    border-bottom: none;
-                    font-weight: 700;
-                    background: #dbeafe;
-                    color: #1e40af;
+                    font-weight: bold;
+                    background-color: #e0e0e0;
+                    color: #000000;
                 }
+                
                 .amount {
                     text-align: right;
-                    font-weight: 600;
+                    font-weight: bold;
+                    color: #000000;
                 }
+                
                 .net-salary {
-                    background: #dbeafe !important;
-                    font-weight: 700;
-                    font-size: 16px;
-                    color: #1e40af;
+                    background-color: #e0e0e0 !important;
+                    font-weight: bold;
+                    font-size: 10pt;
+                    color: #000000;
                 }
                 .footer { 
-                    margin-top: 40px; 
+                    margin-top: 20px; 
                     text-align: center; 
-                    font-size: 12px; 
-                    color: #6b7280; 
-                    border-top: 1px solid #e5e7eb; 
-                    padding-top: 20px; 
+                    font-size: 8pt; 
+                    color: #000000; 
+                    border-top: 1px solid #000; 
+                    padding-top: 8px; 
                 }
-                .footer-strip {
-                    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-                    height: 2px;
-                    margin-top: 20px;
-                }
+                
                 .generated-info {
-                    text-align: right;
-                    font-size: 11px;
-                    color: #9ca3af;
-                    margin-top: 20px;
+                    text-align: center;
+                    font-size: 7pt;
+                    color: #000000;
+                    margin-top: 10px;
                 }
             </style>
         </head>
         <body>
             <div class="page">
-                <div class="header-strip"></div>
-                
                 <div class="header">
-                    <div class="logo-container">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
-                    </div>
-                    <div class="company-info">
-                        <h1 class="company-name">DISHA ONLINE SOLUTIONS</h1>
-                        <p class="company-address">
-                            Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                            Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                        </p>
+                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+                    <div class="company-address">
+                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
                 </div>
                 
                 <div class="document-title">Salary Slip</div>
                 <div class="salary-month">{{ salary_month }} {{ salary_year }}</div>
                 
+                <div class="employee-header">
+                    <div class="employee-id">Employee ID: {{ employee_id }}</div>
+                    <div class="document-date">Date: {{ current_date }}</div>
+                </div>
+                
                 <div class="employee-section">
+                    <div class="section-title">Employee Information</div>
                     <div class="employee-info">
-                        <div class="section-title">Employee Information</div>
                         <div class="info-row">
                             <span class="info-label">Employee Name:</span>
                             <span class="info-value">{{ employee_name }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Employee ID:</span>
-                            <span class="info-value">{{ employee_id }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Designation:</span>
@@ -1257,19 +1387,19 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         </div>
                     </div>
                     
+                    <div class="section-title">Bank Details</div>
                     <div class="bank-info">
-                        <div class="section-title">Bank & Other Details</div>
                         <div class="info-row">
                             <span class="info-label">Bank Name:</span>
                             <span class="info-value">{{ bank_name }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Account No:</span>
+                            <span class="info-label">Account Number:</span>
                             <span class="info-value">{{ account_number }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Date of Joining:</span>
-                            <span class="info-value">{{ date_of_joining }}</span>
+                            <span class="info-label">IFSC Code:</span>
+                            <span class="info-value">{{ ifsc_code }}</span>
                         </div>
                     </div>
                 </div>
@@ -1277,26 +1407,26 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 <table class="salary-table">
                     <thead>
                         <tr>
-                            <th>Component</th>
-                            <th class="amount">Amount</th>
+                            <th>Description</th>
+                            <th>Amount (₹)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>Basic Salary</td>
-                            <td class="amount">{{ basic_salary }}</td>
+                            <td class="amount">₹{{ basic_salary }}</td>
                         </tr>
                         <tr>
                             <td>Extra Days Pay</td>
-                            <td class="amount">{{ extra_days_pay }}</td>
+                            <td class="amount">₹{{ extra_days_pay }}</td>
                         </tr>
                         <tr>
-                            <td>Total Salary</td>
-                            <td class="amount">{{ total_salary }}</td>
+                            <td><strong>Total Salary</strong></td>
+                            <td class="amount"><strong>₹{{ total_salary }}</strong></td>
                         </tr>
                         <tr>
-                            <td class="net-salary">NET SALARY</td>
-                            <td class="amount net-salary">{{ net_salary }}</td>
+                            <td class="net-salary"><strong>Net Salary</strong></td>
+                            <td class="amount net-salary"><strong>₹{{ net_salary }}</strong></td>
                         </tr>
                     </tbody>
                 </table>
@@ -1308,8 +1438,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 <div class="generated-info">
                     Generated on: {{ current_date }}
                 </div>
-                
-                <div class="footer-strip"></div>
             </div>
         </body>
         </html>
