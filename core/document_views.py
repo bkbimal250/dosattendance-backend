@@ -2156,6 +2156,11 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             employee_data = []
             for emp in employees:
                 try:
+                    # Debug individual employee processing
+                    logger.info(f"Processing employee: {emp.email}, ID: {emp.id}")
+                    logger.info(f"Employee full name: '{emp.get_full_name()}'")
+                    logger.info(f"Employee first_name: '{emp.first_name}', last_name: '{emp.last_name}'")
+                    
                     employee_data.append({
                         'id': emp.id,
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
@@ -2175,6 +2180,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     continue
             
             logger.info(f"Successfully processed {len(employee_data)} employees")
+            logger.info(f"First employee data: {employee_data[0] if employee_data else 'No employees'}")
+            logger.info(f"Employee data format check - ID: {employee_data[0]['id'] if employee_data else 'N/A'}")
+            logger.info(f"Employee data format check - Name: {employee_data[0]['name'] if employee_data else 'N/A'}")
+            logger.info(f"Employee data format check - Email: {employee_data[0]['email'] if employee_data else 'N/A'}")
             return Response(employee_data)
             
         except Exception as e:
