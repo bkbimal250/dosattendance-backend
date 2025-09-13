@@ -2148,6 +2148,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         
         logger.info(f"Successfully processed {len(employee_data)} employees")
         logger.info(f"🚀 MAIN ENDPOINT SUCCESS: Returning {len(employee_data)} employees")
+        
+        # Debug: Print first few employees to console
+        if employee_data:
+            print(f"🚀 First employee data: {employee_data[0]}")
+            logger.info(f"🚀 First employee data: {employee_data[0]}")
+        else:
+            print("🚀 No employee data to return!")
+            logger.info("🚀 No employee data to return!")
+        
         return Response(employee_data)
 
     @action(detail=False, methods=['get'])
