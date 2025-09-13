@@ -2114,15 +2114,76 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         for emp in employees:
             employee_data.append({
                 'id': emp.id,
+                'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
                 'name': emp.get_full_name(),
                 'email': emp.email,
                 'designation': emp.designation,
                 'department': emp.department,
                 'office': emp.office.name if emp.office else None,
-                'current_salary': emp.salary
+                'current_salary': emp.salary,
+                'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
+                'phone': emp.phone_number,
+                'address': emp.address
             })
         
         return Response(employee_data)
+
+    @action(detail=False, methods=['get'])
+    def get_employee_details(self, request):
+        """Get detailed information for a specific employee"""
+        user = request.user
+        employee_id = request.query_params.get('employee_id')
+        
+        if not employee_id:
+            return Response(
+                {'error': 'employee_id parameter is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            employee = get_object_or_404(CustomUser, id=employee_id)
+            
+            # Check permissions
+            if user.role == 'employee' and employee != user:
+                return Response(
+                    {'error': 'Access denied'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            employee_data = {
+                'id': employee.id,
+                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),
+                'name': employee.get_full_name(),
+                'first_name': employee.first_name,
+                'last_name': employee.last_name,
+                'email': employee.email,
+                'designation': employee.designation,
+                'department': employee.department,
+                'office': employee.office.name if employee.office else None,
+                'office_id': employee.office.id if employee.office else None,
+                'current_salary': employee.salary,
+                'joining_date': employee.joining_date.strftime('%Y-%m-%d') if employee.joining_date else None,
+                'phone': employee.phone_number,
+                'address': employee.address,
+                'date_of_birth': employee.date_of_birth.strftime('%Y-%m-%d') if employee.date_of_birth else None,
+                'bank_name': getattr(employee, 'bank_name', ''),
+                'account_number': getattr(employee, 'account_number', ''),
+                'pan_number': getattr(employee, 'pan_number', ''),
+                'aadhar_number': getattr(employee, 'aadhar_number', ''),
+                'emergency_contact': getattr(employee, 'emergency_contact', ''),
+                'emergency_phone': getattr(employee, 'emergency_phone', ''),
+                'is_active': employee.is_active,
+                'created_at': employee.date_joined.strftime('%Y-%m-%d %H:%M:%S') if employee.date_joined else None
+            }
+            
+            return Response(employee_data)
+            
+        except Exception as e:
+            logger.error(f"Error fetching employee details: {e}")
+            return Response(
+                {'error': 'Failed to fetch employee details'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['get'])
     def my_documents(self, request):
