@@ -2137,6 +2137,12 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             # Use the working query
             employees = employees_by_office_id
             
+            # TEMPORARY FIX: If no employees found by office, try all active employees
+            if employees.count() == 0:
+                logger.warning("No employees found by office ID, falling back to all active employees")
+                employees = CustomUser.objects.filter(role='employee', is_active=True)
+                logger.info(f"Fallback query found {employees.count()} employees")
+            
             logger.info(f"Manager user in office {user.office.name} - found {employees.count()} employees")
             # Debug: List all employees and their offices
             all_employees = CustomUser.objects.filter(role='employee')
@@ -2154,14 +2160,18 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         
         try:
             employee_data = []
-            for emp in employees:
+            logger.info(f"Starting to process {employees.count()} employees")
+            employee_list = list(employees)
+            logger.info(f"Employee list length: {len(employee_list)}")
+            
+            for i, emp in enumerate(employee_list):
                 try:
                     # Debug individual employee processing
                     logger.info(f"Processing employee: {emp.email}, ID: {emp.id}")
                     logger.info(f"Employee full name: '{emp.get_full_name()}'")
                     logger.info(f"Employee first_name: '{emp.first_name}', last_name: '{emp.last_name}'")
                     
-                    employee_data.append({
+                    emp_data = {
                         'id': emp.id,
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
                         'name': emp.get_full_name(),
@@ -2173,7 +2183,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
                         'phone': emp.phone_number,
                         'address': emp.address
-                    })
+                    }
+                    employee_data.append(emp_data)
+                    logger.info(f"Added employee {i+1}: {emp_data['name']} ({emp_data['email']})")
                 except Exception as e:
                     logger.error(f"Error processing employee {emp.id}: {e}")
                     # Continue with other employees even if one fails
