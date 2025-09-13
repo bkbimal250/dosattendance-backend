@@ -2121,59 +2121,30 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         logger.info(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
         logger.info(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
         
-        # Use the same logic as the working sidebar (from ReportsViewSet)
-        if user.is_manager and not user.is_admin:
-            # Managers can only see users from their assigned office
-            if user.office:
-                employees = CustomUser.objects.select_related('office').filter(office=user.office)
-                print(f"🚀 MANAGER: Found {employees.count()} users in office '{user.office.name}'")
-                logger.info(f"🚀 MANAGER: Found {employees.count()} users in office '{user.office.name}'")
-            else:
-                # If manager has no office assigned, return empty result
-                employees = CustomUser.objects.none()
-                print("🚨 MANAGER: No office assigned, returning empty result")
-                logger.info("🚨 MANAGER: No office assigned, returning empty result")
+        # Use the EXACT same logic as CustomUserViewSet (working sidebar)
+        queryset = CustomUser.objects.select_related('office')
+        
+        if user.is_admin:
+            queryset = queryset.all()
+            print(f"🚀 ADMIN: Found {queryset.count()} total users")
+            logger.info(f"🚀 ADMIN: Found {queryset.count()} total users")
+        elif user.is_manager:
+            queryset = queryset.filter(office=user.office)
+            print(f"🚀 MANAGER: Found {queryset.count()} users in office '{user.office.name if user.office else 'No Office'}'")
+            logger.info(f"🚀 MANAGER: Found {queryset.count()} users in office '{user.office.name if user.office else 'No Office'}'")
         else:
-            # Admins can see all users
-            employees = CustomUser.objects.select_related('office').all()
-            print(f"🚀 ADMIN: Found {employees.count()} total users")
-            logger.info(f"🚀 ADMIN: Found {employees.count()} total users")
+            queryset = queryset.filter(id=user.id)
+            print(f"🚀 EMPLOYEE: Found {queryset.count()} user (self only)")
+            logger.info(f"🚀 EMPLOYEE: Found {queryset.count()} user (self only)")
         
-        # Process employee data
-        employee_data = []
-        for emp in employees:
-            try:
-                # Simple name construction
-                simple_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email
-                
-                emp_data = {
-                    'id': str(emp.id),
-                    'name': simple_name,
-                    'email': emp.email,
-                    'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
-                    'designation': emp.designation or (emp.role.title() if emp.role else 'User'),
-                    'department': emp.department or 'General',
-                    'office': emp.office.name if emp.office else 'No Office',
-                    'current_salary': emp.salary or 0,
-                    'joining_date': emp.joining_date.strftime('%Y-%m-%d') if emp.joining_date else None,
-                    'phone': emp.phone_number or '',
-                    'address': emp.address or '',
-                    'role': emp.role or 'user',
-                    'is_active': emp.is_active
-                }
-                employee_data.append(emp_data)
-                
-            except Exception as e:
-                logger.error(f"Error processing employee {emp.id}: {e}")
-                continue
+        # Use the same serializer as CustomUserViewSet
+        from .serializers import CustomUserSerializer
+        serializer = CustomUserSerializer(queryset, many=True)
         
-        print(f"🚀 Returning real employee data: {len(employee_data)} employees")
-        logger.info(f"🚀 Returning real employee data: {len(employee_data)} employees")
+        print(f"🚀 FINAL RESULT: Returning {len(serializer.data)} users using CustomUserSerializer")
+        logger.info(f"🚀 FINAL RESULT: Returning {len(serializer.data)} users using CustomUserSerializer")
         
-        # Return real data (no test data fallback)
-        print(f"🚀 FINAL RESULT: Returning {len(employee_data)} real users from database")
-        logger.info(f"🚀 FINAL RESULT: Returning {len(employee_data)} real users from database")
-        return Response(employee_data)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def test_employees(self, request):
