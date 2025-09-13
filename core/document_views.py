@@ -2099,7 +2099,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     def get_employees(self, request):
         """Get list of employees for document generation"""
         user = request.user
-        logger.info(f"Getting employees for user: {user.email}, role: {user.role}")
+        logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
+        logger.info(f"🚀 Request method: {request.method}")
+        logger.info(f"🚀 Request path: {request.path}")
         
         # Debug: Test basic queries
         logger.info(f"Total CustomUser count: {CustomUser.objects.count()}")
