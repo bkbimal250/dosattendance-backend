@@ -2101,9 +2101,20 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         user = request.user
         logger.info(f"Getting employees for user: {user.email}, role: {user.role}")
         
+        # Debug: Test basic queries
+        logger.info(f"Total CustomUser count: {CustomUser.objects.count()}")
+        logger.info(f"Users with role 'employee': {CustomUser.objects.filter(role='employee').count()}")
+        logger.info(f"Active users with role 'employee': {CustomUser.objects.filter(role='employee', is_active=True).count()}")
+        
         if user.role == 'admin':
-            employees = CustomUser.objects.filter(role='employee')
+            employees = CustomUser.objects.filter(role='employee', is_active=True)
             logger.info(f"Admin user - found {employees.count()} employees")
+            # Debug: List all users and their roles
+            all_users = CustomUser.objects.all()
+            logger.info(f"All users in database: {[(u.email, u.role, u.is_active) for u in all_users]}")
+            # Debug: Check specifically for employee role
+            all_employees_raw = CustomUser.objects.filter(role='employee')
+            logger.info(f"All employees (including inactive): {[(e.email, e.role, e.is_active) for e in all_employees_raw]}")
         elif user.role == 'manager':
             if not user.office:
                 logger.error(f"Manager {user.email} has no office assigned")
@@ -2111,8 +2122,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     {'error': 'Manager has no office assigned'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            employees = CustomUser.objects.filter(role='employee', office=user.office)
+            employees = CustomUser.objects.filter(role='employee', office=user.office, is_active=True)
             logger.info(f"Manager user in office {user.office.name} - found {employees.count()} employees")
+            # Debug: List all employees and their offices
+            all_employees = CustomUser.objects.filter(role='employee')
+            logger.info(f"All employees and their offices: {[(e.email, e.office.name if e.office else 'No Office', e.is_active) for e in all_employees]}")
+            logger.info(f"Manager's office: {user.office.name} (ID: {user.office.id})")
+            # Debug: Check employees in manager's office specifically
+            employees_in_office = CustomUser.objects.filter(role='employee', office=user.office)
+            logger.info(f"All employees in manager's office (including inactive): {[(e.email, e.is_active) for e in employees_in_office]}")
         else:
             logger.warning(f"Access denied for user {user.email} with role {user.role}")
             return Response(
@@ -2151,6 +2169,41 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 {'error': 'Failed to fetch employee data'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['get'])
+    def debug_database_state(self, request):
+        """Debug endpoint to check database state"""
+        try:
+            user = request.user
+            all_users = CustomUser.objects.all()
+            all_employees = CustomUser.objects.filter(role='employee')
+            try:
+                from core.models import Office
+                all_offices = Office.objects.all()
+            except:
+                all_offices = []
+            
+            debug_info = {
+                'current_user': {
+                    'email': user.email,
+                    'role': user.role,
+                    'office': user.office.name if user.office else None,
+                    'office_id': user.office.id if user.office else None,
+                    'is_active': user.is_active
+                },
+                'total_users': all_users.count(),
+                'total_employees': all_employees.count(),
+                'active_employees': CustomUser.objects.filter(role='employee', is_active=True).count(),
+                'all_users': [(u.email, u.role, u.office.name if u.office else 'No Office', u.is_active) for u in all_users],
+                'all_employees': [(e.email, e.office.name if e.office else 'No Office', e.is_active) for e in all_employees],
+                'active_employees_list': [(e.email, e.office.name if e.office else 'No Office') for e in CustomUser.objects.filter(role='employee', is_active=True)],
+                'all_offices': [office.name for office in all_offices] if all_offices else []
+            }
+            
+            return Response(debug_info)
+        except Exception as e:
+            logger.error(f"Debug endpoint error: {e}")
+            return Response({'error': str(e)}, status=500)
 
     @action(detail=False, methods=['get'])
     def get_employee_details(self, request):
