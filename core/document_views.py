@@ -203,7 +203,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     logger.warning(f"Could not load company information: {e}")
                 
                 # Get employee ID from user
-                employee_id = document.user.employee_id if hasattr(document.user, 'employee_id') and document.user.employee_id else '8B6A76E7'
+                employee_id = document.user.employee_id if document.user.employee_id else str(document.user.id)[:8].upper()
                 
                 # Enhance the document content with professional, compact CSS for A4 printing
                 html_content = f"""
@@ -582,7 +582,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 logger.warning(f"Could not load company information: {e}")
             
             # Get employee ID from user
-            employee_id = document.employee.employee_id if hasattr(document.employee, 'employee_id') and document.employee.employee_id else '8B6A76E7'
+            employee_id = document.employee.employee_id if document.employee.employee_id else str(document.employee.id)[:8].upper()
             
             # Generate filename based on document type
             filename = self.generate_document_filename(document)
@@ -1827,6 +1827,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             context = {
                 'employee_name': employee.get_full_name(),
+                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),
                 'position': data.get('position', ''),
                 'start_date': start_date_formatted,
                 'starting_salary': self.format_currency(data.get('starting_salary')),
@@ -1858,6 +1859,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             context = {
                 'employee_name': employee.get_full_name(),
+                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),
                 'employee_designation': employee.designation or 'Employee',
                 'previous_salary': self.format_currency(data.get('previous_salary')),
                 'new_salary': self.format_currency(data.get('new_salary')),
@@ -1890,7 +1892,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             context = {
                 'employee_name': employee.get_full_name(),
-                'employee_id': str(employee.id)[:8].upper(),  # Short employee ID
+                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),  # Use actual employee_id or fallback to short ID
                 'employee_designation': employee.designation or 'Not specified',
                 'employee_department': getattr(employee, 'department', 'Not specified'),
                 'bank_name': bank_name,
