@@ -2166,6 +2166,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             employee_list = list(employees)
             logger.info(f"Employee list length: {len(employee_list)}")
             
+            # TEMPORARY FIX: Use the exact same logic as test endpoint but for all employees
             employee_data = []
             for emp in employee_list:
                 try:
@@ -2176,7 +2177,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         'id': str(emp.id),  # Convert to string for consistency
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
                         'name': simple_name,
-                'email': emp.email,
+                        'email': emp.email,
                         'designation': emp.designation or 'Employee',
                         'department': emp.department or 'General',
                         'office': emp.office.name if emp.office else 'No Office',
@@ -2194,6 +2195,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             logger.info(f"Successfully processed {len(employee_data)} employees")
             logger.info(f"First employee data: {employee_data[0] if employee_data else 'No employees'}")
+            logger.info(f"🚀 MAIN ENDPOINT SUCCESS: Returning {len(employee_data)} employees")
             return Response(employee_data)
             
         except Exception as e:
