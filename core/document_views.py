@@ -49,7 +49,7 @@ except (ImportError, OSError) as e:
 from io import BytesIO
 
 from .models import (
-    CustomUser, DocumentTemplate, GeneratedDocument
+    CustomUser, DocumentTemplate, GeneratedDocument, Office
 )
 from .serializers import (
     DocumentTemplateSerializer, GeneratedDocumentSerializer, DocumentGenerationSerializer
@@ -2165,8 +2165,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             logger.info(f"Starting to process {employees.count()} employees")
             employee_list = list(employees)
             logger.info(f"Employee list length: {len(employee_list)}")
-        
-        employee_data = []
+            
+            employee_data = []
             for emp in employee_list:
                 try:
                     # Simple name construction (same as test endpoint)
@@ -2238,11 +2238,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             user = request.user
             all_users = CustomUser.objects.all()
             all_employees = CustomUser.objects.filter(role='employee')
-            try:
-                from core.models import Office
-                all_offices = Office.objects.all()
-            except:
-                all_offices = []
+            all_offices = Office.objects.all()
             
             debug_info = {
                 'current_user': {
@@ -2314,7 +2310,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'created_at': employee.date_joined.strftime('%Y-%m-%d %H:%M:%S') if employee.date_joined else None
             }
             
-        return Response(employee_data)
+            return Response(employee_data)
             
         except Exception as e:
             logger.error(f"Error fetching employee details: {e}")
