@@ -2109,9 +2109,33 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         user = request.user
         logger.info(f"🚀 GET_EMPLOYEES ENDPOINT CALLED - User: {user.email}, role: {user.role}")
         
+        # Debug: Check what's in the database
+        total_users = CustomUser.objects.count()
+        all_employees = CustomUser.objects.filter(role='employee').count()
+        active_employees = CustomUser.objects.filter(role='employee', is_active=True).count()
+        
+        print(f"🔍 DATABASE DEBUG: Total users: {total_users}")
+        print(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
+        print(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
+        logger.info(f"🔍 DATABASE DEBUG: Total users: {total_users}")
+        logger.info(f"🔍 DATABASE DEBUG: All employees: {all_employees}")
+        logger.info(f"🔍 DATABASE DEBUG: Active employees: {active_employees}")
+        
         # Get all active employees (simple approach that works)
         employees = CustomUser.objects.filter(role='employee', is_active=True)
         logger.info(f"Found {employees.count()} active employees")
+        
+        # If no active employees, try all employees
+        if employees.count() == 0:
+            print("🚨 No active employees found, trying all employees...")
+            employees = CustomUser.objects.filter(role='employee')
+            logger.info(f"Found {employees.count()} total employees (including inactive)")
+        
+        # If still no employees, try all users
+        if employees.count() == 0:
+            print("🚨 No employees found, trying all users...")
+            employees = CustomUser.objects.all()
+            logger.info(f"Found {employees.count()} total users")
         
         # Process employee data
         employee_data = []
