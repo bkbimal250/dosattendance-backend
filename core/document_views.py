@@ -543,26 +543,343 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 import traceback
                 logger.error(f"PDF generation traceback: {traceback.format_exc()}")
                 logger.info("This error is expected on Windows development environment - PDF generation works on VPS hosting")
-                # Return a proper error response with detailed error information
-                return JsonResponse({
-                    'error': 'PDF generation failed (Windows dev environment)',
-                    'detail': str(e),
-                    'traceback': traceback.format_exc(),
-                    'fallback_available': True,
-                    'note': 'PDF generation works on VPS hosting'
-                }, status=500)
+                # Return HTML content as fallback for development environment
+                logger.info("Returning HTML content as fallback for development environment")
+                return HttpResponse(html_content, content_type='text/html')
         else:
             logger.warning("WeasyPrint not available on local development environment - PDF generation works on VPS hosting")
-            # Return a proper error response when WeasyPrint is not available
-            return JsonResponse({
-                'error': 'PDF generation not available (Windows dev environment)',
-                'detail': 'WeasyPrint is not working on local Windows development environment. PDF generation works on VPS hosting.',
-                'fallback_available': True,
-                'html_content': document.content,
-                'suggested_action': 'Download as HTML file instead (PDF works on VPS hosting)',
-                'note': 'This is expected on Windows development environment'
-            }, status=503)
+            # Return HTML content directly when WeasyPrint is not available
+            logger.info("Returning HTML content as WeasyPrint is not available on development environment")
+            
+            # Generate the HTML content with proper styling
+            html_content = self.generate_html_content_for_document(document)
+            return HttpResponse(html_content, content_type='text/html')
     
+
+    def generate_html_content_for_document(self, document):
+        """Generate HTML content for document download when PDF is not available"""
+        try:
+            # Get company logo path and information
+            logo_path = ""
+            company_name = "Your Company Name"
+            company_address = "Company Address"
+            company_phone = "+1 (555) 123-4567"
+            company_email = "info@company.com"
+            company_website = "www.company.com"
+            
+            try:
+                from django.conf import settings
+                logo_path = self.get_logo_url()
+                
+                # Get company information from settings or use defaults
+                company_name = getattr(settings, 'COMPANY_NAME', 'DISHA ONLINE SOLUTIONS')
+                company_address = getattr(settings, 'COMPANY_ADDRESS', 'Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2, Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705')
+                company_phone = getattr(settings, 'COMPANY_PHONE', '+91 1234567890')
+                company_email = getattr(settings, 'COMPANY_EMAIL', 'info@company.d0s369.co.in')
+                company_website = getattr(settings, 'COMPANY_WEBSITE', 'https://company.d0s369.co.in')
+                
+            except Exception as e:
+                logger.warning(f"Could not load company information: {e}")
+            
+            # Get employee ID from user
+            employee_id = document.employee.employee_id if hasattr(document.employee, 'employee_id') and document.employee.employee_id else '8B6A76E7'
+            
+            # Generate filename based on document type
+            filename = self.generate_document_filename(document)
+            
+            # Enhance the document content with proper CSS for single-page layout
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>{document.title}</title>
+                <style>
+                    @page {{
+                        margin: 0.75in;
+                        size: A4;
+                    }}
+                    
+                    * {{
+                        box-sizing: border-box;
+                    }}
+                    
+                    body {{
+                        font-family: 'Arial', 'Helvetica', sans-serif;
+                        font-size: 10pt;
+                        line-height: 1.2;
+                        color: #000000;
+                        margin: 0;
+                        padding: 0;
+                        background: white;
+                    }}
+                    
+                    .document-container {{
+                        max-width: 100%;
+                        margin: 0 auto;
+                    }}
+                    
+                    .header {{
+                        text-align: center;
+                        margin-bottom: 15px;
+                        border-bottom: 1px solid #000;
+                        padding-bottom: 10px;
+                    }}
+                    
+                    .company-logo {{
+                        max-height: 50px;
+                        max-width: 150px;
+                        margin-bottom: 8px;
+                    }}
+                    
+                    .company-name {{
+                        font-size: 14pt;
+                        font-weight: bold;
+                        color: #000000;
+                        margin: 3px 0;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }}
+                    
+                    .company-address {{
+                        font-size: 8pt;
+                        color: #000000;
+                        margin: 2px 0;
+                        line-height: 1.1;
+                    }}
+                    
+                    .company-contact {{
+                        font-size: 7pt;
+                        color: #000000;
+                        margin: 2px 0;
+                    }}
+                    
+                    .document-title {{
+                        font-size: 12pt;
+                        font-weight: bold;
+                        color: #000000;
+                        text-align: center;
+                        margin: 15px 0 10px 0;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }}
+                    
+                    .employee-header {{
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 10px 0;
+                        font-size: 9pt;
+                        border-bottom: 1px solid #000;
+                        padding-bottom: 8px;
+                    }}
+                    
+                    .employee-id {{
+                        font-weight: bold;
+                        color: #000000;
+                    }}
+                    
+                    .document-date {{
+                        color: #000000;
+                    }}
+                    
+                    h1, h2, h3, h4, h5, h6 {{
+                        color: #000000;
+                        margin-top: 10px;
+                        margin-bottom: 5px;
+                        page-break-after: avoid;
+                    }}
+                    
+                    h1 {{
+                        font-size: 12pt;
+                        font-weight: bold;
+                    }}
+                    
+                    h2 {{
+                        font-size: 11pt;
+                        font-weight: bold;
+                    }}
+                    
+                    h3 {{
+                        font-size: 10pt;
+                        font-weight: bold;
+                    }}
+                    
+                    p {{
+                        margin: 4px 0;
+                        text-align: justify;
+                        font-size: 9pt;
+                        line-height: 1.2;
+                    }}
+                    
+                    .content {{
+                        margin: 10px 0;
+                    }}
+                    
+                    .footer {{
+                        margin-top: 20px;
+                        padding-top: 8px;
+                        border-top: 1px solid #000;
+                        font-size: 7pt;
+                        color: #000000;
+                        text-align: center;
+                    }}
+                    
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 8px 0;
+                        font-size: 9pt;
+                        border: 1px solid #000;
+                    }}
+                    
+                    th, td {{
+                        border: 1px solid #000;
+                        padding: 4px 6px;
+                        text-align: left;
+                        vertical-align: top;
+                    }}
+                    
+                    th {{
+                        background-color: #f0f0f0;
+                        font-weight: bold;
+                        font-size: 9pt;
+                        color: #000000;
+                    }}
+                    
+                    .salary-table {{
+                        margin: 10px 0;
+                    }}
+                    
+                    .salary-table th {{
+                        background-color: #e0e0e0;
+                        text-align: center;
+                        font-weight: bold;
+                    }}
+                    
+                    .salary-table td {{
+                        text-align: right;
+                    }}
+                    
+                    .salary-table .label {{
+                        text-align: left;
+                        font-weight: bold;
+                    }}
+                    
+                    .signature-section {{
+                        margin-top: 20px;
+                        page-break-inside: avoid;
+                    }}
+                    
+                    .signature-line {{
+                        border-bottom: 1px solid #000;
+                        width: 150px;
+                        margin: 10px 0 3px 0;
+                    }}
+                    
+                    .employee-info {{
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 8px 0;
+                        font-size: 9pt;
+                    }}
+                    
+                    .employee-info div {{
+                        flex: 1;
+                        margin: 0 5px;
+                    }}
+                    
+                    .date-info {{
+                        text-align: right;
+                        font-size: 8pt;
+                        color: #000000;
+                        margin: 5px 0;
+                    }}
+                    
+                    /* Compact spacing for A4 */
+                    .compact {{
+                        margin: 3px 0;
+                    }}
+                    
+                    .compact p {{
+                        margin: 2px 0;
+                    }}
+                    
+                    .text-center {{
+                        text-align: center;
+                    }}
+                    
+                    .text-right {{
+                        text-align: right;
+                    }}
+                    
+                    .text-bold {{
+                        font-weight: bold;
+                    }}
+                    
+                    .mt-10 {{
+                        margin-top: 10px;
+                    }}
+                    
+                    .mb-5 {{
+                        margin-bottom: 5px;
+                    }}
+                    
+                    @media print {{
+                        body {{ margin: 0; }}
+                        .no-print {{ display: none; }}
+                        @page {{ margin: 0.75in; }}
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="document-container">
+                    <div class="header">
+                        {f'<img src="{logo_path}" alt="Company Logo" class="company-logo">' if logo_path else ''}
+                        <div class="company-name">{company_name}</div>
+                        <div class="company-address">{company_address}</div>
+                        <div class="company-contact">
+                            Phone: {company_phone} | Email: {company_email} | Website: {company_website}
+                        </div>
+                    </div>
+                    
+                    <div class="document-title">{document.title}</div>
+                    
+                    <div class="employee-header">
+                        <div class="employee-id">Employee ID: {employee_id}</div>
+                        <div class="document-date">Date: {document.generated_at.strftime('%B %d, %Y') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}</div>
+                    </div>
+                    
+                    <div class="content compact">
+                        {document.content}
+                    </div>
+                    
+                    <div class="footer">
+                        <p>This document was generated on {document.generated_at.strftime('%B %d, %Y at %I:%M %p') if hasattr(document, 'generated_at') and document.generated_at else 'N/A'}</p>
+                        <p>Employee Management System</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            return html_content
+            
+        except Exception as e:
+            logger.error(f"Error generating HTML content: {e}")
+            # Return basic HTML as fallback
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>{document.title}</title>
+            </head>
+            <body>
+                <h1>{document.title}</h1>
+                <div>{document.content}</div>
+            </body>
+            </html>
+            """
 
     def cleanup_orphaned_files(self, document):
         """Clean up orphaned file references"""
@@ -825,15 +1142,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </head>
         <body>
             <div class="page">
-                <div class="header">
-                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+            <div class="header">
+                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
                     <div class="company-name">DISHA ONLINE SOLUTIONS</div>
                     <div class="company-address">
-                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                    </div>
+                    Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                 </div>
-                
+            </div>
+            
                 <div class="document-title">Offer Letter</div>
                 
                 <div class="employee-header">
@@ -1083,15 +1400,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </head>
         <body>
             <div class="page">
-                <div class="header">
-                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+            <div class="header">
+                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
                     <div class="company-name">DISHA ONLINE SOLUTIONS</div>
                     <div class="company-address">
-                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                    </div>
+                    Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                 </div>
-                
+            </div>
+            
                 <div class="document-title">Salary Increment Letter</div>
                 
                 <div class="employee-header">
@@ -1357,11 +1674,11 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         <body>
             <div class="page">
                 <div class="header">
-                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
                     <div class="company-name">DISHA ONLINE SOLUTIONS</div>
                     <div class="company-address">
-                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+                            Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                            Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
                 </div>
                 
@@ -1374,7 +1691,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 </div>
                 
                 <div class="employee-section">
-                    <div class="section-title">Employee Information</div>
+                        <div class="section-title">Employee Information</div>
                     <div class="employee-info">
                         <div class="info-row">
                             <span class="info-label">Employee Name:</span>
