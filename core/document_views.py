@@ -2159,23 +2159,19 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             )
         
         try:
-            employee_data = []
+            # SIMPLIFIED APPROACH: Use the same logic as test endpoint but for all employees
             logger.info(f"Starting to process {employees.count()} employees")
             employee_list = list(employees)
             logger.info(f"Employee list length: {len(employee_list)}")
             
-            for i, emp in enumerate(employee_list):
+            employee_data = []
+            for emp in employee_list:
                 try:
-                    # Debug individual employee processing
-                    logger.info(f"Processing employee: {emp.email}, ID: {emp.id}")
-                    logger.info(f"Employee full name: '{emp.get_full_name()}'")
-                    logger.info(f"Employee first_name: '{emp.first_name}', last_name: '{emp.last_name}'")
-                    
-                    # TEMPORARY FIX: Use simple name construction to avoid get_full_name() issues
+                    # Simple name construction (same as test endpoint)
                     simple_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() or emp.email
                     
                     emp_data = {
-                        'id': emp.id,
+                        'id': str(emp.id),  # Convert to string for consistency
                         'employee_id': emp.employee_id if emp.employee_id else str(emp.id)[:8].upper(),
                         'name': simple_name,
                         'email': emp.email,
@@ -2188,7 +2184,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         'address': emp.address or ''
                     }
                     employee_data.append(emp_data)
-                    logger.info(f"Added employee {i+1}: {emp_data['name']} ({emp_data['email']})")
+                    
                 except Exception as e:
                     logger.error(f"Error processing employee {emp.id}: {e}")
                     # Continue with other employees even if one fails
@@ -2196,9 +2192,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             logger.info(f"Successfully processed {len(employee_data)} employees")
             logger.info(f"First employee data: {employee_data[0] if employee_data else 'No employees'}")
-            logger.info(f"Employee data format check - ID: {employee_data[0]['id'] if employee_data else 'N/A'}")
-            logger.info(f"Employee data format check - Name: {employee_data[0]['name'] if employee_data else 'N/A'}")
-            logger.info(f"Employee data format check - Email: {employee_data[0]['email'] if employee_data else 'N/A'}")
             return Response(employee_data)
             
         except Exception as e:
