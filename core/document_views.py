@@ -2118,6 +2118,18 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         employees = CustomUser.objects.filter(role='employee', is_active=True)
         logger.info(f"Found {employees.count()} active employees")
         
+        # EMERGENCY FIX: If no employees found, try without is_active filter
+        if employees.count() == 0:
+            logger.warning("No active employees found, trying all employees...")
+            employees = CustomUser.objects.filter(role='employee')
+            logger.info(f"Found {employees.count()} total employees (including inactive)")
+        
+        # EMERGENCY FIX: If still no employees, try all users
+        if employees.count() == 0:
+            logger.warning("No employees found, trying all users...")
+            employees = CustomUser.objects.all()
+            logger.info(f"Found {employees.count()} total users")
+        
         # Use the exact same logic as the working test endpoint
         logger.info(f"Processing {employees.count()} employees")
         employee_data = []
