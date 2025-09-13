@@ -539,21 +539,21 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     raise Exception("Generated PDF is invalid")
                 
             except Exception as e:
-                logger.error(f"PDF generation failed for document {document.id} (likely Windows dev environment): {e}")
+                logger.error(f"PDF generation failed for document {document.id}: {e}")
                 import traceback
                 logger.error(f"PDF generation traceback: {traceback.format_exc()}")
-                logger.info("This error is expected on Windows development environment - PDF generation works on VPS hosting")
-                # Return HTML content as fallback for development environment
-                logger.info("Returning HTML content as fallback for development environment")
-                return HttpResponse(html_content, content_type='text/html')
+                return JsonResponse({
+                    'error': 'PDF generation failed',
+                    'detail': str(e),
+                    'traceback': traceback.format_exc()
+                }, status=500)
         else:
-            logger.warning("WeasyPrint not available on local development environment - PDF generation works on VPS hosting")
-            # Return HTML content directly when WeasyPrint is not available
-            logger.info("Returning HTML content as WeasyPrint is not available on development environment")
-            
-            # Generate the HTML content with proper styling
-            html_content = self.generate_html_content_for_document(document)
-            return HttpResponse(html_content, content_type='text/html')
+            logger.error("WeasyPrint not available - PDF generation failed")
+            return JsonResponse({
+                'error': 'PDF generation not available',
+                'detail': 'WeasyPrint is not working. Please check server configuration.',
+                'fallback_available': False
+            }, status=503)
     
 
     def generate_html_content_for_document(self, document):
