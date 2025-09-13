@@ -196,8 +196,8 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     company_name = getattr(settings, 'COMPANY_NAME', 'Your Company Name')
                     company_address = getattr(settings, 'COMPANY_ADDRESS', 'Company Address, City, State, ZIP')
                     company_phone = getattr(settings, 'COMPANY_PHONE', '+1 (555) 123-4567')
-                    company_email = getattr(settings, 'COMPANY_EMAIL', 'info@company.com')
-                    company_website = getattr(settings, 'COMPANY_WEBSITE', 'www.company.com')
+                    company_email = getattr(settings, 'COMPANY_EMAIL', 'info@company.d0s369.co.in')
+                    company_website = getattr(settings, 'COMPANY_WEBSITE', 'https://company.d0s369.co.in')
                     
                 except Exception as e:
                     logger.warning(f"Could not load company information: {e}")
@@ -1479,13 +1479,13 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         # Check if logo file exists
         logo_path = os.path.join(settings.MEDIA_ROOT, 'documents', 'companylogo.png')
         if os.path.exists(logo_path):
-            # For development, use localhost
-            domain = "http://localhost:8000"
+            # Use production domain
+            domain = "https://company.d0s369.co.in"
             # Return absolute URL for the logo
             return f"{domain}{settings.MEDIA_URL}documents/companylogo.png"
         else:
             # Return a placeholder or default logo
-            domain = "http://localhost:8000"
+            domain = "https://company.d0s369.co.in"
             return f"{domain}{settings.MEDIA_URL}documents/companylogo.png"
     
     def generate_document_content(self, employee, document_type, data):
