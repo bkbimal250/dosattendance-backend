@@ -3482,6 +3482,21 @@ class DesignationViewSet(viewsets.ReadOnlyModelViewSet):
                 # If not a valid UUID, try to filter by department name
                 queryset = queryset.filter(department__name__icontains=department_id)
         return queryset
+    
+    @action(detail=False, methods=['get'], url_path='by-department/(?P<department_id>[^/.]+)')
+    def by_department(self, request, department_id=None):
+        """Get designations by department ID"""
+        queryset = self.get_queryset()
+        if department_id:
+            try:
+                import uuid
+                department_uuid = uuid.UUID(department_id)
+                queryset = queryset.filter(department_id=department_uuid)
+            except (ValueError, TypeError):
+                queryset = queryset.filter(department__name__icontains=department_id)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 # Custom error handlers for production
