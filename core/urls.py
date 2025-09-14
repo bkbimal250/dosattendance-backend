@@ -81,4 +81,7 @@ urlpatterns = [
     path('api/device/push-attendance/', DevicePushDataView.as_view(), name='device-push-attendance'),
     path('api/device/receive-attendance/', receive_attendance_push, name='receive-attendance-push'),
     path('api/device/health-check/', device_health_check, name='device-health-check'),
+    
+    # Department designations endpoint
+    path('api/departments/<uuid:department_id>/designations/', DesignationViewSet.as_view({'get': 'list'}), name='department-designations'),
 ]

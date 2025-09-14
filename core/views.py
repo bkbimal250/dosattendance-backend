@@ -3464,7 +3464,14 @@ class DesignationViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Filter designations by department if specified"""
         queryset = super().get_queryset()
-        department_id = self.request.query_params.get('department')
+        
+        # Check for department_id in URL kwargs (for /departments/{id}/designations/)
+        department_id = self.kwargs.get('department_id')
+        
+        # If not in URL kwargs, check query params (for /designations/?department=)
+        if not department_id:
+            department_id = self.request.query_params.get('department')
+        
         if department_id:
             try:
                 # Try to parse as UUID first
