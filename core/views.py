@@ -3456,8 +3456,7 @@ class DesignationViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Designation.objects.filter(is_active=True)
     serializer_class = DesignationSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['department']
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description', 'department__name']
     ordering_fields = ['name', 'department__name', 'created_at']
     ordering = ['department__name', 'name']
@@ -3467,7 +3466,14 @@ class DesignationViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
         department_id = self.request.query_params.get('department')
         if department_id:
-            queryset = queryset.filter(department_id=department_id)
+            try:
+                # Try to parse as UUID first
+                import uuid
+                department_uuid = uuid.UUID(department_id)
+                queryset = queryset.filter(department_id=department_uuid)
+            except (ValueError, TypeError):
+                # If not a valid UUID, try to filter by department name
+                queryset = queryset.filter(department__name__icontains=department_id)
         return queryset
 
 
