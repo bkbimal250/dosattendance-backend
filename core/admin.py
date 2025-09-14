@@ -4,7 +4,8 @@ from django.utils.html import format_html
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
-    WorkingHoursSettings, Resignation, DocumentTemplate, GeneratedDocument
+    WorkingHoursSettings, Resignation, DocumentTemplate, GeneratedDocument,
+    Department, Designation
 )
 
 
@@ -17,17 +18,89 @@ class OfficeAdmin(admin.ModelAdmin):
     readonly_fields = ['id', 'created_at', 'updated_at']
 
 
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description', 'is_active', 'designation_count', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'description']
+    ordering = ['name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        (None, {'fields': ('name', 'description', 'is_active')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
+    
+    actions = ['activate_departments', 'deactivate_departments']
+    
+    def designation_count(self, obj):
+        """Show count of designations for this department"""
+        count = obj.designations.count()
+        return format_html(
+            '<span style="color: blue;">{}</span> designations' if count > 0 
+            else '<span style="color: gray;">No designations</span>',
+            count
+        )
+    designation_count.short_description = "Designations"
+    designation_count.admin_order_field = 'designations__count'
+    
+    def activate_departments(self, request, queryset):
+        """Activate selected departments"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} departments activated.')
+    activate_departments.short_description = "Activate selected departments"
+    
+    def deactivate_departments(self, request, queryset):
+        """Deactivate selected departments"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} departments deactivated.')
+    deactivate_departments.short_description = "Deactivate selected departments"
+
+
+@admin.register(Designation)
+class DesignationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'department', 'description', 'is_active', 'created_at']
+    list_filter = ['department', 'is_active', 'created_at']
+    search_fields = ['name', 'description', 'department__name']
+    ordering = ['department__name', 'name']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        (None, {'fields': ('name', 'department', 'description', 'is_active')}),
+        ('Timestamps', {'fields': ('created_at', 'updated_at')}),
+    )
+    
+    actions = ['activate_designations', 'deactivate_designations']
+    
+    def get_queryset(self, request):
+        """Optimize queryset with select_related for department"""
+        return super().get_queryset(request).select_related('department')
+    
+    def activate_designations(self, request, queryset):
+        """Activate selected designations"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} designations activated.')
+    activate_designations.short_description = "Activate selected designations"
+    
+    def deactivate_designations(self, request, queryset):
+        """Deactivate selected designations"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} designations deactivated.')
+    deactivate_designations.short_description = "Deactivate selected designations"
+
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'is_active', 'last_login']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
     list_filter = ['role', 'office', 'is_active', 'department', 'created_at']
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'phone', 'address', 'date_of_birth', 'gender', 'profile_picture')}),
+        ('Government ID', {'fields': ('aadhaar_card', 'pan_card')}),
         ('Employment', {'fields': ('role', 'office', 'employee_id', 'biometric_id', 'joining_date', 'department', 'designation', 'salary')}),
         ('Emergency Contact', {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
         ('Bank Details', {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name')}),

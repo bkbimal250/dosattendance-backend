@@ -9,7 +9,7 @@ from .views import (
     OfficeViewSet, CustomUserViewSet, DeviceViewSet, AttendanceViewSet,
     LeaveViewSet, DocumentViewSet, NotificationViewSet, SystemSettingsViewSet,
     AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
-    ResignationViewSet
+    ResignationViewSet, DepartmentViewSet, DesignationViewSet
 )
 from .document_views import (
     DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
@@ -38,6 +38,8 @@ router.register(r'attendance-logs', AttendanceLogViewSet, basename='attendance-l
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 router.register(r'zkteco-attendance', ZKTecoAttendanceViewSet, basename='zkteco-attendance')
 router.register(r'reports', ReportsViewSet, basename='reports')
+router.register(r'departments', DepartmentViewSet, basename='department')
+router.register(r'designations', DesignationViewSet, basename='designation')
 
 # Document generation endpoints
 router.register(r'document-templates', DocumentTemplateViewSet, basename='document-template')

@@ -5,7 +5,8 @@ import uuid
 from .models import (
     CustomUser, Office, Device, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
-    WorkingHoursSettings, DocumentTemplate, GeneratedDocument, Resignation
+    WorkingHoursSettings, DocumentTemplate, GeneratedDocument, Resignation,
+    Department, Designation
 )
 
 
@@ -60,9 +61,35 @@ class OfficeSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class DepartmentSerializer(serializers.ModelSerializer):
+    """Serializer for Department model"""
+    designations_count = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Department
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+    
+    def get_designations_count(self, obj):
+        """Get the number of designations in this department"""
+        return obj.designations.count()
+
+
+class DesignationSerializer(serializers.ModelSerializer):
+    """Serializer for Designation model"""
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    
+    class Meta:
+        model = Designation
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
 class CustomUserSerializer(serializers.ModelSerializer):
     """Serializer for CustomUser model"""
     office_name = serializers.CharField(source='office.name', read_only=True)
+    department_name = serializers.SerializerMethodField()
+    designation_name = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     
     class Meta:
@@ -70,19 +97,37 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
             'role', 'office', 'office_name', 'phone', 'address', 'date_of_birth',
-            'gender', 'profile_picture', 'employee_id', 'biometric_id', 'joining_date',
-            'department', 'designation', 'salary', 'emergency_contact_name',
+            'gender', 'profile_picture', 'aadhaar_card', 'pan_card', 'employee_id', 'biometric_id', 'joining_date',
+            'department', 'department_name', 'designation', 'designation_name', 'salary', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
             'is_active', 'last_login', 'created_at', 'updated_at', 'password'
         ]
         read_only_fields = ('id', 'last_login', 'created_at', 'updated_at')
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True, 'required': False}
         }
 
     def get_full_name(self, obj):
         return obj.get_full_name()
+    
+    def get_department_name(self, obj):
+        """Get department name - handle both CharField and ForeignKey"""
+        if hasattr(obj, 'department') and obj.department:
+            if hasattr(obj.department, 'name'):
+                return obj.department.name  # ForeignKey
+            else:
+                return obj.department  # CharField
+        return None
+    
+    def get_designation_name(self, obj):
+        """Get designation name - handle both CharField and ForeignKey"""
+        if hasattr(obj, 'designation') and obj.designation:
+            if hasattr(obj.designation, 'name'):
+                return obj.designation.name  # ForeignKey
+            else:
+                return obj.designation  # CharField
+        return None
 
     def validate(self, attrs):
         """Validate user data"""
@@ -94,6 +139,28 @@ class CustomUserSerializer(serializers.ModelSerializer):
         if attrs.get('role') == 'admin':
             # Admin can have office but it's not required
             pass
+        
+        # Validate password if provided
+        password = attrs.get('password')
+        if password:
+            if len(password) < 6:
+                raise serializers.ValidationError({'password': 'Password must be at least 6 characters long.'})
+        
+        # Validate Aadhaar card number
+        aadhaar_card = attrs.get('aadhaar_card')
+        if aadhaar_card:
+            aadhaar = aadhaar_card.replace(' ', '').replace('-', '')
+            if not aadhaar.isdigit() or len(aadhaar) != 12:
+                raise serializers.ValidationError({'aadhaar_card': 'Aadhaar card number must be exactly 12 digits.'})
+        
+        # Validate PAN card number
+        pan_card = attrs.get('pan_card')
+        if pan_card:
+            pan = pan_card.upper().replace(' ', '')
+            if len(pan) != 10:
+                raise serializers.ValidationError({'pan_card': 'PAN card number must be exactly 10 characters.'})
+            if not (pan[:5].isalpha() and pan[5:9].isdigit() and pan[9].isalpha()):
+                raise serializers.ValidationError({'pan_card': 'PAN card number format should be: AAAAA9999A (5 letters, 4 digits, 1 letter).'})
         
         return attrs
 
@@ -449,6 +516,9 @@ class AttendanceReportSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile updates"""
+    department_name = serializers.SerializerMethodField()
+    designation_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = CustomUser
         fields = [
@@ -456,9 +526,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'email', 'phone', 'address', 
             'date_of_birth', 'gender', 'profile_picture',
             
+            # Government ID Information
+            'aadhaar_card', 'pan_card',
+            
             # Employment Information (non-sensitive)
             'employee_id', 'biometric_id', 'joining_date', 
-            'department', 'designation', 'salary',
+            'department', 'department_name', 'designation', 'designation_name', 'salary',
             
             # Emergency Contact
             'emergency_contact_name', 'emergency_contact_phone', 
@@ -505,6 +578,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return None
         # Django will handle date parsing automatically
         return value
+    
+    def get_department_name(self, obj):
+        """Get department name - handle both CharField and ForeignKey"""
+        if hasattr(obj, 'department') and obj.department:
+            if hasattr(obj.department, 'name'):
+                return obj.department.name  # ForeignKey
+            else:
+                return obj.department  # CharField
+        return None
+    
+    def get_designation_name(self, obj):
+        """Get designation name - handle both CharField and ForeignKey"""
+        if hasattr(obj, 'designation') and obj.designation:
+            if hasattr(obj.designation, 'name'):
+                return obj.designation.name  # ForeignKey
+            else:
+                return obj.designation  # CharField
+        return None
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -641,8 +732,8 @@ class ResignationSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
     user_employee_id = serializers.CharField(source='user.employee_id', read_only=True)
     user_office_name = serializers.CharField(source='user.office.name', read_only=True)
-    user_department = serializers.CharField(source='user.department', read_only=True)
-    user_designation = serializers.CharField(source='user.designation', read_only=True)
+    user_department = serializers.SerializerMethodField()
+    user_designation = serializers.SerializerMethodField()
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     
     class Meta:
@@ -656,6 +747,24 @@ class ResignationSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
         read_only_fields = ('id', 'approved_at', 'created_at', 'updated_at', 'last_working_date')
+    
+    def get_user_department(self, obj):
+        """Get user department name - handle both CharField and ForeignKey"""
+        if hasattr(obj.user, 'department') and obj.user.department:
+            if hasattr(obj.user.department, 'name'):
+                return obj.user.department.name  # ForeignKey
+            else:
+                return obj.user.department  # CharField
+        return None
+    
+    def get_user_designation(self, obj):
+        """Get user designation name - handle both CharField and ForeignKey"""
+        if hasattr(obj.user, 'designation') and obj.user.designation:
+            if hasattr(obj.user.designation, 'name'):
+                return obj.user.designation.name  # ForeignKey
+            else:
+                return obj.user.designation  # CharField
+        return None
 
 
 class ResignationCreateSerializer(serializers.ModelSerializer):

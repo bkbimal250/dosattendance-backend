@@ -20,7 +20,7 @@ from rest_framework.exceptions import APIException, ValidationError as DRFValida
 from .models import (
     CustomUser, Office, Device, Attendance, WorkingHoursSettings, 
     ESSLAttendanceLog, Leave, Document, Notification, SystemSettings,
-    DocumentTemplate, GeneratedDocument, Resignation
+    DocumentTemplate, GeneratedDocument, Resignation, Department, Designation
 )
 from .serializers import (
     CustomUserSerializer, OfficeSerializer, DeviceSerializer, AttendanceSerializer,
@@ -31,7 +31,7 @@ from .serializers import (
     DashboardStatsSerializer, AttendanceLogSerializer, OfficeStatsSerializer,
     UserLoginSerializer, DeviceSyncSerializer, DocumentTemplateSerializer, 
     GeneratedDocumentSerializer, DocumentGenerationSerializer, ResignationSerializer,
-    ResignationCreateSerializer, ResignationApprovalSerializer
+    ResignationCreateSerializer, ResignationApprovalSerializer, DepartmentSerializer, DesignationSerializer
 )
 # Permissions are defined inline in this file
 from .zkteco_service import zkteco_service
@@ -43,14 +43,16 @@ logger = logging.getLogger(__name__)
 class CustomUserFilter(django_filters.FilterSet):
     """FilterSet for CustomUser with proper filtering capabilities"""
     office = django_filters.CharFilter(method='filter_office')
-    department = django_filters.CharFilter(field_name='department', lookup_expr='icontains')
+    department = django_filters.CharFilter(method='filter_department')
     role = django_filters.CharFilter(field_name='role')
     is_active = django_filters.BooleanFilter(field_name='is_active')
     search = django_filters.CharFilter(method='filter_search')
+    aadhaar_card = django_filters.CharFilter(field_name='aadhaar_card', lookup_expr='icontains')
+    pan_card = django_filters.CharFilter(field_name='pan_card', lookup_expr='icontains')
     
     class Meta:
         model = CustomUser
-        fields = ['office', 'department', 'role', 'is_active', 'search']
+        fields = ['office', 'department', 'role', 'is_active', 'search', 'aadhaar_card', 'pan_card']
     
     def filter_office(self, queryset, name, value):
         """Custom office filter to handle null values"""
@@ -67,6 +69,31 @@ class CustomUserFilter(django_filters.FilterSet):
             # If not a valid UUID, try to filter by office name
             return queryset.filter(office__name__icontains=value)
     
+    def filter_department(self, queryset, name, value):
+        """Custom department filter to handle both department IDs and names"""
+        if not value:
+            return queryset
+        
+        # First try to filter by department ID (UUID)
+        try:
+            import uuid
+            department_uuid = uuid.UUID(value)
+            # Filter users where department field contains the UUID
+            return queryset.filter(department=value)
+        except (ValueError, TypeError):
+            # If not a valid UUID, try to filter by department name
+            # Since department is stored as CharField, we need to find matching department names
+            from .models import Department
+            matching_departments = Department.objects.filter(name__icontains=value)
+            if matching_departments.exists():
+                # Get the IDs of matching departments
+                department_ids = [str(dept.id) for dept in matching_departments]
+                # Filter users where department field matches any of these IDs
+                return queryset.filter(department__in=department_ids)
+            else:
+                # If no matching departments found, return empty queryset
+                return queryset.none()
+    
     def filter_search(self, queryset, name, value):
         """Custom search filter across multiple fields"""
         if not value:
@@ -76,7 +103,9 @@ class CustomUserFilter(django_filters.FilterSet):
             Q(first_name__icontains=value) |
             Q(last_name__icontains=value) |
             Q(email__icontains=value) |
-            Q(employee_id__icontains=value)
+            Q(employee_id__icontains=value) |
+            Q(aadhaar_card__icontains=value) |
+            Q(pan_card__icontains=value)
         )
 
 
@@ -3401,6 +3430,45 @@ class ResignationViewSet(viewsets.ModelViewSet):
             message=message,
             notification_type='system'
         )
+
+
+class DepartmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for Department model - Read only for dropdowns"""
+    queryset = Department.objects.filter(is_active=True)
+    serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'created_at']
+    ordering = ['name']
+    
+    @action(detail=True, methods=['get'])
+    def designations(self, request, pk=None):
+        """Get all designations for a specific department"""
+        department = self.get_object()
+        designations = department.designations.filter(is_active=True)
+        serializer = DesignationSerializer(designations, many=True)
+        return Response(serializer.data)
+
+
+class DesignationViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for Designation model - Read only for dropdowns"""
+    queryset = Designation.objects.filter(is_active=True)
+    serializer_class = DesignationSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['department']
+    search_fields = ['name', 'description', 'department__name']
+    ordering_fields = ['name', 'department__name', 'created_at']
+    ordering = ['department__name', 'name']
+    
+    def get_queryset(self):
+        """Filter designations by department if specified"""
+        queryset = super().get_queryset()
+        department_id = self.request.query_params.get('department')
+        if department_id:
+            queryset = queryset.filter(department_id=department_id)
+        return queryset
 
 
 # Custom error handlers for production

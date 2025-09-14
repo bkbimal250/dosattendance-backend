@@ -45,6 +45,42 @@ class Office(models.Model):
         super().save(*args, **kwargs)
 
 
+class Department(models.Model):
+    """Department model for organizing employees"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Departments"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Designation(models.Model):
+    """Designation model for employee job titles"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='designations')
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Designations"
+        ordering = ['department__name', 'name']
+        unique_together = ['name', 'department']
+
+    def __str__(self):
+        return f"{self.name} ({self.department.name})"
+
+
 class CustomUser(AbstractUser):
     """Custom User model with role-based access"""
     ROLE_CHOICES = [
@@ -69,6 +105,10 @@ class CustomUser(AbstractUser):
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    
+    # Government ID Information
+    aadhaar_card = models.CharField(max_length=12, blank=True, help_text="12-digit Aadhaar card number")
+    pan_card = models.CharField(max_length=10, blank=True, help_text="10-character PAN card number")
     
     # Employment Information
     employee_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
@@ -115,6 +155,20 @@ class CustomUser(AbstractUser):
         if self.role == 'admin' and self.office:
             # Admin can have office but it's not required
             pass
+        
+        # Validate Aadhaar card number
+        if self.aadhaar_card:
+            aadhaar = self.aadhaar_card.replace(' ', '').replace('-', '')
+            if not aadhaar.isdigit() or len(aadhaar) != 12:
+                raise ValidationError({'aadhaar_card': 'Aadhaar card number must be exactly 12 digits.'})
+        
+        # Validate PAN card number
+        if self.pan_card:
+            pan = self.pan_card.upper().replace(' ', '')
+            if len(pan) != 10:
+                raise ValidationError({'pan_card': 'PAN card number must be exactly 10 characters.'})
+            if not (pan[:5].isalpha() and pan[5:9].isdigit() and pan[9].isalpha()):
+                raise ValidationError({'pan_card': 'PAN card number format should be: AAAAA9999A (5 letters, 4 digits, 1 letter).'})
 
     def save(self, *args, **kwargs):
         self.clean()
