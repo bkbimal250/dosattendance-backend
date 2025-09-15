@@ -91,9 +91,9 @@ class DesignationAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
     list_filter = ['role', 'office', 'is_active', 'department', 'created_at']
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card', 'designation']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
     
@@ -114,6 +114,29 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'email', 'password1', 'password2', 'role', 'office'),
         }),
     )
+    
+    def get_queryset(self, request):
+        """Optimize queryset with select_related for department"""
+        return super().get_queryset(request).select_related('department', 'office')
+    
+    def department_name(self, obj):
+        """Display department name"""
+        if obj.department:
+            return obj.department.name
+        return "No Department"
+    department_name.short_description = "Department"
+    department_name.admin_order_field = 'department__name'
+    
+    def designation_display(self, obj):
+        """Display designation with styling"""
+        if obj.designation:
+            return format_html(
+                '<span style="color: blue; font-weight: bold;">{}</span>',
+                obj.designation
+            )
+        return format_html('<span style="color: gray;">No Designation</span>')
+    designation_display.short_description = "Designation"
+    designation_display.admin_order_field = 'designation'
 
 
 @admin.register(Device)

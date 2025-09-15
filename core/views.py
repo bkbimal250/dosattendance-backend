@@ -79,20 +79,11 @@ class CustomUserFilter(django_filters.FilterSet):
             import uuid
             department_uuid = uuid.UUID(value)
             # Filter users where department field contains the UUID
-            return queryset.filter(department=value)
+            return queryset.filter(department=department_uuid)
         except (ValueError, TypeError):
             # If not a valid UUID, try to filter by department name
-            # Since department is stored as CharField, we need to find matching department names
-            from .models import Department
-            matching_departments = Department.objects.filter(name__icontains=value)
-            if matching_departments.exists():
-                # Get the IDs of matching departments
-                department_ids = [str(dept.id) for dept in matching_departments]
-                # Filter users where department field matches any of these IDs
-                return queryset.filter(department__in=department_ids)
-            else:
-                # If no matching departments found, return empty queryset
-                return queryset.none()
+            # Since department is now a ForeignKey, we can filter by name directly
+            return queryset.filter(department__name__icontains=value)
     
     def filter_search(self, queryset, name, value):
         """Custom search filter across multiple fields"""
@@ -2939,7 +2930,7 @@ class DashboardViewSet(viewsets.ViewSet):
             )
         
         if department:
-            queryset = queryset.filter(department__icontains=department)
+            queryset = queryset.filter(department__name__icontains=department)
         
         if status:
             if status == 'active':

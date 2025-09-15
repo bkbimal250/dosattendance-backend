@@ -112,21 +112,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
     
     def get_department_name(self, obj):
-        """Get department name - handle both CharField and ForeignKey"""
-        if hasattr(obj, 'department') and obj.department:
-            if hasattr(obj.department, 'name'):
-                return obj.department.name  # ForeignKey
-            else:
-                return obj.department  # CharField
+        """Get department name from ForeignKey relationship"""
+        if obj.department:
+            return obj.department.name
         return None
     
     def get_designation_name(self, obj):
-        """Get designation name - handle both CharField and ForeignKey"""
-        if hasattr(obj, 'designation') and obj.designation:
-            if hasattr(obj.designation, 'name'):
-                return obj.designation.name  # ForeignKey
-            else:
-                return obj.designation  # CharField
+        """Get designation name from ForeignKey relationship"""
+        if obj.designation:
+            return obj.designation.name
         return None
 
     def validate(self, attrs):
@@ -580,21 +574,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
     
     def get_department_name(self, obj):
-        """Get department name - handle both CharField and ForeignKey"""
-        if hasattr(obj, 'department') and obj.department:
-            if hasattr(obj.department, 'name'):
-                return obj.department.name  # ForeignKey
-            else:
-                return obj.department  # CharField
+        """Get department name from ForeignKey relationship"""
+        if obj.department:
+            return obj.department.name
         return None
     
     def get_designation_name(self, obj):
-        """Get designation name - handle both CharField and ForeignKey"""
-        if hasattr(obj, 'designation') and obj.designation:
-            if hasattr(obj.designation, 'name'):
-                return obj.designation.name  # ForeignKey
-            else:
-                return obj.designation  # CharField
+        """Get designation name from ForeignKey relationship"""
+        if obj.designation:
+            return obj.designation.name
         return None
 
 
