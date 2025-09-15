@@ -923,11 +923,12 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         
         # Debug logging for filtering
-        logger.info(f"CustomUserViewSet - Query params: {request.query_params}")
+        query_params = getattr(request, 'query_params', request.GET)
+        logger.info(f"CustomUserViewSet - Query params: {query_params}")
         logger.info(f"CustomUserViewSet - Initial queryset count: {queryset.count()}")
         
         # Apply filters
-        filterset = self.filterset_class(request.query_params, queryset=queryset, request=request)
+        filterset = self.filterset_class(query_params, queryset=queryset, request=request)
         if filterset.is_valid():
             queryset = filterset.qs
             logger.info(f"CustomUserViewSet - Filtered queryset count: {queryset.count()}")
@@ -939,7 +940,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = CustomUser.objects.select_related('office')
+        queryset = CustomUser.objects.select_related('office', 'department', 'designation')
         
         if user.is_admin:
             queryset = queryset.all()
