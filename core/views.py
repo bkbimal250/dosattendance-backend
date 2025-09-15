@@ -1443,7 +1443,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 )
             
             try:
-                user = CustomUser.objects.get(id=user_id, is_active=True)
+                # FIXED: Added designation__department to select_related to fix the __str__ method issue
+                user = CustomUser.objects.select_related('department', 'designation', 'designation__department', 'office').get(id=user_id, is_active=True)
             except CustomUser.DoesNotExist:
                 return Response(
                     {'error': 'User not found or inactive'}, 
@@ -1464,13 +1465,10 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 current_date += timedelta(days=1)
             
             # Get existing attendance records for the month
-            start_date = first_day
-            end_date = last_day
-            
             existing_attendance = Attendance.objects.filter(
                 user=user,
-                date__gte=start_date,
-                date__lte=end_date
+                date__gte=first_day,
+                date__lte=last_day
             ).select_related('device')
             
             # Create a dictionary for quick lookup
@@ -1516,7 +1514,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                         'updated_at': None,
                     })
             
-            # Calculate monthly statistics - Remove working days, make present days = working days
+            # Calculate monthly statistics
             total_days_in_month = len(all_days)
             present_days = sum(1 for day in monthly_data if day['status'] in ['present', 'half_day'])
             absent_days = sum(1 for day in monthly_data if day['status'] == 'absent')
@@ -1532,7 +1530,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                     'employee_id': user.employee_id,
-                    'department': user.department,
+                    'department': user.department.name if user.department else None,
                     'office_name': user.office.name if user.office else None,
                 },
                 'month': {
@@ -1561,6 +1559,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            logger.error(f"Error in monthly_attendance: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return Response(
                 {'error': f'An error occurred: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
