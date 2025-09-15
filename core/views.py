@@ -1037,6 +1037,12 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
+        # Check if this is a password change request
+        if 'current_password' in request.data and 'new_password' in request.data:
+            logger.info("Password change request detected")
+            return self._handle_password_change(request)
+        
+        # Regular profile update
         serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             # Log what fields are being updated
@@ -1054,6 +1060,46 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         logger.error(f"Received data: {request.data}")
         logger.error(f"Validation errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def _handle_password_change(self, request):
+        """Handle password change within profile update"""
+        try:
+            current_password = request.data.get('current_password')
+            new_password = request.data.get('new_password')
+            
+            if not current_password or not new_password:
+                return Response(
+                    {'error': 'Both current_password and new_password are required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate current password
+            if not request.user.check_password(current_password):
+                return Response(
+                    {'error': 'Invalid current password'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate new password
+            if len(new_password) < 8:
+                return Response(
+                    {'error': 'New password must be at least 8 characters long'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Set new password
+            request.user.set_password(new_password)
+            request.user.save()
+            
+            logger.info(f"Password changed successfully for user {request.user.id}")
+            return Response({'message': 'Password changed successfully'})
+            
+        except Exception as e:
+            logger.error(f"Error changing password: {str(e)}")
+            return Response(
+                {'error': 'Failed to change password'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(detail=False, methods=['get'])
     def debug_auth(self, request):

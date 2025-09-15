@@ -66,8 +66,8 @@ urlpatterns = [
     # Custom authentication endpoints
     path('api/auth/login/', CustomUserViewSet.as_view({'post': 'login'}), name='login'),
     path('api/auth/register/', CustomUserViewSet.as_view({'post': 'register'}), name='register'),
-    path('api/auth/profile/', CustomUserViewSet.as_view({'get': 'profile'}), name='profile'),
-    path('api/auth/profile/update/', CustomUserViewSet.as_view({'put': 'update_profile'}), name='update_profile'),
+    path('api/auth/profile/', CustomUserViewSet.as_view({'get': 'profile', 'patch': 'update_profile'}), name='profile'),
+    path('api/auth/profile/update/', CustomUserViewSet.as_view({'put': 'update_profile', 'patch': 'update_profile'}), name='update_profile'),
     path('api/auth/change-password/', CustomUserViewSet.as_view({'post': 'change_password'}), name='change_password'),
     path('api/auth/debug_auth/', CustomUserViewSet.as_view({'get': 'debug_auth'}), name='debug_auth'),
     
