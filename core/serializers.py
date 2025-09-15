@@ -113,14 +113,22 @@ class CustomUserSerializer(serializers.ModelSerializer):
     
     def get_department_name(self, obj):
         """Get department name from ForeignKey relationship"""
-        if obj.department:
-            return obj.department.name
+        try:
+            if obj.department:
+                return obj.department.name
+        except:
+            # Handle case where department was deleted but reference still exists
+            pass
         return None
     
     def get_designation_name(self, obj):
         """Get designation name from ForeignKey relationship"""
-        if obj.designation:
-            return obj.designation.name
+        try:
+            if obj.designation:
+                return obj.designation.name
+        except:
+            # Handle case where designation was deleted but reference still exists
+            pass
         return None
 
     def validate(self, attrs):
@@ -575,14 +583,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     def get_department_name(self, obj):
         """Get department name from ForeignKey relationship"""
-        if obj.department:
-            return obj.department.name
+        try:
+            if obj.department:
+                return obj.department.name
+        except:
+            # Handle case where department was deleted but reference still exists
+            pass
         return None
     
     def get_designation_name(self, obj):
         """Get designation name from ForeignKey relationship"""
-        if obj.designation:
-            return obj.designation.name
+        try:
+            if obj.designation:
+                return obj.designation.name
+        except:
+            # Handle case where designation was deleted but reference still exists
+            pass
         return None
 
 
