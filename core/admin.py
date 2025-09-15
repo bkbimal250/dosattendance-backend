@@ -116,8 +116,8 @@ class CustomUserAdmin(UserAdmin):
     )
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related for department"""
-        return super().get_queryset(request).select_related('department', 'office')
+        """Optimize queryset with select_related for department and designation"""
+        return super().get_queryset(request).select_related('department', 'designation', 'office')
     
     def department_name(self, obj):
         """Display department name"""
@@ -132,11 +132,11 @@ class CustomUserAdmin(UserAdmin):
         if obj.designation:
             return format_html(
                 '<span style="color: blue; font-weight: bold;">{}</span>',
-                obj.designation
+                obj.designation.name
             )
         return format_html('<span style="color: gray;">No Designation</span>')
     designation_display.short_description = "Designation"
-    designation_display.admin_order_field = 'designation'
+    designation_display.admin_order_field = 'designation__name'
 
 
 @admin.register(Device)
