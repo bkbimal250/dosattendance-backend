@@ -923,16 +923,16 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         
         # Debug logging for filtering
-        logger.info(f"🔍 CustomUserViewSet - Query params: {request.query_params}")
-        logger.info(f"🔍 CustomUserViewSet - Initial queryset count: {queryset.count()}")
+        logger.info(f"CustomUserViewSet - Query params: {request.query_params}")
+        logger.info(f"CustomUserViewSet - Initial queryset count: {queryset.count()}")
         
         # Apply filters
         filterset = self.filterset_class(request.query_params, queryset=queryset, request=request)
         if filterset.is_valid():
             queryset = filterset.qs
-            logger.info(f"🔍 CustomUserViewSet - Filtered queryset count: {queryset.count()}")
+            logger.info(f"CustomUserViewSet - Filtered queryset count: {queryset.count()}")
         else:
-            logger.warning(f"🔍 CustomUserViewSet - Filter errors: {filterset.errors}")
+            logger.warning(f"CustomUserViewSet - Filter errors: {filterset.errors}")
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -1165,16 +1165,16 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        print(f"🔍 DeviceViewSet.get_queryset() - User: {user.username}, Role: {getattr(user, 'role', 'No role')}, Is Admin: {getattr(user, 'is_admin', 'No is_admin property')}")
+        print(f"DeviceViewSet.get_queryset() - User: {user.username}, Role: {getattr(user, 'role', 'No role')}, Is Admin: {getattr(user, 'is_admin', 'No is_admin property')}")
         
         if user.is_admin:
-            print(f"✅ User {user.username} is admin, returning all devices")
+            print(f"User {user.username} is admin, returning all devices")
             return Device.objects.all()
         elif user.is_manager:
-            print(f"✅ User {user.username} is manager, returning office devices")
+            print(f"User {user.username} is manager, returning office devices")
             return Device.objects.filter(office=user.office)
         else:
-            print(f"❌ User {user.username} has no access to devices")
+            print(f"User {user.username} has no access to devices")
             return Device.objects.none()
 
     def get_permissions(self):
@@ -1522,8 +1522,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def update_status(self, request):
         """Update attendance status for a specific date - Only for managers and admins"""
-        print(f"🔧 update_status called with data: {request.data}")
-        print(f"🔧 User: {request.user.username}, Role: {request.user.role}")
+        print(f"update_status called with data: {request.data}")
+        print(f"User: {request.user.username}, Role: {request.user.role}")
         
         try:
             # Check if user has permission (manager or admin)
@@ -1613,11 +1613,11 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 'message': 'Attendance status updated successfully'
             }
             
-            print(f"✅ Returning response: {response_data}")
+            print(f"Returning response: {response_data}")
             return Response(response_data, status=status.HTTP_200_OK)
-            
+        
         except Exception as e:
-            print(f"❌ Error in update_status: {str(e)}")
+            print(f"Error in update_status: {str(e)}")
             traceback.print_exc()
             return Response(
                 {'error': f'An error occurred: {str(e)}'}, 
