@@ -14,11 +14,12 @@ from .views import (
 from .document_views import (
     DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
 )
-from .essl_views import (
-    ESSLDeviceViewSet, ESSLAttendanceLogViewSet, WorkingHoursSettingsViewSet,
-    ESSLDeviceManagerView, UserRegistrationView, MonthlyAttendanceReportView,
-    GetAllUsersFromDevicesView, ExportUsersToCSVView
-)
+# ESSL views disabled - ZKTeco devices only
+# from .essl_views import (
+#     ESSLDeviceViewSet, ESSLAttendanceLogViewSet, WorkingHoursSettingsViewSet,
+#     ESSLDeviceManagerView, UserRegistrationView, MonthlyAttendanceReportView,
+#     GetAllUsersFromDevicesView, ExportUsersToCSVView
+# )
 from .push_views import (
     DevicePushDataView, receive_attendance_push, device_health_check
 )
@@ -46,10 +47,10 @@ router.register(r'document-templates', DocumentTemplateViewSet, basename='docume
 router.register(r'generated-documents', GeneratedDocumentViewSet, basename='generated-document')
 router.register(r'document-generation', DocumentGenerationViewSet, basename='document-generation')
 
-# ESSL Device Management
-router.register(r'essl-devices', ESSLDeviceViewSet, basename='essl-device')
-router.register(r'essl-attendance-logs', ESSLAttendanceLogViewSet, basename='essl-attendance-log')
-router.register(r'working-hours-settings', WorkingHoursSettingsViewSet, basename='working-hours-setting')
+# ESSL Device Management - DISABLED (ZKTeco devices only)
+# router.register(r'essl-devices', ESSLDeviceViewSet, basename='essl-device')
+# router.register(r'essl-attendance-logs', ESSLAttendanceLogViewSet, basename='essl-attendance-log')
+# router.register(r'working-hours-settings', WorkingHoursSettingsViewSet, basename='working-hours-setting')
 
 app_name = 'core'
 
@@ -71,12 +72,12 @@ urlpatterns = [
     path('api/auth/change-password/', CustomUserViewSet.as_view({'post': 'change_password'}), name='change_password'),
     path('api/auth/debug_auth/', CustomUserViewSet.as_view({'get': 'debug_auth'}), name='debug_auth'),
     
-    # ESSL Device Management endpoints
-    path('api/essl/device-manager/', ESSLDeviceManagerView.as_view(), name='essl-device-manager'),
-    path('api/essl/register-user/', UserRegistrationView.as_view(), name='register-user'),
-    path('api/essl/get-all-users/', GetAllUsersFromDevicesView.as_view(), name='get-all-users'),
-    path('api/essl/export-users-csv/', ExportUsersToCSVView.as_view(), name='export-users-csv'),
-    path('api/essl/monthly-report/', MonthlyAttendanceReportView.as_view(), name='monthly-report'),
+    # ESSL Device Management endpoints - DISABLED (ZKTeco devices only)
+    # path('api/essl/device-manager/', ESSLDeviceManagerView.as_view(), name='essl-device-manager'),
+    # path('api/essl/register-user/', UserRegistrationView.as_view(), name='register-user'),
+    # path('api/essl/get-all-users/', GetAllUsersFromDevicesView.as_view(), name='get-all-users'),
+    # path('api/essl/export-users-csv/', ExportUsersToCSVView.as_view(), name='export-users-csv'),
+    # path('api/essl/monthly-report/', MonthlyAttendanceReportView.as_view(), name='monthly-report'),
     
     # Device Push Data endpoints (for receiving data from biometric devices)
     path('api/device/push-attendance/', DevicePushDataView.as_view(), name='device-push-attendance'),

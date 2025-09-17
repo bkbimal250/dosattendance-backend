@@ -136,7 +136,7 @@ class ReportsViewSet(viewsets.ViewSet):
             status_filter = request.query_params.get('status')
 
             # Build query - only show attendance for active users
-            queryset = Attendance.objects.select_related('user', 'user__office').filter(user__is_active=True)
+            queryset = Attendance.objects.select_related('user', 'user__office', 'user__department').filter(user__is_active=True)
 
             # For managers, restrict to their assigned office
             if request.user.is_manager and not request.user.is_admin:
@@ -194,6 +194,7 @@ class ReportsViewSet(viewsets.ViewSet):
                         'user__last_name': attendance.user.last_name if attendance.user else None,
                         'user__employee_id': attendance.user.employee_id if attendance.user else None,
                         'user__office__name': attendance.user.office.name if attendance.user and attendance.user.office else None,
+                        'user__department__name': attendance.user.department.name if attendance.user and attendance.user.department else None,
                     }
                     attendance_data.append(data)
                 except Exception as e:
