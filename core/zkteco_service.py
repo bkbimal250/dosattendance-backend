@@ -280,16 +280,16 @@ class ZKTecoService:
             # Close old connections before database operations
             close_old_connections()
             
-            # Get or create device
-            device, created = Device.objects.get_or_create(
-                ip_address=device_info['ip_address'],
-                defaults={
-                    'name': device_info.get('name', f"ZKTeco_{device_info['ip_address']}"),
-                    'device_type': 'zkteco',
-                    'port': device_info.get('port', 4370),
-                    'office': device_info.get('office')
-                }
-            )
+            # Get device - only process if already registered in database
+            try:
+                device = Device.objects.get(
+                    ip_address=device_info['ip_address'],
+                    device_type='zkteco'
+                )
+                logger.info(f"Found registered ZKTeco device: {device.name} at {device.ip_address}")
+            except Device.DoesNotExist:
+                logger.warning(f"ZKTeco device at {device_info['ip_address']} not registered in database - skipping")
+                return False
             
             # Process logs in batches to reduce memory usage
             batch_size = 50

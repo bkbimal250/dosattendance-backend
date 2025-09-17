@@ -327,16 +327,16 @@ class ImprovedZKTecoService:
         error_count = 0
         
         try:
-            # Get or create device
-            device, created = Device.objects.get_or_create(
-                ip_address=device_info['ip_address'],
-                defaults={
-                    'name': device_info.get('name', f"Device_{device_info['ip_address']}"),
-                    'device_type': 'zkteco',
-                    'port': device_info.get('port', 4370),
-                    'is_active': True
-                }
-            )
+            # Get device - only process if already registered in database
+            try:
+                device = Device.objects.get(
+                    ip_address=device_info['ip_address'],
+                    device_type='zkteco'
+                )
+                logger.info(f"Found registered ZKTeco device: {device.name} at {device.ip_address}")
+            except Device.DoesNotExist:
+                logger.warning(f"ZKTeco device at {device_info['ip_address']} not registered in database - skipping")
+                return False
             
             # Process each attendance log
             for log in attendance_logs:
