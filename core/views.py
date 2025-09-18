@@ -120,9 +120,23 @@ class IsAdminOrManager(IsAuthenticated):
         )
 
 
+class IsAccountantUser(IsAuthenticated):
+    """Permission to only allow accountant users"""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and request.user.is_accountant
+
+
+class IsAdminOrManagerOrAccountant(IsAuthenticated):
+    """Permission to allow admin, manager, or accountant users"""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and (
+            request.user.is_admin or request.user.is_manager or request.user.is_accountant
+        )
+
+
 class ReportsViewSet(viewsets.ViewSet):
-    """ViewSet for generating reports - Admin and Manager access"""
-    permission_classes = [IsAdminOrManager]
+    """ViewSet for generating reports - Admin, Manager, and Accountant access"""
+    permission_classes = [IsAdminOrManagerOrAccountant]
 
     @action(detail=False, methods=['get'])
     def attendance(self, request):
@@ -136,7 +150,7 @@ class ReportsViewSet(viewsets.ViewSet):
             status_filter = request.query_params.get('status')
 
             # Build query - only show attendance for active users
-            queryset = Attendance.objects.select_related('user', 'user__office').filter(user__is_active=True)
+            queryset = Attendance.objects.select_related('user', 'user__office', 'user__department').filter(user__is_active=True)
 
             # For managers, restrict to their assigned office
             if request.user.is_manager and not request.user.is_admin:
@@ -194,6 +208,7 @@ class ReportsViewSet(viewsets.ViewSet):
                         'user__last_name': attendance.user.last_name if attendance.user else None,
                         'user__employee_id': attendance.user.employee_id if attendance.user else None,
                         'user__office__name': attendance.user.office.name if attendance.user and attendance.user.office else None,
+                        'user__department__name': attendance.user.department.name if attendance.user and attendance.user.department else None,
                     }
                     attendance_data.append(data)
                 except Exception as e:
@@ -814,7 +829,9 @@ class OfficeViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAdminUser()]  # Only admin can modify offices
-        return [permissions.IsAuthenticated()]  # Anyone authenticated can read offices
+        elif self.action in ['list', 'retrieve']:
+            return [IsAdminOrManagerOrAccountant()]  # Admin, manager, and accountant can view
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         """Get queryset based on user role"""
@@ -830,6 +847,9 @@ class OfficeViewSet(viewsets.ModelViewSet):
             else:
                 # If manager has no office assigned, return empty queryset
                 return Office.objects.none()
+        elif user.is_accountant:
+            # Accountant can see all offices (read-only)
+            return Office.objects.all()
         else:
             # Regular employees can see their assigned office
             if user.office:
@@ -946,6 +966,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             queryset = queryset.all()
         elif user.is_manager:
             queryset = queryset.filter(office=user.office)
+        elif user.is_accountant:
+            # Accountant can see all users from all offices (read-only)
+            queryset = queryset.all()
         else:
             queryset = queryset.filter(id=user.id)
         
@@ -955,7 +978,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if self.action in ['login', 'register']:
             return [permissions.AllowAny()]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminOrManager()]
+            return [IsAdminOrManager()]  # Only admin/manager can modify users
+        elif self.action in ['list', 'retrieve']:
+            return [IsAdminOrManagerOrAccountant()]  # Admin, manager, and accountant can view
         return [permissions.IsAuthenticated()]
 
     @action(detail=False, methods=['post'])
@@ -1265,6 +1290,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             return base_queryset
         elif user.is_manager:
             return base_queryset.filter(user__office=user.office)
+        elif user.is_accountant:
+            # Accountant can see all attendance records from all offices (read-only)
+            return base_queryset
         else:
             return base_queryset.filter(user=user)
 
@@ -1315,7 +1343,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminOrManager()]
+            return [IsAdminOrManager()]  # Only admin/manager can modify attendance
+        elif self.action in ['list', 'retrieve']:
+            return [IsAdminOrManagerOrAccountant()]  # Admin, manager, and accountant can view
         return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):

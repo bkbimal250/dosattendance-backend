@@ -78,7 +78,10 @@ class Designation(models.Model):
         unique_together = ['name', 'department']
 
     def __str__(self):
-        return f"{self.name} ({self.department.name})"
+        try:
+            return f"{self.name} ({self.department.name})"
+        except Exception:
+            return f"{self.name} (No Department)"
 
 
 class CustomUser(AbstractUser):
@@ -87,6 +90,7 @@ class CustomUser(AbstractUser):
         ('admin', 'Admin'),
         ('manager', 'Manager'),
         ('employee', 'Employee'),
+        ('accountant', 'Accountant'),
     ]
     
     GENDER_CHOICES = [
@@ -185,6 +189,10 @@ class CustomUser(AbstractUser):
     @property
     def is_employee(self):
         return self.role == 'employee'
+    
+    @property
+    def is_accountant(self):
+        return self.role == 'accountant'
 
 
 class Device(models.Model):
@@ -255,7 +263,10 @@ class DeviceUser(models.Model):
         ordering = ['device', 'device_user_id']
 
     def __str__(self):
-        return f"{self.device.name} - {self.device_user_name} ({self.device_user_id})"
+        try:
+            return f"{self.device.name} - {self.device_user_name} ({self.device_user_id})"
+        except Exception:
+            return f"Device User - {self.device_user_name} ({self.device_user_id})"
 
     def map_to_system_user(self, system_user):
         """Map this device user to a system user"""
@@ -310,7 +321,10 @@ class Attendance(models.Model):
         ordering = ['-date', '-check_in_time']
 
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.date} ({self.status})"
+        try:
+            return f"{self.user.get_full_name()} - {self.date} ({self.status})"
+        except Exception:
+            return f"Attendance - {self.date} ({self.status})"
 
     def calculate_total_hours(self):
         """Calculate total working hours"""
@@ -509,7 +523,10 @@ class Leave(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.leave_type} ({self.status})"
+        try:
+            return f"{self.user.get_full_name()} - {self.leave_type} ({self.status})"
+        except Exception:
+            return f"Leave - {self.leave_type} ({self.status})"
 
 
 class Document(models.Model):
@@ -551,7 +568,10 @@ class Document(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.title} - {self.user.get_full_name()}"
+        try:
+            return f"{self.title} - {self.user.get_full_name()}"
+        except Exception:
+            return f"{self.title} - Unknown User"
 
 
 class Notification(models.Model):
@@ -575,7 +595,10 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.title} - {self.user.get_full_name()}"
+        try:
+            return f"{self.title} - {self.user.get_full_name()}"
+        except Exception:
+            return f"{self.title} - Unknown User"
 
 
 class SystemSettings(models.Model):
@@ -609,7 +632,10 @@ class AttendanceLog(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.action} - {self.attendance}"
+        try:
+            return f"{self.action} - {self.attendance}"
+        except Exception:
+            return f"{self.action} - Unknown Attendance"
 
 
 class ESSLAttendanceLog(models.Model):
@@ -655,7 +681,10 @@ class WorkingHoursSettings(models.Model):
         unique_together = ['office']
 
     def __str__(self):
-        return f"{self.office.name} - {self.standard_hours} hours"
+        try:
+            return f"{self.office.name} - {self.standard_hours} hours"
+        except Exception:
+            return f"Working Hours - {self.standard_hours} hours"
 
 
 class DocumentTemplate(models.Model):
@@ -707,7 +736,10 @@ class GeneratedDocument(models.Model):
         ordering = ['-generated_at']
 
     def __str__(self):
-        return f"{self.title} - {self.employee.get_full_name()} ({self.generated_at.date()})"
+        try:
+            return f"{self.title} - {self.employee.get_full_name()} ({self.generated_at.date()})"
+        except Exception:
+            return f"{self.title} - Unknown Employee ({self.generated_at.date()})"
 
 
 class Resignation(models.Model):
@@ -747,7 +779,10 @@ class Resignation(models.Model):
         verbose_name_plural = "Resignations"
 
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.resignation_date} ({self.status})"
+        try:
+            return f"{self.user.get_full_name()} - {self.resignation_date} ({self.status})"
+        except Exception:
+            return f"Resignation - {self.resignation_date} ({self.status})"
 
     def clean(self):
         """Validate resignation data"""
