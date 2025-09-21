@@ -1291,8 +1291,8 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         elif user.is_manager:
             return base_queryset.filter(user__office=user.office)
         elif user.is_accountant:
-            # Accountant can see all attendance records from all offices (read-only)
-            return base_queryset
+            # Accountant can only see their own attendance (like employee)
+            return base_queryset.filter(user=user)
         else:
             return base_queryset.filter(user=user)
 
@@ -2854,6 +2854,40 @@ class DashboardViewSet(viewsets.ViewSet):
                 'total_users': total_users,
                 'user_activation_rate': round((active_users / total_users * 100), 2) if total_users > 0 else 0,
                 'employee_growth': 0,  # Not applicable for managers
+            }
+        elif user.is_accountant:
+            # Accountant statistics - same as employee (only own data)
+            today_attendance = Attendance.objects.filter(
+                user=user,
+                date=today
+            ).count()
+            pending_leaves = Leave.objects.filter(
+                user=user, 
+                status='pending'
+            ).count()
+            approved_leaves = Leave.objects.filter(
+                user=user,
+                status='approved'
+            ).count()
+            total_leaves = Leave.objects.filter(user=user).count()
+            leave_approval_rate = (approved_leaves / total_leaves * 100) if total_leaves > 0 else 0
+            
+            stats = {
+                'total_employees': 1,
+                'total_managers': 0,
+                'total_offices': 1,
+                'total_devices': 0,
+                'active_devices': 0,
+                'today_attendance': today_attendance,
+                'total_today_records': today_attendance,
+                'attendance_rate': 100 if today_attendance > 0 else 0,
+                'pending_leaves': pending_leaves,
+                'approved_leaves': approved_leaves,
+                'total_leaves': total_leaves,
+                'leave_approval_rate': round(leave_approval_rate, 2),
+                'active_users': 1,
+                'total_users': 1,
+                'user_activation_rate': 100,
             }
         else:
             # Employee statistics
