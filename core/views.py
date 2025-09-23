@@ -3320,10 +3320,10 @@ class ResignationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Create a new resignation request"""
-        # Ensure only employees can create resignation requests
-        if request.user.role != 'employee':
+        # Ensure only employees and accountants can create resignation requests
+        if request.user.role not in ['employee', 'accountant']:
             return Response({
-                'error': 'Only employees can submit resignation requests'
+                'error': 'Only employees and accountants can submit resignation requests'
             }, status=status.HTTP_403_FORBIDDEN)
         
         # Check if user already has a pending resignation
@@ -3454,9 +3454,9 @@ class ResignationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def my_resignations(self, request):
         """Get current user's resignation requests"""
-        if request.user.role != 'employee':
+        if request.user.role not in ['employee', 'accountant']:
             return Response({
-                'error': 'Only employees can access their resignation requests'
+                'error': 'Only employees and accountants can access their resignation requests'
             }, status=status.HTTP_403_FORBIDDEN)
         
         queryset = Resignation.objects.filter(user=request.user)

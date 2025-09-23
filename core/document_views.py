@@ -90,7 +90,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 employee__office=user.office
             )
         else:
-            # Employees can only see their own documents
+            # Employees and accountants can only see their own documents
             return GeneratedDocument.objects.filter(employee=user)
     
     @action(detail=True, methods=['get'])
@@ -2176,11 +2176,11 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def my_documents(self, request):
-        """Get current user's documents (for employees to view their own documents)"""
+        """Get current user's documents (for employees and accountants to view their own documents)"""
         user = request.user
         
-        if user.role == 'employee':
-            # Employee can only see their own documents
+        if user.role in ['employee', 'accountant']:
+            # Employee and accountant can only see their own documents
             documents = GeneratedDocument.objects.filter(employee=user).order_by('-generated_at')
         elif user.role == 'manager':
             # Manager can see documents for employees in their office
