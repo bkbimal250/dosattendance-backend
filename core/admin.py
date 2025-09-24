@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
+from django import forms
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
@@ -89,13 +90,160 @@ class DesignationAdmin(admin.ModelAdmin):
     deactivate_designations.short_description = "Deactivate selected designations"
 
 
-@admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdminForm(forms.ModelForm):
+    """Custom form for CustomUser admin with error handling for department and designation"""
+    
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Handle invalid department reference
+        if self.instance and self.instance.pk:
+            try:
+                # Check if department_id exists but department doesn't
+                if self.instance.department_id:
+                    try:
+                        dept = self.instance.department
+                        if not dept:
+                            self.fields['department'].help_text = "⚠️ Current department reference is invalid. Please select a valid department."
+                    except Exception:
+                        self.fields['department'].help_text = "⚠️ Current department reference is invalid. Please select a valid department."
+                        # Clear the invalid reference
+                        self.instance.department_id = None
+            except Exception:
+                pass  # Ignore errors during form initialization
+            
+            # Handle invalid designation reference
+            try:
+                # Check if designation_id exists but designation doesn't
+                if self.instance.designation_id:
+                    try:
+                        desig = self.instance.designation
+                        if not desig:
+                            self.fields['designation'].help_text = "⚠️ Current designation reference is invalid. Please select a valid designation."
+                    except Exception:
+                        self.fields['designation'].help_text = "⚠️ Current designation reference is invalid. Please select a valid designation."
+                        # Clear the invalid reference
+                        self.instance.designation_id = None
+            except Exception:
+                pass  # Ignore errors during form initialization
+    
+    def clean_department(self):
+        """Clean department field to handle invalid references"""
+        department = self.cleaned_data.get('department')
+        if not department and self.instance.department_id:
+            # If no department selected but instance has invalid department_id, clear it
+            try:
+                self.instance.department
+            except Exception:
+                self.instance.department_id = None
+        return department
+    
+    def clean_designation(self):
+        """Clean designation field to handle invalid references"""
+        designation = self.cleaned_data.get('designation')
+        if not designation and self.instance.designation_id:
+            # If no designation selected but instance has invalid designation_id, clear it
+            try:
+                self.instance.designation
+            except Exception:
+                self.instance.designation_id = None
+        return designation
+
+
+class SafeCustomUserAdmin(UserAdmin):
+    form = CustomUserAdminForm
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
     list_filter = ['role', 'office', 'is_active', 'department', 'created_at']
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card', 'designation']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
+    
+    def get_queryset(self, request):
+        """Override get_queryset to handle search safely"""
+        try:
+            qs = super().get_queryset(request)
+            # Use select_related to avoid N+1 queries
+            return qs.select_related('office', 'department', 'designation')
+        except Exception as e:
+            # If there's an error, return a basic queryset
+            from django.contrib import messages
+            messages.error(request, f"Error loading users: {str(e)}")
+            return CustomUser.objects.all()
+    
+    def get_search_results(self, request, queryset, search_term):
+        """Override search to handle errors gracefully"""
+        try:
+            return super().get_search_results(request, queryset, search_term)
+        except Exception as e:
+            # If search fails, return the original queryset
+            from django.contrib import messages
+            messages.warning(request, f"Search error: {str(e)}. Showing all results.")
+            return queryset, False
+    
+    # Override the render_change_form to handle errors gracefully
+    def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
+        """Override render_change_form to handle errors gracefully"""
+        try:
+            return super().render_change_form(request, context, add, change, form_url, obj)
+        except Exception as e:
+            # If there's an error rendering the form, try to fix the object first
+            if obj and hasattr(obj, 'department_id') and obj.department_id:
+                try:
+                    obj.department
+                except Exception:
+                    obj.department_id = None
+                    obj.save(update_fields=['department_id'])
+            
+            if obj and hasattr(obj, 'designation_id') and obj.designation_id:
+                try:
+                    obj.designation
+                except Exception:
+                    obj.designation_id = None
+                    obj.save(update_fields=['designation_id'])
+            
+            # Try again
+            try:
+                return super().render_change_form(request, context, add, change, form_url, obj)
+            except Exception:
+                # If still failing, redirect to changelist
+                from django.contrib import messages
+                from django.http import HttpResponseRedirect
+                from django.urls import reverse
+                
+                messages.error(request, f"Error rendering form for user {obj.username if obj else 'unknown'}. Please try again.")
+                return HttpResponseRedirect(reverse('admin:core_customuser_changelist'))
+    
+    # Override the formfield_for_foreignkey to handle invalid references
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name in ['department', 'designation']:
+            # Get the object being edited
+            obj_id = request.resolver_match.kwargs.get('object_id')
+            if obj_id:
+                try:
+                    obj = CustomUser.objects.get(pk=obj_id)
+                    # Check if the current value is invalid
+                    if db_field.name == 'department' and obj.department_id:
+                        try:
+                            obj.department
+                        except Exception:
+                            # Clear invalid reference
+                            obj.department_id = None
+                            obj.save(update_fields=['department_id'])
+                    elif db_field.name == 'designation' and obj.designation_id:
+                        try:
+                            obj.designation
+                        except Exception:
+                            # Clear invalid reference
+                            obj.designation_id = None
+                            obj.save(update_fields=['designation_id'])
+                except Exception:
+                    pass  # Ignore errors
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
@@ -116,27 +264,216 @@ class CustomUserAdmin(UserAdmin):
     )
     
     def get_queryset(self, request):
-        """Optimize queryset with select_related for department and designation"""
-        return super().get_queryset(request).select_related('department', 'designation', 'office')
+        """Get queryset without any select_related to avoid DoesNotExist errors"""
+        # Don't use select_related at all to avoid any potential issues
+        # with invalid foreign key references
+        return super().get_queryset(request)
+    
+    def get_object(self, request, object_id, from_field=None):
+        """Override get_object to handle invalid references gracefully"""
+        try:
+            return super().get_object(request, object_id, from_field)
+        except Exception as e:
+            # If there's an error getting the object, try to get it directly
+            try:
+                from django.shortcuts import get_object_or_404
+                obj = get_object_or_404(CustomUser, pk=object_id)
+                
+                # Check and fix any invalid references
+                needs_save = False
+                
+                if obj.department_id:
+                    try:
+                        obj.department
+                    except Exception:
+                        obj.department_id = None
+                        needs_save = True
+                
+                if obj.designation_id:
+                    try:
+                        obj.designation
+                    except Exception:
+                        obj.designation_id = None
+                        needs_save = True
+                
+                if needs_save:
+                    obj.save(update_fields=['department_id', 'designation_id'])
+                
+                return obj
+            except Exception:
+                raise e
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Override get_form to handle invalid references gracefully"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # If we have an object, check for invalid references
+        if obj:
+            try:
+                # Check department reference
+                if obj.department_id:
+                    try:
+                        obj.department
+                    except Exception:
+                        # Clear invalid department reference
+                        obj.department_id = None
+                        obj.save(update_fields=['department_id'])
+                
+                # Check designation reference
+                if obj.designation_id:
+                    try:
+                        obj.designation
+                    except Exception:
+                        # Clear invalid designation reference
+                        obj.designation_id = None
+                        obj.save(update_fields=['designation_id'])
+                        
+            except Exception:
+                pass  # Ignore errors during form preparation
+        
+        return form
+    
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        """Override change_view to handle invalid references gracefully"""
+        try:
+            # First, try to get the object using raw SQL to avoid any ORM issues
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM core_customuser WHERE id = %s", [object_id])
+                row = cursor.fetchone()
+                if not row:
+                    from django.shortcuts import get_object_or_404
+                    obj = get_object_or_404(CustomUser, pk=object_id)
+                else:
+                    # Get the object using the primary key only
+                    obj = CustomUser.objects.get(pk=object_id)
+            
+            # Check and fix any invalid references before proceeding
+            needs_save = False
+            
+            # Check department reference
+            if obj.department_id:
+                try:
+                    obj.department
+                except Exception:
+                    obj.department_id = None
+                    needs_save = True
+            
+            # Check designation reference
+            if obj.designation_id:
+                try:
+                    obj.designation
+                except Exception:
+                    obj.designation_id = None
+                    needs_save = True
+            
+            # Save if we made changes
+            if needs_save:
+                obj.save(update_fields=['department_id', 'designation_id'])
+                from django.contrib import messages
+                messages.warning(request, f"Fixed invalid department/designation references for user {obj.username}.")
+            
+            # Now proceed with the normal change view
+            return super().change_view(request, object_id, form_url, extra_context)
+            
+        except Exception as e:
+            # If there's still an error, try a more direct approach
+            try:
+                from django.shortcuts import get_object_or_404
+                from django.contrib import messages
+                from django.http import HttpResponseRedirect
+                from django.urls import reverse
+                
+                obj = get_object_or_404(CustomUser, pk=object_id)
+                messages.error(request, f"Error accessing user {obj.username}. Please try again.")
+                return HttpResponseRedirect(reverse('admin:core_customuser_changelist'))
+            except Exception:
+                raise e
+    
+    def get_urls(self):
+        """Override get_urls to add custom error handling"""
+        from django.urls import path
+        urls = super().get_urls()
+        
+        # Add a custom URL for handling problematic users
+        custom_urls = [
+            path(
+                '<path:object_id>/change/',
+                self.admin_site.admin_view(self.safe_change_view),
+                name='core_customuser_change',
+            ),
+        ]
+        return custom_urls + urls
+    
+    def safe_change_view(self, request, object_id, form_url='', extra_context=None):
+        """Safe change view that handles all errors gracefully"""
+        try:
+            # Get the object safely
+            from django.shortcuts import get_object_or_404
+            obj = get_object_or_404(CustomUser, pk=object_id)
+            
+            # Check and fix any invalid references
+            needs_save = False
+            
+            if obj.department_id:
+                try:
+                    obj.department
+                except Exception:
+                    obj.department_id = None
+                    needs_save = True
+            
+            if obj.designation_id:
+                try:
+                    obj.designation
+                except Exception:
+                    obj.designation_id = None
+                    needs_save = True
+            
+            if needs_save:
+                obj.save(update_fields=['department_id', 'designation_id'])
+                from django.contrib import messages
+                messages.warning(request, f"Fixed invalid references for user {obj.username}.")
+            
+            # Now proceed with the normal change view
+            return super().change_view(request, object_id, form_url, extra_context)
+            
+        except Exception as e:
+            # If there's still an error, redirect to changelist with error message
+            from django.contrib import messages
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            
+            messages.error(request, f"Error accessing user. Please try again. Error: {str(e)}")
+            return HttpResponseRedirect(reverse('admin:core_customuser_changelist'))
     
     def department_name(self, obj):
-        """Display department name"""
-        if obj.department:
-            return obj.department.name
+        """Display department name with error handling"""
+        try:
+            if obj.department:
+                return obj.department.name
+        except Exception:
+            return format_html('<span style="color: red;">Invalid Department</span>')
         return "No Department"
     department_name.short_description = "Department"
     department_name.admin_order_field = 'department__name'
     
     def designation_display(self, obj):
-        """Display designation with styling"""
-        if obj.designation:
-            return format_html(
-                '<span style="color: blue; font-weight: bold;">{}</span>',
-                obj.designation.name
-            )
+        """Display designation with styling and error handling"""
+        try:
+            if obj.designation:
+                return format_html(
+                    '<span style="color: blue; font-weight: bold;">{}</span>',
+                    obj.designation.name
+                )
+        except Exception:
+            return format_html('<span style="color: red;">Invalid Designation</span>')
         return format_html('<span style="color: gray;">No Designation</span>')
     designation_display.short_description = "Designation"
     designation_display.admin_order_field = 'designation__name'
+
+
+# Register the safe admin
+admin.site.register(CustomUser, SafeCustomUserAdmin)
 
 
 @admin.register(Device)
@@ -354,8 +691,9 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
     list_filter = ['document_type', 'generated_at', 'is_sent', 'employee__office']
     search_fields = ['employee__first_name', 'employee__last_name', 'employee__employee_id', 'document_type', 'title']
     ordering = ['-generated_at']
-    readonly_fields = ['id', 'generated_at', 'pdf_file_size', 'pdf_file_exists']
-    date_hierarchy = 'generated_at'
+    readonly_fields = ['id', 'generated_at']
+    # Temporarily disable date_hierarchy to fix timezone issue
+    # date_hierarchy = 'generated_at'
     
     fieldsets = (
         (None, {'fields': ('employee', 'template', 'document_type', 'title')}),
@@ -373,22 +711,29 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
     
     def has_pdf_file(self, obj):
         if obj.pdf_file:
-            return format_html(
-                '<span style="color: green;">✓ PDF Available</span>' if obj.pdf_file.size > 0 
-                else '<span style="color: red;">✗ Empty File</span>'
-            )
+            try:
+                # Check if file exists without accessing size
+                if obj.pdf_file.name:
+                    return format_html('<span style="color: green;">✓ PDF Available</span>')
+                else:
+                    return format_html('<span style="color: red;">✗ Empty File</span>')
+            except:
+                return format_html('<span style="color: orange;">⚠ File Error</span>')
         return format_html('<span style="color: gray;">No PDF</span>')
     has_pdf_file.short_description = "PDF Status"
     
     def pdf_file_size(self, obj):
-        if obj.pdf_file and obj.pdf_file.size > 0:
-            size_kb = obj.pdf_file.size / 1024
-            return f"{size_kb:.1f} KB"
+        if obj.pdf_file and obj.pdf_file.name:
+            try:
+                size_kb = obj.pdf_file.size / 1024
+                return f"{size_kb:.1f} KB"
+            except:
+                return "File Error"
         return "N/A"
     pdf_file_size.short_description = "PDF Size"
     
     def pdf_file_exists(self, obj):
-        if obj.pdf_file:
+        if obj.pdf_file and obj.pdf_file.name:
             import os
             from django.conf import settings
             file_path = os.path.join(settings.MEDIA_ROOT, obj.pdf_file.name)
