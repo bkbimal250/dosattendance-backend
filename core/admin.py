@@ -1,7 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import AdminPasswordChangeForm
+from django.contrib.admin.helpers import AdminForm
 from django.utils.html import format_html
 from django import forms
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.contrib import messages
+from django.template.response import TemplateResponse
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
@@ -90,6 +98,36 @@ class DesignationAdmin(admin.ModelAdmin):
     deactivate_designations.short_description = "Deactivate selected designations"
 
 
+class CustomUserChangeForm(forms.ModelForm):
+    """Form for changing user information including password"""
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={'placeholder': 'Enter new password (leave blank to keep current password)'}),
+        required=False,
+        help_text="Leave blank to keep the current password. Use 'Change Password' link for secure password change."
+    )
+    
+    class Meta:
+        model = CustomUser
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make password field optional for existing users
+        if self.instance.pk:
+            self.fields['password'].required = False
+            self.fields['password'].help_text = "Leave blank to keep current password"
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        if password:
+            user.set_password(password)
+        if commit:
+            user.save()
+        return user
+
+
 class CustomUserAdminForm(forms.ModelForm):
     """Custom form for CustomUser admin with error handling for department and designation"""
     
@@ -155,12 +193,33 @@ class CustomUserAdminForm(forms.ModelForm):
 
 
 class SafeCustomUserAdmin(UserAdmin):
-    form = CustomUserAdminForm
+    form = CustomUserChangeForm
+    add_form = CustomUserAdminForm
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
     list_filter = ['role', 'office', 'is_active', 'department', 'created_at']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
+    
+    # Define fieldsets to organize the form
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'phone', 'employee_id')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'role', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Office Information', {'fields': ('office', 'department', 'designation')}),
+        ('Personal Details', {'fields': ('date_of_birth', 'gender', 'address', 'aadhaar_card', 'pan_card')}),
+        ('Employment Details', {'fields': ('biometric_id', 'joining_date', 'salary')}),
+        ('Emergency Contact', {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
+        ('Bank Details', {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2', 'first_name', 'last_name', 'role', 'office'),
+        }),
+    )
     
     def get_queryset(self, request):
         """Override get_queryset to handle search safely"""
@@ -183,6 +242,77 @@ class SafeCustomUserAdmin(UserAdmin):
             from django.contrib import messages
             messages.warning(request, f"Search error: {str(e)}. Showing all results.")
             return queryset, False
+    
+    def get_urls(self):
+        """Add custom URLs for password change"""
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<id>/password/',
+                self.admin_site.admin_view(self.user_change_password),
+                name='core_customuser_password_change',
+            ),
+        ]
+        return custom_urls + urls
+    
+    def user_change_password(self, request, id, form_url=''):
+        """Custom password change view"""
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        user = self.get_object(request, id)
+        if user is None:
+            raise Http404('User object with primary key %s does not exist.' % id)
+        
+        if request.method == 'POST':
+            form = AdminPasswordChangeForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                change_message = self.construct_change_message(request, form, None)
+                self.log_change(request, user, change_message)
+                msg = 'Password changed successfully.'
+                messages.success(request, msg)
+                return HttpResponseRedirect(
+                    reverse(
+                        '%s:%s_%s_change' % (
+                            self.admin_site.name,
+                            user._meta.app_label,
+                            user._meta.model_name,
+                        ),
+                        args=(user.pk,),
+                    )
+                )
+        else:
+            form = AdminPasswordChangeForm(user)
+        
+        fieldsets = [(None, {'fields': list(form.base_fields)})]
+        adminForm = AdminForm(form, fieldsets, {})
+        
+        context = {
+            'title': 'Change password: %s' % user.get_username(),
+            'adminForm': adminForm,
+            'form_url': form_url,
+            'form': form,
+            'is_popup': (request.GET.get('_popup') == '1'),
+            'is_popup_var': '_popup',
+            'add': True,
+            'change': False,
+            'has_delete_permission': False,
+            'has_change_permission': True,
+            'has_absolute_url': False,
+            'opts': self.model._meta,
+            'original': user,
+            'save_as': False,
+            'has_add_permission': False,
+            'has_view_permission': True,
+            'has_editable_inline_admin_formsets': False,
+        }
+        
+        return TemplateResponse(
+            request,
+            'admin/auth/user/change_password.html',
+            context,
+        )
     
     # Override the render_change_form to handle errors gracefully
     def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
