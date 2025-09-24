@@ -879,7 +879,13 @@ class DeviceUserCreateSerializer(serializers.ModelSerializer):
         
         # Check for duplicate device_user_id within the same device
         if device and device_user_id:
-            if DeviceUser.objects.filter(device=device, device_user_id=device_user_id).exists():
+            queryset = DeviceUser.objects.filter(device=device, device_user_id=device_user_id)
+            
+            # Exclude current instance if updating
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+            
+            if queryset.exists():
                 raise serializers.ValidationError({
                     'device_user_id': 'A user with this ID already exists on this device.'
                 })
