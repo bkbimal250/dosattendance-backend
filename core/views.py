@@ -18,13 +18,14 @@ from django.core.exceptions import ValidationError
 from rest_framework.exceptions import APIException, ValidationError as DRFValidationError
 
 from .models import (
-    CustomUser, Office, Device, Attendance, WorkingHoursSettings, 
+    CustomUser, Office, Device, DeviceUser, Attendance, WorkingHoursSettings, 
     ESSLAttendanceLog, Leave, Document, Notification, SystemSettings,
     DocumentTemplate, GeneratedDocument, Resignation, Department, Designation
 )
 from .serializers import (
-    CustomUserSerializer, OfficeSerializer, DeviceSerializer, AttendanceSerializer,
-    AttendanceCreateSerializer, BulkAttendanceSerializer, WorkingHoursSettingsSerializer,
+    CustomUserSerializer, OfficeSerializer, DeviceSerializer, DeviceUserSerializer,
+    DeviceUserCreateSerializer, DeviceUserMappingSerializer, DeviceUserBulkCreateSerializer,
+    AttendanceSerializer, AttendanceCreateSerializer, BulkAttendanceSerializer, WorkingHoursSettingsSerializer,
     ESSLAttendanceLogSerializer, LeaveSerializer, LeaveCreateSerializer, LeaveApprovalSerializer,
     DocumentSerializer, DocumentCreateSerializer, NotificationSerializer, SystemSettingsSerializer,
     UserRegistrationSerializer, UserProfileSerializer, PasswordChangeSerializer,
@@ -3621,3 +3622,228 @@ def custom_500(request):
         'message': 'An internal server error occurred',
         'status_code': 500
     }, status=500)
+
+
+class DeviceUserFilter(django_filters.FilterSet):
+    """FilterSet for DeviceUser with proper filtering capabilities"""
+    device = django_filters.CharFilter(method='filter_device')
+    is_mapped = django_filters.BooleanFilter(field_name='is_mapped')
+    device_user_privilege = django_filters.CharFilter(field_name='device_user_privilege')
+    search = django_filters.CharFilter(method='filter_search')
+    
+    class Meta:
+        model = DeviceUser
+        fields = ['device', 'is_mapped', 'device_user_privilege', 'search']
+    
+    def filter_device(self, queryset, name, value):
+        """Custom device filter to handle UUID values"""
+        if not value:
+            return queryset
+        try:
+            # Try to parse as UUID
+            import uuid
+            device_uuid = uuid.UUID(value)
+            return queryset.filter(device__id=device_uuid)
+        except (ValueError, TypeError):
+            # If not a valid UUID, try to filter by device name
+            return queryset.filter(device__name__icontains=value)
+    
+    def filter_search(self, queryset, name, value):
+        """Custom search filter across multiple fields"""
+        if not value:
+            return queryset
+        return queryset.filter(
+            Q(device_user_name__icontains=value) |
+            Q(device_user_id__icontains=value) |
+            Q(device__name__icontains=value) |
+            Q(system_user__first_name__icontains=value) |
+            Q(system_user__last_name__icontains=value) |
+            Q(system_user__email__icontains=value)
+        )
+
+
+class DeviceUserViewSet(viewsets.ModelViewSet):
+    """ViewSet for DeviceUser model"""
+    serializer_class = DeviceUserSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = DeviceUserFilter
+    search_fields = ['device_user_name', 'device_user_id', 'device__name', 'system_user__first_name', 'system_user__last_name']
+    ordering_fields = ['device_user_name', 'device_user_id', 'created_at', 'updated_at']
+    ordering = ['device', 'device_user_id']
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        if user.is_admin:
+            # Admin can see all device users
+            return DeviceUser.objects.select_related('device', 'system_user', 'device__office').all()
+        elif user.is_manager:
+            # Manager can see device users from their office devices
+            return DeviceUser.objects.select_related('device', 'system_user', 'device__office').filter(
+                device__office=user.office
+            )
+        else:
+            # Other users have no access
+            return DeviceUser.objects.none()
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]  # Only admin can modify device users
+        return [permissions.IsAuthenticated()]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return DeviceUserCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return DeviceUserCreateSerializer
+        return DeviceUserSerializer
+
+    @action(detail=True, methods=['post'])
+    def map_to_system_user(self, request, pk=None):
+        """Map device user to a system user"""
+        device_user = self.get_object()
+        serializer = DeviceUserMappingSerializer(device_user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Device user mapped successfully',
+                'data': DeviceUserSerializer(device_user).data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def unmap_from_system_user(self, request, pk=None):
+        """Unmap device user from system user"""
+        device_user = self.get_object()
+        
+        device_user.system_user = None
+        device_user.is_mapped = False
+        device_user.mapping_notes = ''
+        device_user.save()
+        
+        return Response({
+            'message': 'Device user unmapped successfully',
+            'data': DeviceUserSerializer(device_user).data
+        })
+
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """Bulk create device users"""
+        serializer = DeviceUserBulkCreateSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            device_id = serializer.validated_data['device']
+            device_users_data = serializer.validated_data['device_users']
+            
+            try:
+                with transaction.atomic():
+                    created_users = []
+                    for user_data in device_users_data:
+                        user_data['device_id'] = device_id
+                        device_user = DeviceUser.objects.create(**user_data)
+                        created_users.append(DeviceUserSerializer(device_user).data)
+                    
+                    return Response({
+                        'message': f'Successfully created {len(created_users)} device users',
+                        'data': created_users
+                    }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({
+                    'error': 'Failed to create device users',
+                    'details': str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def unmapped_users(self, request):
+        """Get unmapped device users"""
+        queryset = self.get_queryset().filter(is_mapped=False)
+        
+        # Apply filters
+        queryset = self.filter_queryset(queryset)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def mapped_users(self, request):
+        """Get mapped device users"""
+        queryset = self.get_queryset().filter(is_mapped=True)
+        
+        # Apply filters
+        queryset = self.filter_queryset(queryset)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_device(self, request):
+        """Get device users by device ID"""
+        device_id = request.query_params.get('device_id')
+        
+        if not device_id:
+            return Response({
+                'error': 'device_id parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            import uuid
+            device_uuid = uuid.UUID(device_id)
+            queryset = self.get_queryset().filter(device_id=device_uuid)
+            
+            # Apply filters
+            queryset = self.filter_queryset(queryset)
+            
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except ValueError:
+            return Response({
+                'error': 'Invalid device_id format'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get device user statistics"""
+        queryset = self.get_queryset()
+        
+        total_users = queryset.count()
+        mapped_users = queryset.filter(is_mapped=True).count()
+        unmapped_users = queryset.filter(is_mapped=False).count()
+        
+        # Group by device
+        device_stats = queryset.values('device__name', 'device__id').annotate(
+            total_users=Count('id'),
+            mapped_users=Count('id', filter=Q(is_mapped=True)),
+            unmapped_users=Count('id', filter=Q(is_mapped=False))
+        )
+        
+        # Group by privilege
+        privilege_stats = queryset.values('device_user_privilege').annotate(
+            count=Count('id')
+        )
+        
+        return Response({
+            'total_users': total_users,
+            'mapped_users': mapped_users,
+            'unmapped_users': unmapped_users,
+            'mapping_percentage': round((mapped_users / total_users * 100) if total_users > 0 else 0, 2),
+            'device_stats': list(device_stats),
+            'privilege_stats': list(privilege_stats)
+        })

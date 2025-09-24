@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 from .views import (
-    OfficeViewSet, CustomUserViewSet, DeviceViewSet, AttendanceViewSet,
+    OfficeViewSet, CustomUserViewSet, DeviceViewSet, DeviceUserViewSet, AttendanceViewSet,
     LeaveViewSet, DocumentViewSet, NotificationViewSet, SystemSettingsViewSet,
     AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
     ResignationViewSet, DepartmentViewSet, DesignationViewSet
@@ -29,6 +29,7 @@ router = DefaultRouter()
 router.register(r'offices', OfficeViewSet)
 router.register(r'users', CustomUserViewSet, basename='user')
 router.register(r'devices', DeviceViewSet, basename='device')
+router.register(r'device-users', DeviceUserViewSet, basename='device-user')
 router.register(r'attendance', AttendanceViewSet, basename='attendance')
 router.register(r'leaves', LeaveViewSet, basename='leave')
 router.register(r'resignations', ResignationViewSet, basename='resignation')
