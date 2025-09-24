@@ -135,6 +135,14 @@ class IsAdminOrManagerOrAccountant(IsAuthenticated):
         )
 
 
+class IsSuperuserOrAdminOrManager(IsAuthenticated):
+    """Permission to allow superuser, admin, or manager users"""
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and (
+            request.user.is_superuser or request.user.is_admin or request.user.is_manager
+        )
+
+
 class ReportsViewSet(viewsets.ViewSet):
     """ViewSet for generating reports - Admin, Manager, and Accountant access"""
     permission_classes = [IsAdminOrManagerOrAccountant]
@@ -3674,8 +3682,8 @@ class DeviceUserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        if user.is_admin:
-            # Admin can see all device users
+        if user.is_superuser or user.is_admin:
+            # Superuser and admin can see all device users
             return DeviceUser.objects.select_related('device', 'system_user', 'device__office').all()
         elif user.is_manager:
             # Manager can see device users from their office devices
@@ -3688,7 +3696,9 @@ class DeviceUserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]  # Only admin can modify device users
+            return [IsSuperuserOrAdminOrManager()]  # Superuser, admin, and manager can modify device users
+        elif self.action in ['list', 'retrieve']:
+            return [IsSuperuserOrAdminOrManager()]  # Superuser, admin, and manager can view device users
         return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):
