@@ -1088,7 +1088,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             logger.info(f"Profile updated successfully for user {request.user.id}")
             logger.info(f"Updated fields: {serializer.validated_data}")
             
-            return Response(serializer.data)
+            # Return complete user data using CustomUserSerializer
+            user_serializer = CustomUserSerializer(updated_user, context={'request': request})
+            return Response(user_serializer.data)
         
         logger.error(f"Profile update validation failed: {serializer.errors}")
         logger.error(f"Received data: {request.data}")
