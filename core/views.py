@@ -964,7 +964,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         else:
             logger.warning(f"CustomUserViewSet - Filter errors: {filterset.errors}")
         
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
     def get_queryset(self):
@@ -1039,13 +1039,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def profile(self, request):
         """Get current user profile"""
-        serializer = CustomUserSerializer(request.user)
+        serializer = CustomUserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
         """Get current user profile (alias for profile)"""
-        serializer = CustomUserSerializer(request.user)
+        serializer = CustomUserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['put'])
@@ -1077,7 +1077,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return self._handle_password_change(request)
         
         # Regular profile update
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        serializer = UserProfileSerializer(request.user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             # Log what fields are being updated
             logger.info(f"Valid fields to update: {serializer.validated_data.keys()}")
@@ -3195,7 +3195,7 @@ class DashboardViewSet(viewsets.ViewSet):
         employees = queryset[start:end]
         
         # Serialize data
-        serializer = CustomUserSerializer(employees, many=True)
+        serializer = CustomUserSerializer(employees, many=True, context={'request': request})
         
         return Response({
             'results': serializer.data,
