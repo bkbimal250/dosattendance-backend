@@ -600,30 +600,81 @@ class Document(models.Model):
 
 
 class Notification(models.Model):
-    """Notification model for system notifications"""
+    """Enhanced notification model for system notifications"""
     NOTIFICATION_TYPE_CHOICES = [
         ('attendance', 'Attendance'),
         ('leave', 'Leave'),
         ('system', 'System'),
         ('document', 'Document'),
+        ('resignation', 'Resignation'),
+        ('device', 'Device'),
+        ('announcement', 'Announcement'),
+        ('reminder', 'Reminder'),
+        ('approval', 'Approval'),
+        ('rejection', 'Rejection'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('info', 'Information'),
+        ('success', 'Success'),
+        ('warning', 'Warning'),
+        ('error', 'Error'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200)
     message = models.TextField()
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPE_CHOICES)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='info')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     is_read = models.BooleanField(default=False)
+    is_email_sent = models.BooleanField(default=False)
+    action_url = models.URLField(blank=True, null=True, help_text="URL to navigate when notification is clicked")
+    action_text = models.CharField(max_length=100, blank=True, help_text="Text for action button")
+    expires_at = models.DateTimeField(blank=True, null=True, help_text="When notification expires")
+    related_object_id = models.UUIDField(blank=True, null=True, help_text="ID of related object (attendance, leave, etc.)")
+    related_object_type = models.CharField(max_length=50, blank=True, help_text="Type of related object")
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_notifications')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['notification_type', 'created_at']),
+            models.Index(fields=['priority', 'created_at']),
+        ]
 
     def __str__(self):
         try:
             return f"{self.title} - {self.user.get_full_name()}"
         except Exception:
             return f"{self.title} - Unknown User"
+    
+    def is_expired(self):
+        """Check if notification has expired"""
+        if self.expires_at:
+            return timezone.now() > self.expires_at
+        return False
+    
+    def mark_as_read(self):
+        """Mark notification as read"""
+        self.is_read = True
+        self.save(update_fields=['is_read', 'updated_at'])
+    
+    def mark_email_sent(self):
+        """Mark email as sent"""
+        self.is_email_sent = True
+        self.save(update_fields=['is_email_sent', 'updated_at'])
 
 
 class SystemSettings(models.Model):

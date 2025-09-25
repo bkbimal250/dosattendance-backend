@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notification.title }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .logo img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .content {
+            padding: 30px;
+        }
+        .priority-urgent { border-left: 5px solid #dc3545; }
+        .priority-high { border-left: 5px solid #fd7e14; }
+        .priority-medium { border-left: 5px solid #ffc107; }
+        .priority-low { border-left: 5px solid #28a745; }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .priority-urgent .priority-badge { background-color: #dc3545; color: white; }
+        .priority-high .priority-badge { background-color: #fd7e14; color: white; }
+        .priority-medium .priority-badge { background-color: #ffc107; color: #333; }
+        .priority-low .priority-badge { background-color: #28a745; color: white; }
+        
+        .notification-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+        }
+        .message {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #667eea;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px 30px;
+            border-top: 1px solid #e9ecef;
+            font-size: 13px;
+            color: #6c757d;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 15px 0;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .dashboard-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .dashboard-link:hover {
+            text-decoration: underline;
+        }
+        .no-reply {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container priority-{{ notification.priority }}">
+        <div class="header">
+            <div class="logo">
+                <img src="https://company.d0s369.co.in/media/documents/companylogo.png" alt="{{ company_name }} Logo" onerror="this.style.display='none'">
+            </div>
+            <h1 class="company-name">{{ company_name }}</h1>
+        </div>
+        
+        <div class="content">
+            <h2 class="notification-title">{{ notification.title }}</h2>
+            <span class="priority-badge">{{ notification.priority }}</span>
+            
+            <div class="message">
+                <p>{{ notification.message|linebreaks }}</p>
+            </div>
+            
+            {% if notification.action_url and notification.action_text %}
+            <div style="text-align: center;">
+                <a href="{{ notification.action_url }}" class="action-button">
+                    {{ notification.action_text }}
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="footer">
+                <p><strong>Notification Details:</strong></p>
+                <ul>
+                    <li><strong>Type:</strong> {{ notification.notification_type|title }}</li>
+                    <li><strong>Priority:</strong> {{ notification.priority|title }}</li>
+                    <li><strong>Created:</strong> {{ notification.created_at|date:"F d, Y H:i" }}</li>
+                    {% if notification.expires_at %}
+                    <li><strong>Expires:</strong> {{ notification.expires_at|date:"F d, Y H:i" }}</li>
+                    {% endif %}
+                </ul>
+                
+                <p>
+                    This notification was sent from {{ company_name }} Attendance System.<br>
+                    Please take immediate action if required.<br>
+                    Visit <a href="{{ dashboard_url }}" class="dashboard-link">{{ dashboard_url }}</a> for more details.
+                </p>
+                
+                <div class="no-reply">
+                    <strong>Please do not reply to this email.</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

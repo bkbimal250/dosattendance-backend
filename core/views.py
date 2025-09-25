@@ -2466,17 +2466,33 @@ class LeaveViewSet(viewsets.ModelViewSet):
     """ViewSet for Leave model"""
     serializer_class = LeaveSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['user__first_name', 'user__last_name', 'reason']
+    search_fields = [
+        'user__first_name', 
+        'user__last_name', 
+        'user__employee_id',
+        'user__department__name',
+        'user__designation__name',
+        'reason',
+        'leave_type'
+    ]
     ordering_fields = ['start_date', 'end_date', 'created_at']
 
     def get_queryset(self):
         user = self.request.user
+        base_queryset = Leave.objects.select_related(
+            'user', 
+            'user__department', 
+            'user__designation', 
+            'user__office',
+            'approved_by'
+        ).prefetch_related('user__department', 'user__designation')
+        
         if user.is_admin:
-            return Leave.objects.all()
+            return base_queryset
         elif user.is_manager:
-            return Leave.objects.filter(user__office=user.office)
+            return base_queryset.filter(user__office=user.office)
         else:
-            return Leave.objects.filter(user=user)
+            return base_queryset.filter(user=user)
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -2678,28 +2694,142 @@ class DocumentViewSet(viewsets.ModelViewSet):
             return Response({'error': f'Error downloading file: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for Notification model - Read only"""
+class NotificationViewSet(viewsets.ModelViewSet):
+    """Enhanced ViewSet for Notification model"""
     serializer_class = NotificationSerializer
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['created_at']
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['created_at', 'priority', 'notification_type']
+    ordering = ['-created_at']
+    search_fields = ['title', 'message']
 
     def get_queryset(self):
-        return Notification.objects.filter(user=self.request.user)
+        """Get notifications for current user, filtering out expired ones"""
+        from django.utils import timezone
+        from django.db.models import Q
+        
+        queryset = Notification.objects.filter(user=self.request.user)
+        
+        # Filter out expired notifications
+        queryset = queryset.filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
+        )
+        
+        # Filter by notification type if provided
+        notification_type = self.request.query_params.get('type', None)
+        if notification_type:
+            queryset = queryset.filter(notification_type=notification_type)
+        
+        # Filter by read status if provided
+        is_read = self.request.query_params.get('is_read', None)
+        if is_read is not None:
+            queryset = queryset.filter(is_read=is_read.lower() == 'true')
+        
+        # Filter by priority if provided
+        priority = self.request.query_params.get('priority', None)
+        if priority:
+            queryset = queryset.filter(priority=priority)
+        
+        return queryset
+
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action in ['list', 'retrieve', 'mark_read', 'mark_all_read', 'unread_count']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAdminOrManagerOrAccountant]
+        return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
         """Mark notification as read"""
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save()
-        return Response({'message': 'Notification marked as read'})
+        from .notification_service import NotificationService
+        
+        success = NotificationService.mark_as_read(pk, request.user)
+        if success:
+            return Response({'message': 'Notification marked as read'})
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=['post'])
     def mark_all_read(self, request):
         """Mark all notifications as read"""
-        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-        return Response({'message': 'All notifications marked as read'})
+        from .notification_service import NotificationService
+        
+        updated_count = NotificationService.mark_all_as_read(request.user)
+        return Response({
+            'message': f'{updated_count} notifications marked as read'
+        })
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get unread notification count"""
+        from .notification_service import NotificationService
+        
+        count = NotificationService.get_unread_count(request.user)
+        return Response({'unread_count': count})
+
+    @action(detail=True, methods=['delete'])
+    def delete(self, request, pk=None):
+        """Delete a notification"""
+        from .notification_service import NotificationService
+        
+        success = NotificationService.delete_notification(pk, request.user)
+        if success:
+            return Response({'message': 'Notification deleted'})
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['post'])
+    def delete_expired(self, request):
+        """Delete expired notifications"""
+        from .notification_service import NotificationService
+        
+        deleted_count = NotificationService.delete_expired_notifications()
+        return Response({
+            'message': f'{deleted_count} expired notifications deleted'
+        })
+
+    @action(detail=False, methods=['post'])
+    def cleanup_old(self, request):
+        """Clean up old notifications (admin only)"""
+        from .notification_service import NotificationService
+        
+        days = request.data.get('days', 30)
+        deleted_count = NotificationService.cleanup_old_notifications(days)
+        return Response({
+            'message': f'{deleted_count} old notifications deleted'
+        })
+
+    @action(detail=False, methods=['post'])
+    def create_bulk(self, request):
+        """Create notifications for multiple users (admin/manager only)"""
+        from .notification_service import NotificationService
+        
+        users = request.data.get('users', [])
+        title = request.data.get('title')
+        message = request.data.get('message')
+        notification_type = request.data.get('notification_type', 'system')
+        category = request.data.get('category', 'info')
+        priority = request.data.get('priority', 'medium')
+        
+        if not users or not title or not message:
+            return Response({
+                'error': 'users, title, and message are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get user objects
+        user_objects = CustomUser.objects.filter(id__in=users)
+        
+        notifications = NotificationService.create_bulk_notifications(
+            user_objects, title, message,
+            notification_type=notification_type,
+            category=category,
+            priority=priority,
+            created_by=request.user
+        )
+        
+        return Response({
+            'message': f'{len(notifications)} notifications created',
+            'notifications': NotificationSerializer(notifications, many=True).data
+        })
 
 
 class SystemSettingsViewSet(viewsets.ModelViewSet):

@@ -282,6 +282,7 @@ class LeaveSerializer(serializers.ModelSerializer):
     """Serializer for Leave model"""
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+    user = CustomUserSerializer(read_only=True)
     
     class Meta:
         model = Leave
@@ -394,11 +395,20 @@ class DocumentCreateSerializer(serializers.ModelSerializer):
 
 
 class NotificationSerializer(serializers.ModelSerializer):
-    """Serializer for Notification model"""
+    """Enhanced serializer for Notification model"""
+    user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+    
     class Meta:
         model = Notification
-        fields = '__all__'
-        read_only_fields = ('id', 'created_at')
+        fields = [
+            'id', 'user', 'user_name', 'title', 'message', 'notification_type',
+            'category', 'priority', 'is_read', 'is_email_sent', 'action_url',
+            'action_text', 'expires_at', 'related_object_id', 'related_object_type',
+            'created_by', 'created_by_name', 'created_at', 'updated_at', 'is_expired'
+        ]
+        read_only_fields = ('id', 'created_at', 'updated_at', 'is_expired')
 
 
 class SystemSettingsSerializer(serializers.ModelSerializer):

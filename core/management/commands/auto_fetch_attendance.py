@@ -71,12 +71,12 @@ class AutoAttendanceService:
             logger.warning("Service is already running")
             return
             
-        logger.info("🚀 Starting automatic attendance fetching service...")
+        logger.info("Starting automatic attendance fetching service...")
         self.running = True
         
         # Get all active devices
         self.devices = list(Device.objects.filter(is_active=True))
-        logger.info(f"📱 Found {len(self.devices)} active devices")
+        logger.info(f"Found {len(self.devices)} active devices")
         
         # Initialize device connections and tracking
         for device in self.devices:
@@ -88,11 +88,11 @@ class AutoAttendanceService:
         self.thread = threading.Thread(target=self._run_service, daemon=True)
         self.thread.start()
         
-        logger.info(f"✅ Service started. Fetching data every {self.interval} seconds")
+        logger.info(f"Service started. Fetching data every {self.interval} seconds")
         
     def stop(self):
         """Stop the automatic attendance fetching service"""
-        logger.info("🛑 Stopping automatic attendance fetching service...")
+        logger.info("Stopping automatic attendance fetching service...")
         self.running = False
         
         if self.thread and self.thread.is_alive():
@@ -100,7 +100,7 @@ class AutoAttendanceService:
             
         # Cleanup device connections
         self.cleanup_connections()
-        logger.info("✅ Service stopped")
+        logger.info("Service stopped")
         
     def cleanup_connections(self):
         """Clean up all device connections"""
@@ -117,7 +117,7 @@ class AutoAttendanceService:
                     
     def _run_service(self):
         """Main service loop"""
-        logger.info("🔄 Starting main service loop...")
+        logger.info("Starting main service loop...")
         
         while self.running:
             try:
@@ -244,10 +244,23 @@ class AutoAttendanceService:
         new_records = 0
         duplicates = 0
         
+        # Filter to only process recent records (last 15 days)
+        from datetime import timedelta
+        cutoff_date = timezone.now() - timedelta(days=15)
+        
         for log in attendance_logs:
             try:
+                # Make timestamp timezone-aware for comparison
+                log_timestamp = log.timestamp
+                if timezone.is_naive(log_timestamp):
+                    log_timestamp = timezone.make_aware(log_timestamp, timezone.get_current_timezone())
+                
+                # Skip old records
+                if log_timestamp < cutoff_date:
+                    continue
+                    
                 # Create unique hash for this attendance record
-                record_hash = self._create_attendance_hash(device.id, log)
+                record_hash = self._create_attendance_hash(device.id, log, log_timestamp)
                 
                 # Check if this record already exists
                 if record_hash in self.last_attendance_hashes.get(device.id, set()):
@@ -255,7 +268,7 @@ class AutoAttendanceService:
                     continue
                     
                 # Process the attendance record
-                if self._save_zkteco_attendance(device, log):
+                if self._save_zkteco_attendance(device, log, log_timestamp):
                     new_records += 1
                     # Add to hash set to prevent future duplicates
                     if device.id not in self.last_attendance_hashes:
@@ -271,13 +284,15 @@ class AutoAttendanceService:
         
         logger.info(f"Processed {new_records} new records, prevented {duplicates} duplicates from {device.name}")
         
-    def _create_attendance_hash(self, device_id, log):
+    def _create_attendance_hash(self, device_id, log, timestamp=None):
         """Create unique hash for attendance record"""
+        # Use provided timestamp or fall back to log.timestamp
+        ts = timestamp if timestamp is not None else log.timestamp
         # Create hash based on device, user, and timestamp
-        hash_data = f"{device_id}_{log.user_id}_{log.timestamp}_{log.status}"
+        hash_data = f"{device_id}_{log.user_id}_{ts}_{log.status}"
         return hash(hash_data)
         
-    def _save_zkteco_attendance(self, device, log):
+    def _save_zkteco_attendance(self, device, log, timestamp=None):
         """Save ZKTeco attendance record to database with proper check-in/check-out logic"""
         try:
             # Find user by biometric ID
@@ -286,10 +301,14 @@ class AutoAttendanceService:
                 logger.warning(f"User with biometric ID {log.user_id} not found")
                 return False
                 
-            # Make timestamp timezone-aware
-            timestamp = log.timestamp
-            if timezone.is_naive(timestamp):
-                timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
+            # Use provided timestamp or make log.timestamp timezone-aware
+            if timestamp is None:
+                timestamp = log.timestamp
+                if timezone.is_naive(timestamp):
+                    timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
+            
+            # Ensure we're using the same timezone for all comparisons
+            current_tz = timezone.get_current_timezone()
                 
             # Log every biometric scan for audit purposes
             logger.info(f"BIOMETRIC SCAN: {user.get_full_name()} (ID: {log.user_id}) scanned at {timestamp.strftime('%H:%M:%S')} on {device.name}")
@@ -315,11 +334,7 @@ class AutoAttendanceService:
                     # Ensure check_in_time is timezone-aware for comparison
                     check_in_time = attendance.check_in_time
                     if timezone.is_naive(check_in_time):
-                        check_in_time = timezone.make_aware(check_in_time, timezone.get_current_timezone())
-                    
-                    # Make timestamp timezone-aware for comparison
-                    if timezone.is_naive(timestamp):
-                        timestamp = timezone.make_aware(timestamp, timezone.get_current_timezone())
+                        check_in_time = timezone.make_aware(check_in_time, current_tz)
                     
                     if timestamp < check_in_time:
                         # Earlier timestamp - update check-in time (first scan of the day)
@@ -337,7 +352,7 @@ class AutoAttendanceService:
                             # Make existing checkout time timezone-aware for comparison
                             existing_checkout = attendance.check_out_time
                             if timezone.is_naive(existing_checkout):
-                                existing_checkout = timezone.make_aware(existing_checkout, timezone.get_current_timezone())
+                                existing_checkout = timezone.make_aware(existing_checkout, current_tz)
                             
                             if timestamp > existing_checkout:
                                 old_checkout = attendance.check_out_time

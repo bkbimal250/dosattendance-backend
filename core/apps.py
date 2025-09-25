@@ -1,86 +1,33 @@
 from django.apps import AppConfig
-import logging
-import threading
-import time
-from django.conf import settings
 
-logger = logging.getLogger(__name__)
 
 class CoreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'core'
-    
-    def __init__(self, app_name, app_module):
-        super().__init__(app_name, app_module)
-        self._service_started = False
-        self._service_lock = threading.Lock()
-    
+
     def ready(self):
-        """Called when Django starts up"""
-        # Skip auto-start completely to avoid reentrant errors
-        # Service can be started manually using management commands
-        logger.info("Core app ready - attendance service auto-start disabled")
-        return
-    
-    def _should_start_attendance_service(self):
-        """Determine if we should start the attendance service"""
-        # Check if we're in production mode
-        if hasattr(settings, 'ENVIRONMENT') and settings.ENVIRONMENT == 'production':
-            return True
+        # Disable last_login signal to prevent UUID field update issues
+        from django.contrib.auth.signals import user_logged_in
+        from django.contrib.auth.models import update_last_login
         
-        # Check if auto-start is explicitly enabled
-        if getattr(settings, 'AUTO_START_ATTENDANCE_SERVICE', False):
-            return True
+        # Disconnect the update_last_login function
+        try:
+            user_logged_in.disconnect(update_last_login)
+        except:
+            # Signal might already be disconnected
+            pass
         
-        # Don't start in development mode by default
-        return False
-    
-    def _start_attendance_service(self):
-        """Start the attendance service in a background thread"""
-        with self._service_lock:
-            if self._service_started:
-                logger.info("Attendance service already started, skipping...")
-                return
-            
-            try:
-                logger.info("Starting automatic attendance service...")
-                
-                # Import here to avoid circular imports
-                from .management.commands.auto_fetch_attendance import AutoAttendanceService
-                
-                # Create and start the service
-                self.attendance_service = AutoAttendanceService(interval=30)
-                
-                # Start in a separate thread
-                def start_service():
-                    try:
-                        self.attendance_service.start()
-                        logger.info("Attendance service started successfully")
-                        
-                        # Keep the service running
-                        while self.attendance_service.running:
-                            time.sleep(1)
-                            
-                    except Exception as e:
-                        logger.error(f"Error in attendance service: {str(e)}")
-                
-                # Start the service thread
-                service_thread = threading.Thread(target=start_service, daemon=True)
-                service_thread.start()
-                
-                self._service_started = True
-                logger.info("Attendance service thread started")
-                
-            except Exception as e:
-                logger.error(f"Failed to start attendance service: {str(e)}")
-    
-    def stop_attendance_service(self):
-        """Stop the attendance service"""
-        with self._service_lock:
-            if hasattr(self, 'attendance_service'):
-                try:
-                    self.attendance_service.stop()
-                    self._service_started = False
-                    logger.info("Attendance service stopped")
-                except Exception as e:
-                    logger.error(f"Error stopping attendance service: {str(e)}")
+        # Override the update_last_login function to do nothing
+        def dummy_update_last_login(sender, user, **kwargs):
+            pass
+        
+        # Also monkey patch the update_last_login function directly
+        import django.contrib.auth.models
+        django.contrib.auth.models.update_last_login = dummy_update_last_login
+        
+        # Also patch the function in the auth module
+        import django.contrib.auth
+        django.contrib.auth.update_last_login = dummy_update_last_login
+        
+        # Import signals to ensure they are connected
+        import core.signals
