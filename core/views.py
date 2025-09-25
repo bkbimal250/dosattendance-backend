@@ -2868,13 +2868,10 @@ class DashboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """Get dashboard statistics"""
-        # Optimize database connections
-        from core.db_manager import db_manager
-        db_manager.optimize_connections()
-        
-        user = request.user
-        today = timezone.now().date()
-        last_month = today - timedelta(days=30)
+        try:
+            user = request.user
+            today = timezone.now().date()
+            last_month = today - timedelta(days=30)
         
         if user.is_admin:
             # Calculate comprehensive statistics for admin - only active users
@@ -3064,8 +3061,15 @@ class DashboardViewSet(viewsets.ViewSet):
                 'user_activation_rate': 100,
             }
         
-        serializer = DashboardStatsSerializer(stats)
-        return Response(serializer.data)
+            serializer = DashboardStatsSerializer(stats)
+            return Response(serializer.data)
+        
+        except Exception as e:
+            logger.error(f"Error fetching dashboard stats: {e}")
+            return Response({
+                'error': 'Failed to fetch dashboard statistics',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'])
     def manager_stats(self, request):
