@@ -98,7 +98,8 @@ def create_resignation_notification(sender, instance, created, **kwargs):
             instance.user,
             'resignation_approved' if instance.status == 'approved' else 'resignation_rejected',
             resignation_date=instance.resignation_date,
-            last_working_date=instance.last_working_date
+            last_working_date=instance.last_working_date,
+            created_by=instance.approved_by
         )
 
 

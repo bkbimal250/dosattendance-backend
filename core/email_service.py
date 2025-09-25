@@ -61,12 +61,18 @@ class EmailNotificationService:
         # Get role-based dashboard URL
         dashboard_url = EmailNotificationService._get_dashboard_url(notification.user.role)
         
+        # Get approver information if available
+        approver_name = None
+        if notification.created_by:
+            approver_name = notification.created_by.get_full_name()
+        
         context = {
             'notification': notification,
             'user': notification.user,
             'site_url': getattr(settings, 'SITE_URL', 'https://company.d0s369.co.in'),
             'dashboard_url': dashboard_url,
             'company_name': getattr(settings, 'COMPANY_NAME', 'Company'),
+            'approver_name': approver_name,
         }
         
         return render_to_string('emails/notification.html', context)
@@ -87,10 +93,16 @@ class EmailNotificationService:
         """Create plain text email content"""
         dashboard_url = EmailNotificationService._get_dashboard_url(notification.user.role)
         
+        # Get approver information if available
+        approver_info = ""
+        if notification.created_by:
+            approver_name = notification.created_by.get_full_name()
+            approver_info = f"\nApproved by: {approver_name}"
+        
         return f"""
 {notification.title}
 
-{notification.message}
+{notification.message}{approver_info}
 
 Priority: {notification.priority.title()}
 Type: {notification.notification_type.title()}
@@ -158,12 +170,18 @@ Please do not reply to this email.
         """Create urgent HTML email content"""
         dashboard_url = EmailNotificationService._get_dashboard_url(notification.user.role)
         
+        # Get approver information if available
+        approver_name = None
+        if notification.created_by:
+            approver_name = notification.created_by.get_full_name()
+        
         context = {
             'notification': notification,
             'user': notification.user,
             'site_url': getattr(settings, 'SITE_URL', 'https://company.d0s369.co.in'),
             'dashboard_url': dashboard_url,
             'company_name': getattr(settings, 'COMPANY_NAME', 'Company'),
+            'approver_name': approver_name,
             'is_urgent': True,
         }
         
@@ -174,12 +192,18 @@ Please do not reply to this email.
         """Create urgent plain text email content"""
         dashboard_url = EmailNotificationService._get_dashboard_url(notification.user.role)
         
+        # Get approver information if available
+        approver_info = ""
+        if notification.created_by:
+            approver_name = notification.created_by.get_full_name()
+            approver_info = f"\nApproved by: {approver_name}"
+        
         return f"""
 🚨 URGENT NOTIFICATION 🚨
 
 {notification.title}
 
-{notification.message}
+{notification.message}{approver_info}
 
 Priority: {notification.priority.title()}
 Type: {notification.notification_type.title()}

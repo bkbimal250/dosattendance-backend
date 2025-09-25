@@ -300,7 +300,8 @@ class RoleBasedNotificationService:
             message=message,
             notification_type=template['type'],
             category=template['category'],
-            priority=template['priority']
+            priority=template['priority'],
+            created_by=kwargs.get('created_by')
         )
     
     @staticmethod
@@ -382,7 +383,8 @@ def notify_leave_decision(leave, approved=True):
         template_key,
         leave_type=leave.leave_type,
         start_date=leave.start_date,
-        end_date=leave.end_date
+        end_date=leave.end_date,
+        created_by=leave.approved_by
     )
 
 def notify_resignation_request(resignation):

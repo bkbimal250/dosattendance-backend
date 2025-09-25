@@ -145,6 +145,11 @@
             
             <div class="message">
                 <p>{{ notification.message|linebreaks }}</p>
+                {% if approver_name %}
+                <p style="margin-top: 15px; padding: 10px; background-color: #e8f5e8; border-left: 4px solid #28a745; border-radius: 4px;">
+                    <strong>Approved by:</strong> {{ approver_name }}
+                </p>
+                {% endif %}
             </div>
             
             {% if notification.action_url and notification.action_text %}
