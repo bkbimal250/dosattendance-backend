@@ -2733,7 +2733,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Set permissions based on action"""
-        if self.action in ['list', 'retrieve', 'mark_read', 'mark_all_read', 'unread_count']:
+        if self.action in ['list', 'retrieve', 'mark_read', 'mark_all_read', 'unread_count', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAdminOrManagerOrAccountant]
@@ -2767,8 +2767,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         count = NotificationService.get_unread_count(request.user)
         return Response({'unread_count': count})
 
-    @action(detail=True, methods=['delete'])
-    def delete(self, request, pk=None):
+    def destroy(self, request, pk=None):
         """Delete a notification"""
         from .notification_service import NotificationService
         
