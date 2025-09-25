@@ -3259,7 +3259,7 @@ class DashboardViewSet(viewsets.ViewSet):
         leave.save()
         
         # Serialize and return updated leave
-        serializer = LeaveSerializer(leave)
+        serializer = LeaveSerializer(leave, context={'request': request})
         return Response({
             'message': f'Leave request {action}d successfully',
             'leave': serializer.data
@@ -3391,7 +3391,7 @@ class DashboardViewSet(viewsets.ViewSet):
         leave_requests = queryset[start:end]
         
         # Serialize data
-        serializer = LeaveSerializer(leave_requests, many=True)
+        serializer = LeaveSerializer(leave_requests, many=True, context={'request': request})
         
         return Response({
             'results': serializer.data,

@@ -294,6 +294,12 @@ class LeaveSerializer(serializers.ModelSerializer):
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     user = CustomUserSerializer(read_only=True)
     
+    def __init__(self, *args, **kwargs):
+        """Ensure nested user serializer receives the same context (for absolute media URLs)."""
+        super().__init__(*args, **kwargs)
+        # Re-bind user field with context so profile_picture_url is built with request
+        self.fields['user'] = CustomUserSerializer(read_only=True, context=self.context)
+    
     class Meta:
         model = Leave
         fields = '__all__'
