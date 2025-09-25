@@ -91,13 +91,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
     department_name = serializers.SerializerMethodField()
     designation_name = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
     
     class Meta:
         model = CustomUser
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
             'role', 'office', 'office_name', 'phone', 'address', 'date_of_birth',
-            'gender', 'profile_picture', 'aadhaar_card', 'pan_card', 'employee_id', 'biometric_id', 'joining_date',
+            'gender', 'profile_picture', 'profile_picture_url', 'aadhaar_card', 'pan_card', 'employee_id', 'biometric_id', 'joining_date',
             'department', 'department_name', 'designation', 'designation_name', 'salary', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
@@ -129,6 +130,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         except:
             # Handle case where designation was deleted but reference still exists
             pass
+        return None
+    
+    def get_profile_picture_url(self, obj):
+        """Get profile picture absolute URL"""
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
         return None
 
     def validate(self, attrs):
@@ -530,13 +540,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer for user profile updates"""
     department_name = serializers.SerializerMethodField()
     designation_name = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
     
     class Meta:
         model = CustomUser
         fields = [
             # Basic Information
             'first_name', 'last_name', 'email', 'phone', 'address', 
-            'date_of_birth', 'gender', 'profile_picture',
+            'date_of_birth', 'gender', 'profile_picture', 'profile_picture_url',
             
             # Government ID Information
             'aadhaar_card', 'pan_card',
@@ -609,6 +620,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         except:
             # Handle case where designation was deleted but reference still exists
             pass
+        return None
+    
+    def get_profile_picture_url(self, obj):
+        """Get profile picture absolute URL"""
+        if obj.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
         return None
 
 
