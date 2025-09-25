@@ -764,20 +764,28 @@ class ResignationSerializer(serializers.ModelSerializer):
     
     def get_user_department(self, obj):
         """Get user department name - handle both CharField and ForeignKey"""
-        if hasattr(obj.user, 'department') and obj.user.department:
-            if hasattr(obj.user.department, 'name'):
-                return obj.user.department.name  # ForeignKey
-            else:
-                return obj.user.department  # CharField
+        try:
+            if hasattr(obj.user, 'department') and obj.user.department:
+                if hasattr(obj.user.department, 'name'):
+                    return obj.user.department.name  # ForeignKey
+                else:
+                    return obj.user.department  # CharField
+        except Exception:
+            # Handle case where department was deleted but user still references it
+            pass
         return None
     
     def get_user_designation(self, obj):
         """Get user designation name - handle both CharField and ForeignKey"""
-        if hasattr(obj.user, 'designation') and obj.user.designation:
-            if hasattr(obj.user.designation, 'name'):
-                return obj.user.designation.name  # ForeignKey
-            else:
-                return obj.user.designation  # CharField
+        try:
+            if hasattr(obj.user, 'designation') and obj.user.designation:
+                if hasattr(obj.user.designation, 'name'):
+                    return obj.user.designation.name  # ForeignKey
+                else:
+                    return obj.user.designation  # CharField
+        except Exception:
+            # Handle case where designation was deleted but user still references it
+            pass
         return None
 
 
