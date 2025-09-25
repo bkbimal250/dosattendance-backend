@@ -748,14 +748,15 @@ class ResignationSerializer(serializers.ModelSerializer):
     user_office_name = serializers.CharField(source='user.office.name', read_only=True)
     user_department = serializers.SerializerMethodField()
     user_designation = serializers.SerializerMethodField()
+    user_profile_picture = serializers.SerializerMethodField()
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     
     class Meta:
         model = Resignation
         fields = [
             'id', 'user', 'user_name', 'user_email', 'user_employee_id', 
-            'user_office_name', 'user_department', 'user_designation', 'resignation_date', 
-            'notice_period_days', 'reason', 'status', 'approved_by', 
+            'user_office_name', 'user_department', 'user_designation', 'user_profile_picture',
+            'resignation_date', 'notice_period_days', 'reason', 'status', 'approved_by', 
             'approved_by_name', 'approved_at', 'rejection_reason', 
             'handover_notes', 'last_working_date', 'is_handover_completed',
             'created_at', 'updated_at'
@@ -786,6 +787,15 @@ class ResignationSerializer(serializers.ModelSerializer):
         except Exception:
             # Handle case where designation was deleted but user still references it
             pass
+        return None
+    
+    def get_user_profile_picture(self, obj):
+        """Get user profile picture URL"""
+        if hasattr(obj.user, 'profile_picture') and obj.user.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.user.profile_picture.url)
+            return obj.user.profile_picture.url
         return None
 
 
