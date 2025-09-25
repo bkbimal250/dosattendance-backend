@@ -2940,57 +2940,57 @@ class DashboardViewSet(viewsets.ViewSet):
                 ).count()
                 total_devices = Device.objects.filter(office=office).count()
                 active_devices = Device.objects.filter(office=office, is_active=True).count()
-            
-            # Office attendance statistics - only active users
-            today_attendance = Attendance.objects.filter(
-                user__office=office,
-                user__is_active=True,
-                date=today, 
-                status='present'
-            ).count()
-            total_today_records = Attendance.objects.filter(
-                user__office=office,
-                user__is_active=True,
-                date=today
-            ).count()
-            attendance_rate = (today_attendance / total_today_records * 100) if total_today_records > 0 else 0
-            
-            # Office leave statistics
-            pending_leaves = Leave.objects.filter(
-                user__office=office, 
-                status='pending'
-            ).count()
-            approved_leaves = Leave.objects.filter(
-                user__office=office,
-                status='approved'
-            ).count()
-            total_leaves = Leave.objects.filter(user__office=office).count()
-            leave_approval_rate = (approved_leaves / total_leaves * 100) if total_leaves > 0 else 0
-            
-            # Office user statistics
-            active_users = CustomUser.objects.filter(
-                office=office, 
-                is_active=True
-            ).count()
-            total_users = CustomUser.objects.filter(office=office).count()
-            
-            stats = {
-                'total_employees': total_employees,
-                'total_managers': 1,  # Manager themselves
-                'total_offices': 1,
-                'total_devices': total_devices,
-                'active_devices': active_devices,
-                'today_attendance': today_attendance,
-                'total_today_records': total_today_records,
-                'attendance_rate': round(attendance_rate, 2),
-                'pending_leaves': pending_leaves,
-                'approved_leaves': approved_leaves,
-                'total_leaves': total_leaves,
-                'leave_approval_rate': round(leave_approval_rate, 2),
-                'active_users': active_users,
-                'total_users': total_users,
-                'user_activation_rate': round((active_users / total_users * 100), 2) if total_users > 0 else 0,
-                'employee_growth': 0,  # Not applicable for managers
+                
+                # Office attendance statistics - only active users
+                today_attendance = Attendance.objects.filter(
+                    user__office=office,
+                    user__is_active=True,
+                    date=today, 
+                    status='present'
+                ).count()
+                total_today_records = Attendance.objects.filter(
+                    user__office=office,
+                    user__is_active=True,
+                    date=today
+                ).count()
+                attendance_rate = (today_attendance / total_today_records * 100) if total_today_records > 0 else 0
+                
+                # Office leave statistics
+                pending_leaves = Leave.objects.filter(
+                    user__office=office, 
+                    status='pending'
+                ).count()
+                approved_leaves = Leave.objects.filter(
+                    user__office=office,
+                    status='approved'
+                ).count()
+                total_leaves = Leave.objects.filter(user__office=office).count()
+                leave_approval_rate = (approved_leaves / total_leaves * 100) if total_leaves > 0 else 0
+                
+                # Office user statistics
+                active_users = CustomUser.objects.filter(
+                    office=office, 
+                    is_active=True
+                ).count()
+                total_users = CustomUser.objects.filter(office=office).count()
+                
+                stats = {
+                    'total_employees': total_employees,
+                    'total_managers': 1,  # Manager themselves
+                    'total_offices': 1,
+                    'total_devices': total_devices,
+                    'active_devices': active_devices,
+                    'today_attendance': today_attendance,
+                    'total_today_records': total_today_records,
+                    'attendance_rate': round(attendance_rate, 2),
+                    'pending_leaves': pending_leaves,
+                    'approved_leaves': approved_leaves,
+                    'total_leaves': total_leaves,
+                    'leave_approval_rate': round(leave_approval_rate, 2),
+                    'active_users': active_users,
+                    'total_users': total_users,
+                    'user_activation_rate': round((active_users / total_users * 100), 2) if total_users > 0 else 0,
+                    'employee_growth': 0,  # Not applicable for managers
                 }
             elif user.is_accountant:
                 # Accountant statistics - same as employee (only own data)
@@ -3060,7 +3060,7 @@ class DashboardViewSet(viewsets.ViewSet):
                     'total_users': 1,
                     'user_activation_rate': 100,
                 }
-        
+            
             serializer = DashboardStatsSerializer(stats)
             return Response(serializer.data)
         
