@@ -87,8 +87,8 @@ class NotificationService:
                 # Send email if requested
                 if send_email and user.email:
                     try:
-                        from .email_service import EmailService
-                        EmailService.send_notification_email(notification)
+                        from .email_service import EmailNotificationService
+                        EmailNotificationService.send_notification_email(notification)
                         notification.is_email_sent = True
                         notification.save()
                     except Exception as e:

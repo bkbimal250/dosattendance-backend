@@ -2831,7 +2831,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
         if target_type == 'users' and users:
             user_objects = CustomUser.objects.filter(id__in=users)
         elif target_type == 'office' and office_ids:
-            user_objects = CustomUser.objects.filter(office_id__in=office_ids)
+            user_objects = CustomUser.objects.filter(office__in=office_ids)
         elif target_type == 'role' and roles:
             user_objects = CustomUser.objects.filter(role__in=roles)
         elif target_type == 'all':
