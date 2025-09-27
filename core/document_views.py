@@ -2203,7 +2203,14 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     def generate_id_card(self, request):
         """Generate ID card for employee"""
         try:
-            employee_id = request.data.get('employee_id')
+            # Parse request data
+            if hasattr(request, 'data'):
+                data = request.data
+            else:
+                import json
+                data = json.loads(request.body.decode('utf-8'))
+            
+            employee_id = data.get('employee_id')
             if not employee_id:
                 return Response({'error': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -2219,7 +2226,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
             
             # Company data (can be customized)
-            company_data = request.data.get('company_data', {})
+            company_data = data.get('company_data', {})
             if not company_data:
                 company_data = {
                     'name': 'DISHA ONLINE SOLUTIONS',
@@ -2231,13 +2238,24 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             id_card_generator = IDCardGenerator()
             id_card_buffer = id_card_generator.generate_id_card_for_employee(employee, company_data)
             
+            # Get or create ID card template
+            template, created = DocumentTemplate.objects.get_or_create(
+                document_type='id_card',
+                defaults={
+                    'name': 'Default ID Card Template',
+                    'template_content': self.get_id_card_template(),
+                    'is_active': True,
+                    'created_by': user
+                }
+            )
+            
             # Create generated document record
             title = f"ID Card - {employee.get_full_name()}"
             content = f"<html><body><h1>ID Card Generated</h1><p>ID Card for {employee.get_full_name()}</p></body></html>"
             
             generated_doc = GeneratedDocument.objects.create(
                 employee=employee,
-                template=None,  # ID cards don't use templates
+                template=template,
                 document_type='id_card',
                 title=title,
                 content=content,

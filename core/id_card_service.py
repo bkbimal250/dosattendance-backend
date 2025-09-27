@@ -238,12 +238,22 @@ class IDCardGenerator:
                 }
             
             # Prepare employee data
+            try:
+                designation_name = employee.designation.name if employee.designation else 'N/A'
+            except:
+                designation_name = 'N/A'
+            
+            try:
+                department_name = employee.department.name if employee.department else 'N/A'
+            except:
+                department_name = 'N/A'
+            
             employee_data = {
                 'name': employee.get_full_name().upper(),
                 'employee_id': employee.employee_id or 'N/A',
                 'joining_date': employee.joining_date.strftime('%d-%m-%Y') if employee.joining_date else 'N/A',
-                'designation': employee.designation or 'N/A',
-                'department': employee.department or 'N/A',
+                'designation': designation_name,
+                'department': department_name,
                 'phone': employee.phone or 'N/A',
                 'photo_path': employee.profile_picture.path if employee.profile_picture else None
             }
