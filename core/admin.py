@@ -829,7 +829,7 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('employee', 'template', 'document_type', 'title')}),
         ('Document Content', {'fields': ('content',)}),
-        ('Document Data', {'fields': ('offer_data', 'increment_data', 'salary_data', 'id_card_data')}),
+        ('Document Data', {'fields': ('offer_data', 'increment_data', 'salary_data')}),
         ('PDF File', {'fields': ('pdf_file', 'pdf_file_size', 'pdf_file_exists')}),
         ('Email Status', {'fields': ('is_sent', 'sent_at', 'generated_by')}),
         ('Actions', {'fields': ('action_buttons',)}),

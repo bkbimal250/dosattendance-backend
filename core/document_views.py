@@ -51,7 +51,6 @@ from io import BytesIO
 from .models import (
     CustomUser, DocumentTemplate, GeneratedDocument, Office
 )
-from .id_card_service import IDCardGenerator
 from .serializers import (
     DocumentTemplateSerializer, GeneratedDocumentSerializer, DocumentGenerationSerializer
 )
@@ -1206,89 +1205,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </html>
         """
     
-    def get_id_card_template(self):
-        """ID card template (placeholder for HTML template)"""
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                    padding: 20px;
-                }
-                .id-card-preview {
-                    border: 2px solid #ccc;
-                    padding: 20px;
-                    margin: 20px auto;
-                    max-width: 400px;
-                    background: #f9f9f9;
-                }
-                .company-name {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #0066cc;
-                    margin-bottom: 10px;
-                }
-                .employee-photo {
-                    width: 100px;
-                    height: 100px;
-                    border: 2px solid #0066cc;
-                    margin: 20px auto;
-                    background: #e0e0e0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .employee-name {
-                    font-size: 18px;
-                    font-weight: bold;
-                    margin: 10px 0;
-                }
-                .employee-details {
-                    text-align: left;
-                    margin: 20px 0;
-                }
-                .detail-row {
-                    margin: 5px 0;
-                }
-                .detail-label {
-                    font-weight: bold;
-                    display: inline-block;
-                    width: 120px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="id-card-preview">
-                <div class="company-name">{{ company_name }}</div>
-                <div class="employee-photo">PHOTO</div>
-                <div class="employee-name">{{ employee_name }}</div>
-                <div class="employee-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Employee ID:</span>
-                        <span>{{ employee_id }}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Department:</span>
-                        <span>{{ department }}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Designation:</span>
-                        <span>{{ designation }}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Joining Date:</span>
-                        <span>{{ joining_date }}</span>
-                    </div>
-                </div>
-            </div>
-            <p><em>This is a preview. The actual ID card will be generated as a high-quality image.</em></p>
-        </body>
-        </html>
-        """
     
     def get_salary_increment_template(self):
         """Professional salary increment template"""
@@ -2006,7 +1922,14 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     def preview_document(self, request):
         """Preview a document before generation"""
         try:
-            serializer = DocumentGenerationSerializer(data=request.data)
+            # Parse request data
+            if hasattr(request, 'data'):
+                data = request.data
+            else:
+                import json
+                data = json.loads(request.body.decode('utf-8'))
+            
+            serializer = DocumentGenerationSerializer(data=data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
@@ -2057,7 +1980,14 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'])
     def generate_document(self, request):
         """Generate a document for an employee"""
-        serializer = DocumentGenerationSerializer(data=request.data)
+        # Parse request data
+        if hasattr(request, 'data'):
+            data = request.data
+        else:
+            import json
+            data = json.loads(request.body.decode('utf-8'))
+        
+        serializer = DocumentGenerationSerializer(data=data)
         
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2116,8 +2046,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     template_content = self.get_offer_letter_template()
                 elif document_type == 'salary_increment':
                     template_content = self.get_salary_increment_template()
-                elif document_type == 'id_card':
-                    template_content = self.get_id_card_template()
                 else:
                     template_content = "<html><body><h1>Document</h1></body></html>"
                 
@@ -2140,26 +2068,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 offer_data=json_data if document_type == 'offer_letter' else None,
                 increment_data=json_data if document_type == 'salary_increment' else None,
                 salary_data=json_data if document_type == 'salary_slip' else None,
-                id_card_data=json_data if document_type == 'id_card' else None,
             )
             
             # Generate file based on document type
-            if document_type == 'id_card':
-                # Generate ID card image
-                try:
-                    logger.info(f"Generating ID card for document {generated_doc.id}")
-                    id_card_generator = IDCardGenerator()
-                    id_card_buffer = id_card_generator.generate_id_card_for_employee(employee, json_data)
-                    
-                    # Save ID card image
-                    filename = f"ID_Card_{employee.employee_id}_{generated_doc.id}.png"
-                    generated_doc.pdf_file.save(filename, id_card_buffer, save=True)
-                    logger.info(f"ID card saved successfully: {filename}")
-                    
-                except Exception as e:
-                    logger.error(f"ID card generation failed: {e}")
-                    # Continue without file
-            elif WEASYPRINT_AVAILABLE:
+            if WEASYPRINT_AVAILABLE:
                 # Generate PDF for other document types
                 try:
                     logger.info(f"Generating PDF for document {generated_doc.id}")
@@ -2199,88 +2111,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['post'])
-    def generate_id_card(self, request):
-        """Generate ID card for employee"""
-        try:
-            # Parse request data
-            if hasattr(request, 'data'):
-                data = request.data
-            else:
-                import json
-                data = json.loads(request.body.decode('utf-8'))
-            
-            employee_id = data.get('employee_id')
-            if not employee_id:
-                return Response({'error': 'Employee ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Get employee
-            try:
-                employee = CustomUser.objects.get(id=employee_id, is_active=True)
-            except CustomUser.DoesNotExist:
-                return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-            # Check permissions
-            user = request.user
-            if user.role not in ['admin', 'manager']:
-                return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-            
-            # Company data (can be customized)
-            company_data = data.get('company_data', {})
-            if not company_data:
-                company_data = {
-                    'name': 'DISHA ONLINE SOLUTIONS',
-                    'tagline': 'ONLINE SOLUTION',
-                    'address': '9th Floor Office no-907, Bhumiraj Costarica, Plot\nNo- 1& 2, Sector 18, Sanpada, Navi Mumbai,\nMaharashtra 400705'
-                }
-            
-            # Generate ID card
-            id_card_generator = IDCardGenerator()
-            id_card_buffer = id_card_generator.generate_id_card_for_employee(employee, company_data)
-            
-            # Get or create ID card template
-            template, created = DocumentTemplate.objects.get_or_create(
-                document_type='id_card',
-                defaults={
-                    'name': 'Default ID Card Template',
-                    'template_content': self.get_id_card_template(),
-                    'is_active': True,
-                    'created_by': user
-                }
-            )
-            
-            # Create generated document record
-            title = f"ID Card - {employee.get_full_name()}"
-            content = f"<html><body><h1>ID Card Generated</h1><p>ID Card for {employee.get_full_name()}</p></body></html>"
-            
-            generated_doc = GeneratedDocument.objects.create(
-                employee=employee,
-                template=template,
-                document_type='id_card',
-                title=title,
-                content=content,
-                generated_by=user,
-                id_card_data=company_data
-            )
-            
-            # Save ID card image
-            filename = f"ID_Card_{employee.employee_id}_{generated_doc.id}.png"
-            generated_doc.pdf_file.save(filename, id_card_buffer, save=True)
-            
-            # Return response
-            response_serializer = GeneratedDocumentSerializer(generated_doc)
-            return Response({
-                'message': 'ID card generated successfully',
-                'document': response_serializer.data,
-                'download_url': generated_doc.pdf_file.url if generated_doc.pdf_file else None
-            }, status=status.HTTP_201_CREATED)
-            
-        except Exception as e:
-            logger.error(f"ID card generation failed: {e}")
-            return Response(
-                {'error': 'Failed to generate ID card', 'detail': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
     
     @action(detail=False, methods=['get'], url_path='employees')
     def get_employees(self, request):

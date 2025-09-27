@@ -769,7 +769,6 @@ class DocumentTemplate(models.Model):
         ('offer_letter', 'Offer Letter'),
         ('salary_increment', 'Salary Increment Letter'),
         ('salary_slip', 'Salary Slip'),
-        ('id_card', 'Employee ID Card'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -807,7 +806,6 @@ class GeneratedDocument(models.Model):
     offer_data = models.JSONField(null=True, blank=True, help_text="Data specific to offer letters")
     increment_data = models.JSONField(null=True, blank=True, help_text="Data specific to salary increment letters")
     salary_data = models.JSONField(null=True, blank=True, help_text="Data specific to salary slips")
-    id_card_data = models.JSONField(null=True, blank=True, help_text="Data specific to ID cards")
 
     class Meta:
         verbose_name_plural = "Generated Documents"
