@@ -2854,7 +2854,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
         if expires_at:
             try:
                 from django.utils.dateparse import parse_datetime
+                from django.utils import timezone
                 expires_at_parsed = parse_datetime(expires_at)
+                # Make timezone-aware if it's naive
+                if expires_at_parsed and expires_at_parsed.tzinfo is None:
+                    expires_at_parsed = timezone.make_aware(expires_at_parsed)
             except:
                 return Response({
                     'error': 'Invalid expires_at format. Use ISO format: YYYY-MM-DDTHH:MM:SS'
