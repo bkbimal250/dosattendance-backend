@@ -2802,7 +2802,10 @@ class NotificationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_bulk(self, request):
         """Create notifications for multiple users (admin/manager only)"""
+        import logging
         from .notification_service import NotificationService
+        
+        logger = logging.getLogger(__name__)
         
         # Get target type and parameters
         target_type = request.data.get('target_type', 'users')  # 'users', 'office', 'role', 'all'
@@ -2857,27 +2860,36 @@ class NotificationViewSet(viewsets.ModelViewSet):
                     'error': 'Invalid expires_at format. Use ISO format: YYYY-MM-DDTHH:MM:SS'
                 }, status=status.HTTP_400_BAD_REQUEST)
         
-        notifications = NotificationService.create_bulk_notifications(
-            user_objects, title, message,
-            notification_type=notification_type,
-            category=category,
-            priority=priority,
-            action_url=action_url,
-            action_text=action_text,
-            expires_at=expires_at_parsed,
-            created_by=request.user,
-            send_email=send_email
-        )
-        
-        return Response({
-            'message': f'{len(notifications)} notifications created',
-            'notifications': NotificationSerializer(notifications, many=True).data,
-            'target_info': {
-                'target_type': target_type,
-                'user_count': len(user_objects),
-                'email_sent': send_email
-            }
-        })
+        try:
+            notifications = NotificationService.create_bulk_notifications(
+                user_objects, title, message,
+                notification_type=notification_type,
+                category=category,
+                priority=priority,
+                action_url=action_url,
+                action_text=action_text,
+                expires_at=expires_at_parsed,
+                created_by=request.user,
+                send_email=send_email
+            )
+            
+            return Response({
+                'message': f'{len(notifications)} notifications created successfully',
+                'notifications': NotificationSerializer(notifications, many=True).data,
+                'target_info': {
+                    'target_type': target_type,
+                    'user_count': len(user_objects),
+                    'email_sent': send_email,
+                    'email_queued': send_email  # Emails are queued for background processing
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating bulk notifications: {str(e)}")
+            return Response({
+                'error': 'Failed to create notifications',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'])
     def get_target_options(self, request):

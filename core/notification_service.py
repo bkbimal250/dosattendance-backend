@@ -71,28 +71,44 @@ class NotificationService:
     @staticmethod
     def create_bulk_notifications(users, title, message, **kwargs):
         """Create notifications for multiple users"""
+        from django.db import transaction
+        from celery import shared_task
+        
         notifications = []
         send_email = kwargs.get('send_email', False)
         
-        for user in users:
-            notification = NotificationService.create_notification(
-                user=user,
-                title=title,
-                message=message,
-                **kwargs
-            )
-            if notification:
-                notifications.append(notification)
-                
-                # Send email if requested
-                if send_email and user.email:
-                    try:
-                        from .email_service import EmailNotificationService
-                        EmailNotificationService.send_notification_email(notification)
-                        notification.is_email_sent = True
-                        notification.save()
-                    except Exception as e:
-                        logger.error(f"Failed to send email for notification {notification.id}: {e}")
+        # Use database transaction for better performance
+        with transaction.atomic():
+            # Create all notifications first
+            for user in users:
+                notification = NotificationService.create_notification(
+                    user=user,
+                    title=title,
+                    message=message,
+                    **kwargs
+                )
+                if notification:
+                    notifications.append(notification)
+        
+        # Send emails asynchronously if requested (don't block the response)
+        if send_email and notifications:
+            try:
+                # Queue email sending as background task
+                from .tasks import send_bulk_notification_emails
+                send_bulk_notification_emails.delay([n.id for n in notifications])
+                logger.info(f"Queued {len(notifications)} emails for background sending")
+            except Exception as e:
+                logger.error(f"Failed to queue email sending: {e}")
+                # Fallback: try to send emails synchronously (but don't fail the request)
+                for notification in notifications:
+                    if notification.user.email:
+                        try:
+                            from .email_service import EmailNotificationService
+                            EmailNotificationService.send_notification_email(notification)
+                            notification.is_email_sent = True
+                            notification.save(update_fields=['is_email_sent'])
+                        except Exception as email_error:
+                            logger.error(f"Failed to send email for notification {notification.id}: {email_error}")
         
         return notifications
     
