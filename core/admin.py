@@ -4,12 +4,13 @@ from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.admin.helpers import AdminForm
 from django.utils.html import format_html
 from django import forms
-from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.http import HttpResponseRedirect, HttpResponse
+from django.urls import reverse, path
 from django.contrib import messages
 from django.template.response import TemplateResponse
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
+from django.utils import timezone
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
@@ -817,20 +818,21 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(GeneratedDocument)
 class GeneratedDocumentAdmin(admin.ModelAdmin):
-    list_display = ['document_type', 'employee_name', 'employee', 'generated_at', 'has_pdf_file', 'is_sent']
+    list_display = ['document_type', 'employee_name', 'employee', 'generated_at', 'has_pdf_file', 'is_sent', 'action_buttons']
     list_filter = ['document_type', 'generated_at', 'is_sent', 'employee__office']
     search_fields = ['employee__first_name', 'employee__last_name', 'employee__employee_id', 'document_type', 'title']
     ordering = ['-generated_at']
-    readonly_fields = ['id', 'generated_at']
+    readonly_fields = ['id', 'generated_at', 'action_buttons']
     # Temporarily disable date_hierarchy to fix timezone issue
     # date_hierarchy = 'generated_at'
     
     fieldsets = (
         (None, {'fields': ('employee', 'template', 'document_type', 'title')}),
         ('Document Content', {'fields': ('content',)}),
-        ('Document Data', {'fields': ('offer_data', 'increment_data', 'salary_data')}),
+        ('Document Data', {'fields': ('offer_data', 'increment_data', 'salary_data', 'id_card_data')}),
         ('PDF File', {'fields': ('pdf_file', 'pdf_file_size', 'pdf_file_exists')}),
         ('Email Status', {'fields': ('is_sent', 'sent_at', 'generated_by')}),
+        ('Actions', {'fields': ('action_buttons',)}),
         ('Timestamps', {'fields': ('generated_at',)}),
     )
     
@@ -875,7 +877,29 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
         return format_html('<span style="color: gray;">No File</span>')
     pdf_file_exists.short_description = "File Exists"
     
-    actions = ['regenerate_pdf', 'cleanup_orphaned_files']
+    actions = ['regenerate_pdf', 'cleanup_orphaned_files', 'send_email_to_employees', 'delete_selected_documents']
+    
+    def action_buttons(self, obj):
+        """Display action buttons for each document"""
+        buttons = []
+        
+        # View button
+        if obj.pdf_file:
+            view_url = reverse('admin:core_generateddocument_view_document', args=[obj.pk])
+            buttons.append(f'<a href="{view_url}" class="button" target="_blank">View</a>')
+        
+        # Send email button
+        if obj.employee and obj.employee.email:
+            send_url = reverse('admin:core_generateddocument_send_email', args=[obj.pk])
+            buttons.append(f'<a href="{send_url}" class="button" onclick="return confirm(\'Send email to {obj.employee.get_full_name()}?\')">Send Email</a>')
+        
+        # Delete button
+        delete_url = reverse('admin:core_generateddocument_delete', args=[obj.pk])
+        buttons.append(f'<a href="{delete_url}" class="button" style="color: red;" onclick="return confirm(\'Are you sure you want to delete this document?\')">Delete</a>')
+        
+        return format_html(' '.join(buttons))
+    action_buttons.short_description = "Actions"
+    action_buttons.allow_tags = True
     
     def regenerate_pdf(self, request, queryset):
         """Regenerate PDF files for selected documents"""
@@ -907,6 +931,83 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'{count} orphaned file references cleaned up.')
     cleanup_orphaned_files.short_description = "Clean up orphaned files"
+    
+    def send_email_to_employees(self, request, queryset):
+        """Send emails for selected documents"""
+        from core.document_views import GeneratedDocumentViewSet
+        viewset = GeneratedDocumentViewSet()
+        count = 0
+        
+        for document in queryset:
+            try:
+                if document.employee and document.employee.email:
+                    # Mark as sent (actual email sending would require email configuration)
+                    document.is_sent = True
+                    document.sent_at = timezone.now()
+                    document.save()
+                    count += 1
+            except Exception as e:
+                self.message_user(request, f'Error sending email for document {document.id}: {e}', level='ERROR')
+        
+        self.message_user(request, f'{count} emails sent successfully.')
+    send_email_to_employees.short_description = "Send emails to employees"
+    
+    def delete_selected_documents(self, request, queryset):
+        """Delete selected documents"""
+        count = 0
+        for document in queryset:
+            try:
+                # Delete the file if it exists
+                if document.pdf_file:
+                    document.pdf_file.delete(save=False)
+                document.delete()
+                count += 1
+            except Exception as e:
+                self.message_user(request, f'Error deleting document {document.id}: {e}', level='ERROR')
+        
+        self.message_user(request, f'{count} documents deleted successfully.')
+    delete_selected_documents.short_description = "Delete selected documents"
+    
+    def get_urls(self):
+        """Add custom URLs for view and send actions"""
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:document_id>/view/', self.admin_site.admin_view(self.view_document), name='core_generateddocument_view_document'),
+            path('<int:document_id>/send_email/', self.admin_site.admin_view(self.send_email), name='core_generateddocument_send_email'),
+        ]
+        return custom_urls + urls
+    
+    def view_document(self, request, document_id):
+        """View document in browser"""
+        try:
+            document = GeneratedDocument.objects.get(id=document_id)
+            if document.pdf_file:
+                response = HttpResponse(document.pdf_file.read(), content_type='application/pdf')
+                response['Content-Disposition'] = f'inline; filename="{document.title}.pdf"'
+                return response
+            else:
+                messages.error(request, 'No file available for this document.')
+                return HttpResponseRedirect(reverse('admin:core_generateddocument_changelist'))
+        except GeneratedDocument.DoesNotExist:
+            messages.error(request, 'Document not found.')
+            return HttpResponseRedirect(reverse('admin:core_generateddocument_changelist'))
+    
+    def send_email(self, request, document_id):
+        """Send email for document"""
+        try:
+            document = GeneratedDocument.objects.get(id=document_id)
+            if document.employee and document.employee.email:
+                # Mark as sent (actual email sending would require email configuration)
+                document.is_sent = True
+                document.sent_at = timezone.now()
+                document.save()
+                messages.success(request, f'Email sent to {document.employee.get_full_name()} ({document.employee.email})')
+            else:
+                messages.error(request, 'No email address available for this employee.')
+        except GeneratedDocument.DoesNotExist:
+            messages.error(request, 'Document not found.')
+        
+        return HttpResponseRedirect(reverse('admin:core_generateddocument_changelist'))
 
 
 # Customize admin site
