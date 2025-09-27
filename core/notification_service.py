@@ -54,13 +54,15 @@ class NotificationService:
             
             logger.info(f"Created notification: {title} for user {user.get_full_name()}")
             
-            # Send email notification if requested and user has email
-            if send_email and user.email:
+            # Send email notification if requested and user has email (only for active users)
+            if send_email and user.email and user.is_active:
                 from .email_service import EmailNotificationService
                 if priority == 'urgent':
                     EmailNotificationService.send_urgent_notification_email(notification)
                 else:
                     EmailNotificationService.send_notification_email(notification)
+            elif send_email and not user.is_active:
+                logger.info(f"Skipping email for inactive user: {user.get_full_name()} ({user.email})")
             
             return notification
             
@@ -79,8 +81,13 @@ class NotificationService:
         
         # Use database transaction for better performance
         with transaction.atomic():
-            # Create all notifications first
+            # Create all notifications first (only for active users)
             for user in users:
+                # Skip inactive users
+                if not user.is_active:
+                    logger.info(f"Skipping notification for inactive user: {user.get_full_name()} ({user.email})")
+                    continue
+                    
                 notification = NotificationService.create_notification(
                     user=user,
                     title=title,
@@ -101,7 +108,8 @@ class NotificationService:
                 logger.error(f"Failed to queue email sending: {e}")
                 # Fallback: try to send emails synchronously (but don't fail the request)
                 for notification in notifications:
-                    if notification.user.email:
+                    # Only send emails to active users
+                    if notification.user.email and notification.user.is_active:
                         try:
                             from .email_service import EmailNotificationService
                             EmailNotificationService.send_notification_email(notification)
@@ -109,6 +117,8 @@ class NotificationService:
                             notification.save(update_fields=['is_email_sent'])
                         except Exception as email_error:
                             logger.error(f"Failed to send email for notification {notification.id}: {email_error}")
+                    elif not notification.user.is_active:
+                        logger.info(f"Skipping email for inactive user: {notification.user.get_full_name()} ({notification.user.email})")
         
         return notifications
     

@@ -2832,13 +2832,13 @@ class NotificationViewSet(viewsets.ModelViewSet):
         user_objects = []
         
         if target_type == 'users' and users:
-            user_objects = CustomUser.objects.filter(id__in=users)
+            user_objects = CustomUser.objects.filter(id__in=users, is_active=True)
         elif target_type == 'office' and office_ids:
-            user_objects = CustomUser.objects.filter(office__in=office_ids)
+            user_objects = CustomUser.objects.filter(office__in=office_ids, is_active=True)
         elif target_type == 'role' and roles:
-            user_objects = CustomUser.objects.filter(role__in=roles)
+            user_objects = CustomUser.objects.filter(role__in=roles, is_active=True)
         elif target_type == 'all':
-            user_objects = CustomUser.objects.all()
+            user_objects = CustomUser.objects.filter(is_active=True)
         else:
             return Response({
                 'error': 'Invalid target type or missing target parameters'

@@ -20,7 +20,8 @@ def send_bulk_notification_emails(notification_ids):
         failed_count = 0
         
         for notification in notifications:
-            if notification.user.email and not notification.is_email_sent:
+            # Only send emails to active users
+            if notification.user.email and not notification.is_email_sent and notification.user.is_active:
                 try:
                     EmailNotificationService.send_notification_email(notification)
                     notification.is_email_sent = True
@@ -29,6 +30,8 @@ def send_bulk_notification_emails(notification_ids):
                 except Exception as e:
                     logger.error(f"Failed to send email for notification {notification.id}: {e}")
                     failed_count += 1
+            elif not notification.user.is_active:
+                logger.info(f"Skipping email for inactive user: {notification.user.get_full_name()} ({notification.user.email})")
         
         logger.info(f"Email sending completed: {sent_count} sent, {failed_count} failed")
         return {
