@@ -72,6 +72,8 @@ class NotificationService:
     def create_bulk_notifications(users, title, message, **kwargs):
         """Create notifications for multiple users"""
         notifications = []
+        send_email = kwargs.get('send_email', False)
+        
         for user in users:
             notification = NotificationService.create_notification(
                 user=user,
@@ -81,6 +83,17 @@ class NotificationService:
             )
             if notification:
                 notifications.append(notification)
+                
+                # Send email if requested
+                if send_email and user.email:
+                    try:
+                        from .email_service import EmailService
+                        EmailService.send_notification_email(notification)
+                        notification.is_email_sent = True
+                        notification.save()
+                    except Exception as e:
+                        logger.error(f"Failed to send email for notification {notification.id}: {e}")
+        
         return notifications
     
     @staticmethod

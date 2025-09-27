@@ -2804,32 +2804,98 @@ class NotificationViewSet(viewsets.ModelViewSet):
         """Create notifications for multiple users (admin/manager only)"""
         from .notification_service import NotificationService
         
+        # Get target type and parameters
+        target_type = request.data.get('target_type', 'users')  # 'users', 'office', 'role', 'all'
         users = request.data.get('users', [])
+        office_ids = request.data.get('office_ids', [])
+        roles = request.data.get('roles', [])
+        
         title = request.data.get('title')
         message = request.data.get('message')
         notification_type = request.data.get('notification_type', 'system')
         category = request.data.get('category', 'info')
         priority = request.data.get('priority', 'medium')
+        action_url = request.data.get('action_url', '')
+        action_text = request.data.get('action_text', '')
+        expires_at = request.data.get('expires_at')
+        send_email = request.data.get('send_email', False)
         
-        if not users or not title or not message:
+        if not title or not message:
             return Response({
-                'error': 'users, title, and message are required'
+                'error': 'title and message are required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get user objects
-        user_objects = CustomUser.objects.filter(id__in=users)
+        # Get user objects based on target type
+        user_objects = []
+        
+        if target_type == 'users' and users:
+            user_objects = CustomUser.objects.filter(id__in=users)
+        elif target_type == 'office' and office_ids:
+            user_objects = CustomUser.objects.filter(office_id__in=office_ids)
+        elif target_type == 'role' and roles:
+            user_objects = CustomUser.objects.filter(role__in=roles)
+        elif target_type == 'all':
+            user_objects = CustomUser.objects.all()
+        else:
+            return Response({
+                'error': 'Invalid target type or missing target parameters'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not user_objects.exists():
+            return Response({
+                'error': 'No users found for the specified criteria'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Parse expires_at if provided
+        expires_at_parsed = None
+        if expires_at:
+            try:
+                from django.utils.dateparse import parse_datetime
+                expires_at_parsed = parse_datetime(expires_at)
+            except:
+                return Response({
+                    'error': 'Invalid expires_at format. Use ISO format: YYYY-MM-DDTHH:MM:SS'
+                }, status=status.HTTP_400_BAD_REQUEST)
         
         notifications = NotificationService.create_bulk_notifications(
             user_objects, title, message,
             notification_type=notification_type,
             category=category,
             priority=priority,
-            created_by=request.user
+            action_url=action_url,
+            action_text=action_text,
+            expires_at=expires_at_parsed,
+            created_by=request.user,
+            send_email=send_email
         )
         
         return Response({
             'message': f'{len(notifications)} notifications created',
-            'notifications': NotificationSerializer(notifications, many=True).data
+            'notifications': NotificationSerializer(notifications, many=True).data,
+            'target_info': {
+                'target_type': target_type,
+                'user_count': len(user_objects),
+                'email_sent': send_email
+            }
+        })
+
+    @action(detail=False, methods=['get'])
+    def get_target_options(self, request):
+        """Get available target options for notifications (offices, roles, etc.)"""
+        from .models import Office
+        
+        offices = Office.objects.all().values('id', 'name')
+        roles = CustomUser.objects.values_list('role', flat=True).distinct()
+        
+        return Response({
+            'offices': list(offices),
+            'roles': list(roles),
+            'role_choices': [
+                {'value': 'admin', 'label': 'Admin'},
+                {'value': 'manager', 'label': 'Manager'},
+                {'value': 'employee', 'label': 'Employee'},
+                {'value': 'accountant', 'label': 'Accountant'},
+            ]
         })
 
 
