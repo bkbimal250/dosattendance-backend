@@ -927,17 +927,6 @@ class Salary(models.Model):
     balance_loan = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Outstanding loan balance")
     remaining_pay = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Remaining pay after deductions")
     
-    # Additional Allowances
-    house_rent_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="House Rent Allowance")
-    transport_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Transport Allowance")
-    medical_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Medical Allowance")
-    other_allowances = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Other Allowances")
-    
-    # Deductions Breakdown
-    provident_fund = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Provident Fund deduction")
-    professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Professional Tax")
-    income_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Income Tax (TDS)")
-    other_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Other Deductions")
     
     # Salary Period and Payment
     salary_month = models.DateField(help_text="Salary month (first day of the month)")
@@ -1039,7 +1028,7 @@ class Salary(models.Model):
     @property
     def per_day_salary(self):
         """Salary per day"""
-        return self.final_salary / Decimal(self.total_days) if self.total_days > 0 else 0
+        return Decimal(str(self.final_salary)) / Decimal(self.total_days) if self.total_days > 0 else 0
 
     @property
     def gross_salary(self):
@@ -1049,19 +1038,17 @@ class Salary(models.Model):
     @property
     def total_allowances(self):
         """Total of all allowances"""
-        return (self.house_rent_allowance + self.transport_allowance + 
-                self.medical_allowance + self.other_allowances)
+        return 0  # No additional allowances
 
     @property
     def total_deductions(self):
         """Total of all deductions"""
-        return (self.deduction + self.provident_fund + self.professional_tax + 
-                self.income_tax + self.other_deductions)
+        return Decimal(str(self.deduction))  # Only basic deduction
 
     @property
     def net_salary(self):
         """Net salary after all deductions"""
-        return self.gross_salary + self.total_allowances - self.total_deductions
+        return self.gross_salary - self.total_deductions
 
     @property
     def final_payable_amount(self):
@@ -1148,18 +1135,10 @@ class Salary(models.Model):
             'total_days': self.total_days,
             'gross_salary': float(self.gross_salary),
             'allowances': {
-                'house_rent': float(self.house_rent_allowance),
-                'transport': float(self.transport_allowance),
-                'medical': float(self.medical_allowance),
-                'other': float(self.other_allowances),
                 'total': float(self.total_allowances)
             },
             'deductions': {
                 'general': float(self.deduction),
-                'provident_fund': float(self.provident_fund),
-                'professional_tax': float(self.professional_tax),
-                'income_tax': float(self.income_tax),
-                'other': float(self.other_deductions),
                 'total': float(self.total_deductions)
             },
             'loan_balance': float(self.balance_loan),
@@ -1172,19 +1151,11 @@ class SalaryTemplate(models.Model):
     """Template for salary structure by designation"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200, help_text="Template name")
-    designation = models.ForeignKey('Designation', on_delete=models.CASCADE, related_name='salary_templates')
-    office = models.ForeignKey('Office', on_delete=models.CASCADE, related_name='salary_templates')
+    designation_name = models.CharField(max_length=200, help_text="Designation name", default="Default Designation")
+    office_name = models.CharField(max_length=200, help_text="Office name", default="Default Office")
     
     # Salary structure
     basic_pay = models.DecimalField(max_digits=10, decimal_places=2)
-    house_rent_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    transport_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    medical_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    other_allowances = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
-    # Default deductions (as percentage)
-    provident_fund_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.0)
-    professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -1194,27 +1165,21 @@ class SalaryTemplate(models.Model):
     class Meta:
         verbose_name = "Salary Template"
         verbose_name_plural = "Salary Templates"
-        unique_together = ['designation', 'office']
-        ordering = ['designation__name', 'office__name']
+        unique_together = ['designation_name', 'office_name']
+        ordering = ['designation_name', 'office_name']
 
     def __str__(self):
-        return f"{self.name} - {self.designation.name} ({self.office.name})"
+        return f"{self.name} - {self.designation_name} ({self.office_name})"
 
     def apply_to_employee(self, employee, salary_month):
         """Apply this template to create a salary for an employee"""
-        if employee.designation != self.designation or employee.office != self.office:
+        if employee.designation.name != self.designation_name or employee.office.name != self.office_name:
             raise ValidationError('Employee designation or office does not match template.')
         
         # Create salary record
         salary = Salary.objects.create(
             employee=employee,
             basic_pay=self.basic_pay,
-            house_rent_allowance=self.house_rent_allowance,
-            transport_allowance=self.transport_allowance,
-            medical_allowance=self.medical_allowance,
-            other_allowances=self.other_allowances,
-            provident_fund=self.basic_pay * (self.provident_fund_percentage / 100),
-            professional_tax=self.professional_tax,
             salary_month=salary_month,
             attendance_based=True,
             is_auto_calculated=True

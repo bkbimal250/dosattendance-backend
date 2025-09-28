@@ -226,19 +226,13 @@ class SalaryBulkCreateView(APIView):
                 # Get salary data from template or use provided basic_pay
                 if template_id:
                     template = SalaryTemplate.objects.get(id=template_id)
-                    if employee.designation != template.designation or employee.office != template.office:
+                    if employee.designation.name != template.designation_name or employee.office.name != template.office_name:
                         errors.append(f"Template doesn't match employee {employee.get_full_name()}")
                         continue
                     
                     salary_data = {
                         'employee': employee,
                         'basic_pay': template.basic_pay,
-                        'house_rent_allowance': template.house_rent_allowance,
-                        'transport_allowance': template.transport_allowance,
-                        'medical_allowance': template.medical_allowance,
-                        'other_allowances': template.other_allowances,
-                        'provident_fund': template.basic_pay * (template.provident_fund_percentage / 100),
-                        'professional_tax': template.professional_tax,
                         'salary_month': salary_month,
                         'attendance_based': attendance_based,
                         'is_auto_calculated': True,
@@ -325,14 +319,9 @@ class SalaryAutoCalculateView(APIView):
                 # Set salary data
                 if template_id:
                     template = SalaryTemplate.objects.get(id=template_id)
-                    if employee.designation == template.designation and employee.office == template.office:
+                    if employee.designation.name == template.designation_name and employee.office.name == template.office_name:
                         salary.basic_pay = template.basic_pay
-                        salary.house_rent_allowance = template.house_rent_allowance
-                        salary.transport_allowance = template.transport_allowance
-                        salary.medical_allowance = template.medical_allowance
-                        salary.other_allowances = template.other_allowances
-                        salary.provident_fund = template.basic_pay * (template.provident_fund_percentage / 100)
-                        salary.professional_tax = template.professional_tax
+                        # Template fields are already set in salary_data
                 else:
                     salary.basic_pay = basic_pay
 

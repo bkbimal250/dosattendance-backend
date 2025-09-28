@@ -1039,13 +1039,12 @@ class SalarySerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'employee_email', 'employee_employee_id',
             'employee_office_name', 'employee_department_name', 'employee_designation_name',
             'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
-            'remaining_pay', 'house_rent_allowance', 'transport_allowance', 'medical_allowance',
-            'other_allowances', 'provident_fund', 'professional_tax', 'income_tax', 'other_deductions',
-            'salary_month', 'pay_date', 'paid_date', 'payment_method', 'status', 'approved_by',
-            'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 'is_auto_calculated',
-            'attendance_based', 'created_by', 'created_by_name', 'created_at', 'updated_at',
-            'final_salary', 'per_day_salary', 'gross_salary', 'total_allowances', 'total_deductions',
-            'net_salary', 'final_payable_amount', 'salary_breakdown'
+            'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'status', 
+            'approved_by', 'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 
+            'is_auto_calculated', 'attendance_based', 'created_by', 'created_by_name', 
+            'created_at', 'updated_at', 'final_salary', 'per_day_salary', 'gross_salary', 
+            'total_allowances', 'total_deductions', 'net_salary', 'final_payable_amount', 
+            'salary_breakdown'
         ]
         read_only_fields = [
             'id', 'approved_at', 'created_at', 'updated_at', 'final_salary', 'per_day_salary',
@@ -1079,9 +1078,7 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
         model = Salary
         fields = [
             'employee', 'basic_pay', 'increment', 'total_days', 'worked_days',
-            'deduction', 'balance_loan', 'house_rent_allowance', 'transport_allowance',
-            'medical_allowance', 'other_allowances', 'provident_fund', 'professional_tax',
-            'income_tax', 'other_deductions', 'salary_month', 'pay_date', 'payment_method',
+            'deduction', 'balance_loan', 'salary_month', 'pay_date', 'payment_method',
             'notes', 'attendance_based'
         ]
     
@@ -1110,8 +1107,6 @@ class SalaryUpdateSerializer(serializers.ModelSerializer):
         model = Salary
         fields = [
             'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
-            'house_rent_allowance', 'transport_allowance', 'medical_allowance', 'other_allowances',
-            'provident_fund', 'professional_tax', 'income_tax', 'other_deductions',
             'pay_date', 'payment_method', 'notes', 'attendance_based'
         ]
     
@@ -1166,28 +1161,24 @@ class SalaryPaymentSerializer(serializers.ModelSerializer):
 
 class SalaryTemplateSerializer(serializers.ModelSerializer):
     """Serializer for SalaryTemplate model"""
-    designation_name = serializers.CharField(source='designation.name', read_only=True)
-    office_name = serializers.CharField(source='office.name', read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     
     class Meta:
         model = SalaryTemplate
         fields = [
-            'id', 'name', 'designation', 'designation_name', 'office', 'office_name',
-            'basic_pay', 'house_rent_allowance', 'transport_allowance', 'medical_allowance',
-            'other_allowances', 'provident_fund_percentage', 'professional_tax',
+            'id', 'name', 'designation_name', 'office_name', 'basic_pay',
             'is_active', 'created_by', 'created_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def validate(self, attrs):
         """Validate template data"""
-        designation = attrs.get('designation')
-        office = attrs.get('office')
+        designation_name = attrs.get('designation_name')
+        office_name = attrs.get('office_name')
         
         # Check for duplicate template for same designation and office
-        if designation and office:
-            queryset = SalaryTemplate.objects.filter(designation=designation, office=office)
+        if designation_name and office_name:
+            queryset = SalaryTemplate.objects.filter(designation_name=designation_name, office_name=office_name)
             if self.instance:
                 queryset = queryset.exclude(id=self.instance.id)
             
@@ -1204,9 +1195,7 @@ class SalaryTemplateCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalaryTemplate
         fields = [
-            'name', 'designation', 'office', 'basic_pay', 'house_rent_allowance',
-            'transport_allowance', 'medical_allowance', 'other_allowances',
-            'provident_fund_percentage', 'professional_tax', 'is_active'
+            'name', 'designation_name', 'office_name', 'basic_pay', 'is_active'
         ]
     
     def create(self, validated_data):
