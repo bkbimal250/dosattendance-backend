@@ -917,7 +917,8 @@ class Salary(models.Model):
     )
     
     # Basic Salary Information
-    basic_pay = models.DecimalField(max_digits=10, decimal_places=2, help_text="Basic salary amount")
+    basic_pay = models.DecimalField(max_digits=10, decimal_places=2, help_text="Basic salary amount (for reference only)")
+    per_day_pay = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Per day pay amount (used for calculation)")
     increment = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Increment amount")
     total_days = models.PositiveIntegerField(default=30, help_text="Total working days in the month")
     worked_days = models.PositiveIntegerField(default=30, help_text="Days actually worked")
@@ -1027,8 +1028,8 @@ class Salary(models.Model):
 
     @property
     def per_day_salary(self):
-        """Salary per day"""
-        return Decimal(str(self.final_salary)) / Decimal(self.total_days) if self.total_days > 0 else 0
+        """Salary per day (returns the per_day_pay field)"""
+        return Decimal(str(self.per_day_pay))
 
     @property
     def gross_salary(self):
@@ -1128,6 +1129,7 @@ class Salary(models.Model):
         """Get detailed salary breakdown for display"""
         return {
             'basic_pay': float(self.basic_pay),
+            'per_day_pay': float(self.per_day_pay),
             'increment': float(self.increment),
             'final_salary': float(self.final_salary),
             'per_day_salary': float(self.per_day_salary),
@@ -1155,7 +1157,8 @@ class SalaryTemplate(models.Model):
     office_name = models.CharField(max_length=200, help_text="Office name", default="Default Office")
     
     # Salary structure
-    basic_pay = models.DecimalField(max_digits=10, decimal_places=2)
+    basic_pay = models.DecimalField(max_digits=10, decimal_places=2, help_text="Basic salary amount (for reference only)")
+    per_day_pay = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Per day pay amount (used for calculation)")
     
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -1180,6 +1183,7 @@ class SalaryTemplate(models.Model):
         salary = Salary.objects.create(
             employee=employee,
             basic_pay=self.basic_pay,
+            per_day_pay=self.per_day_pay,
             salary_month=salary_month,
             attendance_based=True,
             is_auto_calculated=True

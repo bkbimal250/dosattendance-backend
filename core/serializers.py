@@ -1077,7 +1077,7 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Salary
         fields = [
-            'employee', 'basic_pay', 'increment', 'total_days', 'worked_days',
+            'employee', 'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days',
             'deduction', 'balance_loan', 'salary_month', 'pay_date', 'payment_method',
             'notes', 'attendance_based'
         ]
@@ -1106,7 +1106,7 @@ class SalaryUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Salary
         fields = [
-            'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
+            'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
             'pay_date', 'payment_method', 'notes', 'attendance_based'
         ]
     
@@ -1166,7 +1166,7 @@ class SalaryTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalaryTemplate
         fields = [
-            'id', 'name', 'designation_name', 'office_name', 'basic_pay',
+            'id', 'name', 'designation_name', 'office_name', 'basic_pay', 'per_day_pay',
             'is_active', 'created_by', 'created_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -1195,7 +1195,7 @@ class SalaryTemplateCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalaryTemplate
         fields = [
-            'name', 'designation_name', 'office_name', 'basic_pay', 'is_active'
+            'name', 'designation_name', 'office_name', 'basic_pay', 'per_day_pay', 'is_active'
         ]
     
     def create(self, validated_data):
