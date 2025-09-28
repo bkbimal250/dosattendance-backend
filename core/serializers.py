@@ -6,7 +6,7 @@ from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
     WorkingHoursSettings, DocumentTemplate, GeneratedDocument, Resignation,
-    Department, Designation
+    Department, Designation, Salary, SalaryTemplate
 )
 
 
@@ -1005,5 +1005,316 @@ class DeviceUserBulkCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({
                     'device_users': f'Device user IDs already exist on this device: {", ".join(conflicts)}'
                 })
+        
+        return attrs
+
+
+# Salary Management Serializers
+class SalarySerializer(serializers.ModelSerializer):
+    """Comprehensive serializer for Salary model"""
+    employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
+    employee_email = serializers.CharField(source='employee.email', read_only=True)
+    employee_employee_id = serializers.CharField(source='employee.employee_id', read_only=True)
+    employee_office_name = serializers.CharField(source='employee.office.name', read_only=True)
+    employee_department_name = serializers.CharField(source='employee.department.name', read_only=True)
+    employee_designation_name = serializers.CharField(source='employee.designation.name', read_only=True)
+    approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    
+    # Auto-calculated fields
+    final_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    per_day_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    gross_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_allowances = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_deductions = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    net_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    final_payable_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    
+    # Salary breakdown
+    salary_breakdown = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Salary
+        fields = [
+            'id', 'employee', 'employee_name', 'employee_email', 'employee_employee_id',
+            'employee_office_name', 'employee_department_name', 'employee_designation_name',
+            'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
+            'remaining_pay', 'house_rent_allowance', 'transport_allowance', 'medical_allowance',
+            'other_allowances', 'provident_fund', 'professional_tax', 'income_tax', 'other_deductions',
+            'salary_month', 'pay_date', 'paid_date', 'payment_method', 'status', 'approved_by',
+            'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 'is_auto_calculated',
+            'attendance_based', 'created_by', 'created_by_name', 'created_at', 'updated_at',
+            'final_salary', 'per_day_salary', 'gross_salary', 'total_allowances', 'total_deductions',
+            'net_salary', 'final_payable_amount', 'salary_breakdown'
+        ]
+        read_only_fields = [
+            'id', 'approved_at', 'created_at', 'updated_at', 'final_salary', 'per_day_salary',
+            'gross_salary', 'total_allowances', 'total_deductions', 'net_salary', 'final_payable_amount'
+        ]
+    
+    def get_salary_breakdown(self, obj):
+        """Get detailed salary breakdown"""
+        return obj.get_salary_breakdown()
+    
+    def validate(self, attrs):
+        """Validate salary data"""
+        # Ensure worked_days doesn't exceed total_days
+        worked_days = attrs.get('worked_days')
+        total_days = attrs.get('total_days')
+        
+        if worked_days and total_days and worked_days > total_days:
+            raise serializers.ValidationError('Worked days cannot exceed total days.')
+        
+        # Ensure basic_pay is positive
+        basic_pay = attrs.get('basic_pay')
+        if basic_pay is not None and basic_pay <= 0:
+            raise serializers.ValidationError('Basic pay must be greater than zero.')
+        
+        return attrs
+
+
+class SalaryCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating salary records"""
+    class Meta:
+        model = Salary
+        fields = [
+            'employee', 'basic_pay', 'increment', 'total_days', 'worked_days',
+            'deduction', 'balance_loan', 'house_rent_allowance', 'transport_allowance',
+            'medical_allowance', 'other_allowances', 'provident_fund', 'professional_tax',
+            'income_tax', 'other_deductions', 'salary_month', 'pay_date', 'payment_method',
+            'notes', 'attendance_based'
+        ]
+    
+    def validate_employee(self, value):
+        """Validate that employee is actually an employee"""
+        if value.role != 'employee':
+            raise serializers.ValidationError('Salary can only be assigned to employees.')
+        return value
+    
+    def validate_salary_month(self, value):
+        """Validate salary month format"""
+        # Ensure it's the first day of the month
+        if value.day != 1:
+            raise serializers.ValidationError('Salary month must be the first day of the month.')
+        return value
+    
+    def create(self, validated_data):
+        """Create salary record with current user as creator"""
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class SalaryUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating salary records"""
+    class Meta:
+        model = Salary
+        fields = [
+            'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
+            'house_rent_allowance', 'transport_allowance', 'medical_allowance', 'other_allowances',
+            'provident_fund', 'professional_tax', 'income_tax', 'other_deductions',
+            'pay_date', 'payment_method', 'notes', 'attendance_based'
+        ]
+    
+    def validate(self, attrs):
+        """Validate salary update data"""
+        # Ensure worked_days doesn't exceed total_days
+        worked_days = attrs.get('worked_days')
+        total_days = attrs.get('total_days')
+        
+        if worked_days and total_days and worked_days > total_days:
+            raise serializers.ValidationError('Worked days cannot exceed total days.')
+        
+        return attrs
+
+
+class SalaryApprovalSerializer(serializers.ModelSerializer):
+    """Serializer for salary approval/rejection"""
+    class Meta:
+        model = Salary
+        fields = ['status', 'rejection_reason']
+    
+    def validate_status(self, value):
+        """Validate status change"""
+        if value not in ['approved', 'cancelled']:
+            raise serializers.ValidationError("Status must be either 'approved' or 'cancelled'.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate approval data"""
+        status = attrs.get('status')
+        rejection_reason = attrs.get('rejection_reason', '')
+        
+        if status == 'cancelled' and not rejection_reason:
+            raise serializers.ValidationError("Rejection reason is required when cancelling a salary.")
+        
+        return attrs
+
+
+class SalaryPaymentSerializer(serializers.ModelSerializer):
+    """Serializer for marking salary as paid"""
+    class Meta:
+        model = Salary
+        fields = ['paid_date', 'payment_method']
+    
+    def validate_paid_date(self, value):
+        """Validate payment date"""
+        from django.utils import timezone
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError("Payment date cannot be in the future.")
+        return value
+
+
+class SalaryTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for SalaryTemplate model"""
+    designation_name = serializers.CharField(source='designation.name', read_only=True)
+    office_name = serializers.CharField(source='office.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = SalaryTemplate
+        fields = [
+            'id', 'name', 'designation', 'designation_name', 'office', 'office_name',
+            'basic_pay', 'house_rent_allowance', 'transport_allowance', 'medical_allowance',
+            'other_allowances', 'provident_fund_percentage', 'professional_tax',
+            'is_active', 'created_by', 'created_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate(self, attrs):
+        """Validate template data"""
+        designation = attrs.get('designation')
+        office = attrs.get('office')
+        
+        # Check for duplicate template for same designation and office
+        if designation and office:
+            queryset = SalaryTemplate.objects.filter(designation=designation, office=office)
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+            
+            if queryset.exists():
+                raise serializers.ValidationError(
+                    'A salary template already exists for this designation and office combination.'
+                )
+        
+        return attrs
+
+
+class SalaryTemplateCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating salary templates"""
+    class Meta:
+        model = SalaryTemplate
+        fields = [
+            'name', 'designation', 'office', 'basic_pay', 'house_rent_allowance',
+            'transport_allowance', 'medical_allowance', 'other_allowances',
+            'provident_fund_percentage', 'professional_tax', 'is_active'
+        ]
+    
+    def create(self, validated_data):
+        """Create template with current user as creator"""
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class SalaryBulkCreateSerializer(serializers.Serializer):
+    """Serializer for bulk salary creation"""
+    employee_ids = serializers.ListField(child=serializers.UUIDField())
+    salary_month = serializers.DateField()
+    template_id = serializers.UUIDField(required=False)
+    basic_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    increment = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    attendance_based = serializers.BooleanField(default=True)
+    
+    def validate_employee_ids(self, value):
+        """Validate employee IDs"""
+        if not value:
+            raise serializers.ValidationError("Employee IDs list cannot be empty.")
+        
+        # Check for duplicate IDs
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError("Duplicate employee IDs found.")
+        
+        return value
+    
+    def validate_salary_month(self, value):
+        """Validate salary month"""
+        if value.day != 1:
+            raise serializers.ValidationError("Salary month must be the first day of the month.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate bulk creation data"""
+        template_id = attrs.get('template_id')
+        basic_pay = attrs.get('basic_pay')
+        
+        if not template_id and not basic_pay:
+            raise serializers.ValidationError(
+                "Either template_id or basic_pay must be provided."
+            )
+        
+        return attrs
+
+
+class SalaryReportSerializer(serializers.Serializer):
+    """Serializer for salary reports"""
+    office_id = serializers.UUIDField(required=False)
+    department_id = serializers.UUIDField(required=False)
+    year = serializers.IntegerField()
+    month = serializers.IntegerField(min_value=1, max_value=12)
+    status = serializers.ChoiceField(choices=Salary.SALARY_STATUS_CHOICES, required=False)
+    
+    def validate(self, attrs):
+        """Validate report parameters"""
+        year = attrs.get('year')
+        month = attrs.get('month')
+        
+        if year < 2020 or year > 2030:
+            raise serializers.ValidationError("Invalid year.")
+        
+        return attrs
+
+
+class SalarySummarySerializer(serializers.Serializer):
+    """Serializer for salary summary statistics"""
+    total_salaries = serializers.IntegerField()
+    total_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    paid_salaries = serializers.IntegerField()
+    paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    pending_salaries = serializers.IntegerField()
+    pending_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    average_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+    highest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+    lowest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class SalaryAutoCalculateSerializer(serializers.Serializer):
+    """Serializer for auto-calculating salaries from attendance"""
+    employee_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
+    salary_month = serializers.DateField()
+    office_id = serializers.UUIDField(required=False)
+    department_id = serializers.UUIDField(required=False)
+    template_id = serializers.UUIDField(required=False)
+    basic_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    
+    def validate_salary_month(self, value):
+        """Validate salary month"""
+        if value.day != 1:
+            raise serializers.ValidationError("Salary month must be the first day of the month.")
+        return value
+    
+    def validate(self, attrs):
+        """Validate auto-calculation data"""
+        template_id = attrs.get('template_id')
+        basic_pay = attrs.get('basic_pay')
+        employee_ids = attrs.get('employee_ids')
+        
+        if not template_id and not basic_pay:
+            raise serializers.ValidationError(
+                "Either template_id or basic_pay must be provided."
+            )
+        
+        if not employee_ids and not attrs.get('office_id') and not attrs.get('department_id'):
+            raise serializers.ValidationError(
+                "Either employee_ids, office_id, or department_id must be provided."
+            )
         
         return attrs
