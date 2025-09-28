@@ -1002,9 +1002,8 @@ class Salary(models.Model):
         if self.approved_by and self.approved_by.role not in ['admin', 'manager']:
             raise ValidationError('Only admin or manager can approve salaries.')
         
-        # Ensure created_by is admin, manager, or accountant
-        if self.created_by and self.created_by.role not in ['admin', 'manager', 'accountant']:
-            raise ValidationError('Only admin, manager, or accountant can create salaries.')
+        # Note: Salary creation is allowed for all users in admin panel
+        # This allows flexible salary management across all user roles
 
     def save(self, *args, **kwargs):
         self.clean()
