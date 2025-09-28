@@ -992,9 +992,8 @@ class Salary(models.Model):
         if self.employee.role != 'employee':
             raise ValidationError('Salary can only be assigned to employees.')
         
-        # Ensure worked_days doesn't exceed total_days
-        if self.worked_days > self.total_days:
-            raise ValidationError('Worked days cannot exceed total days.')
+        # Note: worked_days can exceed total_days when including Sundays as working days
+        # This is intentional for salary calculation purposes
         
         # Ensure basic_pay is positive
         if self.basic_pay <= 0:

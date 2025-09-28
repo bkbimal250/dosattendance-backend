@@ -1057,12 +1057,8 @@ class SalarySerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         """Validate salary data"""
-        # Ensure worked_days doesn't exceed total_days
-        worked_days = attrs.get('worked_days')
-        total_days = attrs.get('total_days')
-        
-        if worked_days and total_days and worked_days > total_days:
-            raise serializers.ValidationError('Worked days cannot exceed total days.')
+        # Note: worked_days can exceed total_days when including Sundays as working days
+        # This is intentional for salary calculation purposes
         
         # Ensure basic_pay is positive
         basic_pay = attrs.get('basic_pay')
@@ -1112,12 +1108,8 @@ class SalaryUpdateSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         """Validate salary update data"""
-        # Ensure worked_days doesn't exceed total_days
-        worked_days = attrs.get('worked_days')
-        total_days = attrs.get('total_days')
-        
-        if worked_days and total_days and worked_days > total_days:
-            raise serializers.ValidationError('Worked days cannot exceed total days.')
+        # Note: worked_days can exceed total_days when including Sundays as working days
+        # This is intentional for salary calculation purposes
         
         return attrs
 
