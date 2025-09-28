@@ -216,7 +216,7 @@ class SalaryBulkCreateView(APIView):
 
         for employee_id in employee_ids:
             try:
-                employee = CustomUser.objects.get(id=employee_id, role='employee')
+                employee = CustomUser.objects.get(id=employee_id)
                 
                 # Check for existing salary for this employee and month
                 if Salary.objects.filter(employee=employee, salary_month=salary_month).exists():
@@ -289,8 +289,8 @@ class SalaryAutoCalculateView(APIView):
         template_id = data.get('template_id')
         basic_pay = data.get('basic_pay')
 
-        # Get employees to process
-        employees = CustomUser.objects.filter(role='employee')
+        # Get users to process (all users for admin panel)
+        employees = CustomUser.objects.all()
         
         if employee_ids:
             employees = employees.filter(id__in=employee_ids)
@@ -558,7 +558,7 @@ def employee_salary_history(request, employee_id):
     - GET: Get employee's salary history
     """
     try:
-        employee = CustomUser.objects.get(id=employee_id, role='employee')
+        employee = CustomUser.objects.get(id=employee_id)
         
         # Check permissions
         user = request.user

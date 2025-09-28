@@ -988,9 +988,8 @@ class Salary(models.Model):
         """Validate salary data"""
         super().clean()
         
-        # Ensure employee is actually an employee
-        if self.employee.role != 'employee':
-            raise ValidationError('Salary can only be assigned to employees.')
+        # Note: Salary can be assigned to any user (admin panel functionality)
+        # This allows salary management for all users, not just employees
         
         # Note: worked_days can exceed total_days when including Sundays as working days
         # This is intentional for salary calculation purposes
