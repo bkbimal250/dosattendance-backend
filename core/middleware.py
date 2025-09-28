@@ -40,6 +40,21 @@ class DatabaseConnectionMiddleware:
     def process_exception(self, request, exception):
         """Handle exceptions and ensure connections are closed"""
         logger.error(f"Exception in request {request.path}: {str(exception)}")
+        
+        # Check for MySQL connection errors
+        if hasattr(exception, 'args') and len(exception.args) > 0:
+            error_code = exception.args[0] if isinstance(exception.args[0], int) else None
+            
+            # MySQL connection errors (2006: MySQL server has gone away, 2013: Lost connection)
+            if error_code in [2006, 2013, 2003]:
+                logger.warning(f"MySQL connection error {error_code}: {exception}")
+                try:
+                    from django.db import connection
+                    connection.close()
+                    logger.info("Closed stale MySQL connection")
+                except Exception as e:
+                    logger.error(f"Error closing connection: {e}")
+        
         close_old_connections()
         return None
 

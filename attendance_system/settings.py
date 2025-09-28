@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'channels',  # Django Channels for WebSocket support
     
     # Local apps
-    'core',
+    'core.apps.CoreConfig',
 ]
 
 MIDDLEWARE = [
@@ -135,7 +135,7 @@ if IS_PRODUCTION:
             'PORT': os.environ.get('DB_PORT', '3306'),
             'OPTIONS': {
                 'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30'",
                 'connect_timeout': 30,
                 'read_timeout': 30,
                 'write_timeout': 30,
@@ -159,15 +159,15 @@ else:
             'PORT': '3306',
             'OPTIONS': {
                 'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                'connect_timeout': 30,
-                'read_timeout': 30,
-                'write_timeout': 30,
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
+                'connect_timeout': 60,
+                'read_timeout': 60,
+                'write_timeout': 60,
                 'autocommit': True,
                 'max_allowed_packet': 16777216,  # 16MB
                 'sql_mode': 'STRICT_TRANS_TABLES',
             },
-            'CONN_MAX_AGE': 60,  # 1 minute for development
+            'CONN_MAX_AGE': 300,  # 5 minutes - shorter to avoid stale connections
             'ATOMIC_REQUESTS': False,
         }
     }
@@ -225,6 +225,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'core.CustomUser'
 
+# Custom Authentication Backend
+AUTHENTICATION_BACKENDS = [
+    'core.authentication_backend.CustomAuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+# Disable last_login signal to prevent UUID field update issues
+# This will be handled in the app's ready() method
+
 # Database connection optimization
 DB_OPTIMIZATION = {
     'CONN_MAX_AGE': 600,
@@ -236,7 +245,7 @@ DB_OPTIMIZATION = {
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'core.authentication.CustomJWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -265,7 +274,11 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
+    'UPDATE_LAST_LOGIN': False,
+    'JTI_CLAIM': 'jti',
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,
@@ -443,12 +456,15 @@ else:
     }
 
 # Email Configuration (for future use)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 1025
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = 'creatorbimal@gmail.com  '
-EMAIL_HOST_PASSWORD = 'zdduqixnlkencxsy'
+# Email Configuration for Gmail with App Password
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'info.dishaonlinesoution@gmail.com'
+EMAIL_HOST_PASSWORD = 'ktrc uzzy upkr ftbv'
+DEFAULT_FROM_EMAIL = 'Disha Online Solution <info.dishaonlinesoution@gmail.com>'
+SERVER_EMAIL = 'info.dishaonlinesoution@gmail.com'
 
 # Celery Configuration (for background tasks)
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
@@ -465,8 +481,9 @@ os.makedirs(BASE_DIR / 'logs', exist_ok=True)
 AUTO_START_ATTENDANCE_SERVICE = os.environ.get('AUTO_START_ATTENDANCE_SERVICE', 'false').lower() == 'true'
 
 # Company Information for PDF Documents
-COMPANY_NAME = os.environ.get('COMPANY_NAME', 'Your Company Name')
-COMPANY_ADDRESS = os.environ.get('COMPANY_ADDRESS', 'Company Address, City, State, ZIP')
-COMPANY_PHONE = os.environ.get('COMPANY_PHONE', '+1 (555) 123-4567')
-COMPANY_EMAIL = os.environ.get('COMPANY_EMAIL', 'info@company.com')
-COMPANY_WEBSITE = os.environ.get('COMPANY_WEBSITE', 'www.company.com')
+COMPANY_NAME = os.environ.get('COMPANY_NAME', 'Disha Online Solution')
+COMPANY_ADDRESS = os.environ.get('COMPANY_ADDRESS', 'Office Address, City, State, ZIP')
+COMPANY_PHONE = os.environ.get('COMPANY_PHONE', '+91 (XXX) XXX-XXXX')
+COMPANY_EMAIL = os.environ.get('COMPANY_EMAIL', 'info.dishaonlinesoution@gmail.com')
+COMPANY_WEBSITE = os.environ.get('COMPANY_WEBSITE', 'www.dishaonlinesolution.com')
+SITE_URL = os.environ.get('SITE_URL', 'https://company.d0s369.co.in')

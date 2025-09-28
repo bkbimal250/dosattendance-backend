@@ -1172,8 +1172,8 @@ class SalaryTemplate(models.Model):
     """Template for salary structure by designation"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200, help_text="Template name")
-    designation = models.ForeignKey(Designation, on_delete=models.CASCADE, related_name='salary_templates')
-    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='salary_templates')
+    designation = models.ForeignKey('Designation', on_delete=models.CASCADE, related_name='salary_templates')
+    office = models.ForeignKey('Office', on_delete=models.CASCADE, related_name='salary_templates')
     
     # Salary structure
     basic_pay = models.DecimalField(max_digits=10, decimal_places=2)
