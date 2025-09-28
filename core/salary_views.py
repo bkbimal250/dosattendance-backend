@@ -1,0 +1,736 @@
+"""
+Salary Management Views
+Comprehensive salary management system with auto-calculation from attendance
+"""
+
+from rest_framework import status, generics, permissions, filters
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db.models import Q, Sum, Count, Avg, Max, Min
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
+from decimal import Decimal
+import uuid
+
+from .models import (
+    Salary, SalaryTemplate, CustomUser, Office, Department, Designation, Attendance
+)
+from .serializers import (
+    SalarySerializer, SalaryCreateSerializer, SalaryUpdateSerializer,
+    SalaryApprovalSerializer, SalaryPaymentSerializer, SalaryTemplateSerializer,
+    SalaryTemplateCreateSerializer, SalaryBulkCreateSerializer, SalaryReportSerializer,
+    SalarySummarySerializer, SalaryAutoCalculateSerializer
+)
+from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdminOrManagerOrEmployee
+
+
+class SalaryListView(generics.ListCreateAPIView):
+    """
+    List all salaries or create a new salary
+    - GET: List salaries with filtering and pagination
+    - POST: Create new salary (Admin/Manager/Accountant only)
+    """
+    serializer_class = SalarySerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        'employee__first_name', 'employee__last_name', 'employee__email',
+        'employee__employee_id', 'status', 'salary_month'
+    ]
+    ordering_fields = ['salary_month', 'created_at', 'status', 'net_salary']
+    ordering = ['-salary_month', '-created_at']
+
+    def get_queryset(self):
+        """Filter salaries based on user role and permissions"""
+        user = self.request.user
+        queryset = Salary.objects.select_related(
+            'employee', 'employee__office', 'employee__department', 
+            'employee__designation', 'approved_by', 'created_by'
+        ).all()
+
+        # Role-based filtering
+        if user.role == 'admin':
+            # Admin can see all salaries
+            pass
+        elif user.role == 'manager':
+            # Manager can see salaries of employees in their office
+            if user.office:
+                queryset = queryset.filter(employee__office=user.office)
+        elif user.role == 'accountant':
+            # Accountant can see all salaries
+            pass
+        elif user.role == 'employee':
+            # Employee can only see their own salaries
+            queryset = queryset.filter(employee=user)
+
+        # Additional filters
+        office_id = self.request.query_params.get('office_id')
+        department_id = self.request.query_params.get('department_id')
+        status_filter = self.request.query_params.get('status')
+        year = self.request.query_params.get('year')
+        month = self.request.query_params.get('month')
+
+        if office_id:
+            queryset = queryset.filter(employee__office_id=office_id)
+        if department_id:
+            queryset = queryset.filter(employee__department_id=department_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if year:
+            queryset = queryset.filter(salary_month__year=year)
+        if month:
+            queryset = queryset.filter(salary_month__month=month)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        """Create salary with current user as creator"""
+        serializer.save(created_by=self.request.user)
+
+
+class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a salary
+    - GET: Get salary details
+    - PUT/PATCH: Update salary (Admin/Manager/Accountant only)
+    - DELETE: Delete salary (Admin only)
+    """
+    serializer_class = SalarySerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def get_queryset(self):
+        """Filter salaries based on user role"""
+        user = self.request.user
+        queryset = Salary.objects.select_related(
+            'employee', 'employee__office', 'employee__department',
+            'employee__designation', 'approved_by', 'created_by'
+        ).all()
+
+        if user.role == 'employee':
+            # Employee can only see their own salaries
+            queryset = queryset.filter(employee=user)
+        elif user.role == 'manager' and user.office:
+            # Manager can see salaries of employees in their office
+            queryset = queryset.filter(employee__office=user.office)
+
+        return queryset
+
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.request.method in ['PUT', 'PATCH']:
+            return SalaryUpdateSerializer
+        return SalarySerializer
+
+
+class SalaryApprovalView(generics.UpdateAPIView):
+    """
+    Approve or reject salary
+    - PUT/PATCH: Approve/reject salary (Admin/Manager only)
+    """
+    serializer_class = SalaryApprovalSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManager]
+
+    def get_queryset(self):
+        """Filter salaries for approval"""
+        user = self.request.user
+        queryset = Salary.objects.select_related('employee', 'employee__office').all()
+
+        if user.role == 'manager' and user.office:
+            # Manager can only approve salaries of employees in their office
+            queryset = queryset.filter(employee__office=user.office)
+
+        return queryset
+
+    def perform_update(self, serializer):
+        """Handle salary approval/rejection"""
+        salary = self.get_object()
+        status = serializer.validated_data.get('status')
+        rejection_reason = serializer.validated_data.get('rejection_reason', '')
+
+        if status == 'approved':
+            salary.approve_salary(self.request.user)
+        elif status == 'cancelled':
+            salary.reject_salary(self.request.user, rejection_reason)
+
+        serializer.save()
+
+
+class SalaryPaymentView(generics.UpdateAPIView):
+    """
+    Mark salary as paid
+    - PUT/PATCH: Mark salary as paid (Admin/Manager/Accountant only)
+    """
+    serializer_class = SalaryPaymentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def get_queryset(self):
+        """Filter salaries for payment"""
+        user = self.request.user
+        queryset = Salary.objects.filter(status='approved')
+
+        if user.role == 'manager' and user.office:
+            # Manager can only mark salaries as paid for employees in their office
+            queryset = queryset.filter(employee__office=user.office)
+
+        return queryset
+
+    def perform_update(self, serializer):
+        """Mark salary as paid"""
+        salary = self.get_object()
+        paid_date = serializer.validated_data.get('paid_date')
+        payment_method = serializer.validated_data.get('payment_method')
+
+        salary.mark_as_paid(paid_date)
+        if payment_method:
+            salary.payment_method = payment_method
+            salary.save()
+
+        serializer.save()
+
+
+class SalaryBulkCreateView(APIView):
+    """
+    Bulk create salaries for multiple employees
+    - POST: Create salaries for multiple employees (Admin/Manager/Accountant only)
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def post(self, request):
+        """Create salaries for multiple employees"""
+        serializer = SalaryBulkCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        employee_ids = data['employee_ids']
+        salary_month = data['salary_month']
+        template_id = data.get('template_id')
+        basic_pay = data.get('basic_pay')
+        increment = data.get('increment', 0)
+        attendance_based = data.get('attendance_based', True)
+
+        created_salaries = []
+        errors = []
+
+        for employee_id in employee_ids:
+            try:
+                employee = CustomUser.objects.get(id=employee_id, role='employee')
+                
+                # Check for existing salary for this employee and month
+                if Salary.objects.filter(employee=employee, salary_month=salary_month).exists():
+                    errors.append(f"Salary already exists for {employee.get_full_name()} for {salary_month.strftime('%B %Y')}")
+                    continue
+
+                # Get salary data from template or use provided basic_pay
+                if template_id:
+                    template = SalaryTemplate.objects.get(id=template_id)
+                    if employee.designation != template.designation or employee.office != template.office:
+                        errors.append(f"Template doesn't match employee {employee.get_full_name()}")
+                        continue
+                    
+                    salary_data = {
+                        'employee': employee,
+                        'basic_pay': template.basic_pay,
+                        'house_rent_allowance': template.house_rent_allowance,
+                        'transport_allowance': template.transport_allowance,
+                        'medical_allowance': template.medical_allowance,
+                        'other_allowances': template.other_allowances,
+                        'provident_fund': template.basic_pay * (template.provident_fund_percentage / 100),
+                        'professional_tax': template.professional_tax,
+                        'salary_month': salary_month,
+                        'attendance_based': attendance_based,
+                        'is_auto_calculated': True,
+                        'created_by': request.user
+                    }
+                else:
+                    salary_data = {
+                        'employee': employee,
+                        'basic_pay': basic_pay,
+                        'increment': increment,
+                        'salary_month': salary_month,
+                        'attendance_based': attendance_based,
+                        'is_auto_calculated': True,
+                        'created_by': request.user
+                    }
+
+                salary = Salary.objects.create(**salary_data)
+                created_salaries.append(SalarySerializer(salary).data)
+
+            except CustomUser.DoesNotExist:
+                errors.append(f"Employee with ID {employee_id} not found")
+            except SalaryTemplate.DoesNotExist:
+                errors.append(f"Template with ID {template_id} not found")
+            except Exception as e:
+                errors.append(f"Error creating salary for employee {employee_id}: {str(e)}")
+
+        response_data = {
+            'created_salaries': created_salaries,
+            'total_created': len(created_salaries),
+            'errors': errors
+        }
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+class SalaryAutoCalculateView(APIView):
+    """
+    Auto-calculate salaries from attendance data
+    - POST: Calculate salaries based on attendance (Admin/Manager/Accountant only)
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def post(self, request):
+        """Auto-calculate salaries from attendance"""
+        serializer = SalaryAutoCalculateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        salary_month = data['salary_month']
+        employee_ids = data.get('employee_ids')
+        office_id = data.get('office_id')
+        department_id = data.get('department_id')
+        template_id = data.get('template_id')
+        basic_pay = data.get('basic_pay')
+
+        # Get employees to process
+        employees = CustomUser.objects.filter(role='employee')
+        
+        if employee_ids:
+            employees = employees.filter(id__in=employee_ids)
+        if office_id:
+            employees = employees.filter(office_id=office_id)
+        if department_id:
+            employees = employees.filter(department_id=department_id)
+
+        created_salaries = []
+        updated_salaries = []
+        errors = []
+
+        for employee in employees:
+            try:
+                # Check if salary already exists
+                salary, created = Salary.objects.get_or_create(
+                    employee=employee,
+                    salary_month=salary_month,
+                    defaults={
+                        'created_by': request.user,
+                        'attendance_based': True,
+                        'is_auto_calculated': True
+                    }
+                )
+
+                # Set salary data
+                if template_id:
+                    template = SalaryTemplate.objects.get(id=template_id)
+                    if employee.designation == template.designation and employee.office == template.office:
+                        salary.basic_pay = template.basic_pay
+                        salary.house_rent_allowance = template.house_rent_allowance
+                        salary.transport_allowance = template.transport_allowance
+                        salary.medical_allowance = template.medical_allowance
+                        salary.other_allowances = template.other_allowances
+                        salary.provident_fund = template.basic_pay * (template.provident_fund_percentage / 100)
+                        salary.professional_tax = template.professional_tax
+                else:
+                    salary.basic_pay = basic_pay
+
+                # Auto-calculate worked days from attendance
+                salary.calculate_worked_days_from_attendance()
+                salary.save()
+
+                if created:
+                    created_salaries.append(SalarySerializer(salary).data)
+                else:
+                    updated_salaries.append(SalarySerializer(salary).data)
+
+            except SalaryTemplate.DoesNotExist:
+                errors.append(f"Template with ID {template_id} not found for employee {employee.get_full_name()}")
+            except Exception as e:
+                errors.append(f"Error processing employee {employee.get_full_name()}: {str(e)}")
+
+        response_data = {
+            'created_salaries': created_salaries,
+            'updated_salaries': updated_salaries,
+            'total_created': len(created_salaries),
+            'total_updated': len(updated_salaries),
+            'errors': errors
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class SalaryTemplateListView(generics.ListCreateAPIView):
+    """
+    List all salary templates or create a new template
+    - GET: List templates with filtering
+    - POST: Create new template (Admin/Manager/Accountant only)
+    """
+    serializer_class = SalaryTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'designation__name', 'office__name']
+    ordering_fields = ['name', 'created_at', 'basic_pay']
+    ordering = ['designation__name', 'office__name']
+
+    def get_queryset(self):
+        """Filter templates based on user role"""
+        user = self.request.user
+        queryset = SalaryTemplate.objects.select_related(
+            'designation', 'office', 'created_by'
+        ).filter(is_active=True)
+
+        if user.role == 'manager' and user.office:
+            # Manager can only see templates for their office
+            queryset = queryset.filter(office=user.office)
+
+        return queryset
+
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.request.method == 'POST':
+            return SalaryTemplateCreateSerializer
+        return SalaryTemplateSerializer
+
+    def perform_create(self, serializer):
+        """Create template with current user as creator"""
+        serializer.save(created_by=self.request.user)
+
+
+class SalaryTemplateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a salary template
+    - GET: Get template details
+    - PUT/PATCH: Update template (Admin/Manager/Accountant only)
+    - DELETE: Delete template (Admin only)
+    """
+    serializer_class = SalaryTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def get_queryset(self):
+        """Filter templates based on user role"""
+        user = self.request.user
+        queryset = SalaryTemplate.objects.select_related(
+            'designation', 'office', 'created_by'
+        ).all()
+
+        if user.role == 'manager' and user.office:
+            # Manager can only see templates for their office
+            queryset = queryset.filter(office=user.office)
+
+        return queryset
+
+
+class SalaryReportView(APIView):
+    """
+    Generate salary reports
+    - GET: Get salary report data (Admin/Manager/Accountant only)
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def get(self, request):
+        """Generate salary report"""
+        serializer = SalaryReportSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        office_id = data.get('office_id')
+        department_id = data.get('department_id')
+        year = data['year']
+        month = data['month']
+        status_filter = data.get('status')
+
+        # Build queryset
+        queryset = Salary.objects.filter(
+            salary_month__year=year,
+            salary_month__month=month
+        ).select_related('employee', 'employee__office', 'employee__department')
+
+        # Apply filters
+        if office_id:
+            queryset = queryset.filter(employee__office_id=office_id)
+        if department_id:
+            queryset = queryset.filter(employee__department_id=department_id)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        # Role-based filtering
+        user = request.user
+        if user.role == 'manager' and user.office:
+            queryset = queryset.filter(employee__office=user.office)
+
+        # Calculate statistics
+        total_salaries = queryset.count()
+        total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
+        paid_salaries = queryset.filter(status='paid').count()
+        paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
+        pending_salaries = queryset.filter(status__in=['draft', 'pending', 'approved']).count()
+        pending_amount = queryset.filter(status__in=['draft', 'pending', 'approved']).aggregate(total=Sum('net_salary'))['total'] or 0
+
+        # Get salary details
+        salary_details = []
+        for salary in queryset:
+            salary_details.append({
+                'id': str(salary.id),
+                'employee_name': salary.employee.get_full_name(),
+                'employee_id': salary.employee.employee_id,
+                'office': salary.employee.office.name if salary.employee.office else None,
+                'department': salary.employee.department.name if salary.employee.department else None,
+                'basic_pay': float(salary.basic_pay),
+                'net_salary': float(salary.net_salary),
+                'status': salary.status,
+                'salary_month': salary.salary_month.strftime('%Y-%m-%d')
+            })
+
+        report_data = {
+            'summary': {
+                'total_salaries': total_salaries,
+                'total_amount': float(total_amount),
+                'paid_salaries': paid_salaries,
+                'paid_amount': float(paid_amount),
+                'pending_salaries': pending_salaries,
+                'pending_amount': float(pending_amount)
+            },
+            'details': salary_details,
+            'filters': {
+                'year': year,
+                'month': month,
+                'office_id': str(office_id) if office_id else None,
+                'department_id': str(department_id) if department_id else None,
+                'status': status_filter
+            }
+        }
+
+        return Response(report_data, status=status.HTTP_200_OK)
+
+
+class SalarySummaryView(APIView):
+    """
+    Get salary summary statistics
+    - GET: Get salary summary (Admin/Manager/Accountant only)
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+
+    def get(self, request):
+        """Get salary summary statistics"""
+        # Get current month
+        current_date = timezone.now().date()
+        current_month = current_date.replace(day=1)
+
+        # Build queryset
+        queryset = Salary.objects.filter(salary_month=current_month)
+        
+        # Role-based filtering
+        user = request.user
+        if user.role == 'manager' and user.office:
+            queryset = queryset.filter(employee__office=user.office)
+
+        # Calculate statistics
+        total_salaries = queryset.count()
+        total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
+        paid_salaries = queryset.filter(status='paid').count()
+        paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
+        pending_salaries = queryset.filter(status__in=['draft', 'pending', 'approved']).count()
+        pending_amount = queryset.filter(status__in=['draft', 'pending', 'approved']).aggregate(total=Sum('net_salary'))['total'] or 0
+
+        # Calculate averages
+        if total_salaries > 0:
+            average_salary = total_amount / total_salaries
+            highest_salary = queryset.aggregate(max=Max('net_salary'))['max'] or 0
+            lowest_salary = queryset.aggregate(min=Min('net_salary'))['min'] or 0
+        else:
+            average_salary = 0
+            highest_salary = 0
+            lowest_salary = 0
+
+        summary_data = {
+            'total_salaries': total_salaries,
+            'total_amount': float(total_amount),
+            'paid_salaries': paid_salaries,
+            'paid_amount': float(paid_amount),
+            'pending_salaries': pending_salaries,
+            'pending_amount': float(pending_amount),
+            'average_salary': float(average_salary),
+            'highest_salary': float(highest_salary),
+            'lowest_salary': float(lowest_salary),
+            'month': current_month.strftime('%B %Y')
+        }
+
+        return Response(summary_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrEmployee])
+def employee_salary_history(request, employee_id):
+    """
+    Get salary history for a specific employee
+    - GET: Get employee's salary history
+    """
+    try:
+        employee = CustomUser.objects.get(id=employee_id, role='employee')
+        
+        # Check permissions
+        user = request.user
+        if user.role == 'employee' and user != employee:
+            return Response(
+                {'error': 'You can only view your own salary history.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        elif user.role == 'manager' and user.office and employee.office != user.office:
+            return Response(
+                {'error': 'You can only view salary history of employees in your office.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Get salary history
+        salaries = Salary.objects.filter(employee=employee).order_by('-salary_month')
+        
+        # Apply filters
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+        status_filter = request.query_params.get('status')
+
+        if year:
+            salaries = salaries.filter(salary_month__year=year)
+        if month:
+            salaries = salaries.filter(salary_month__month=month)
+        if status_filter:
+            salaries = salaries.filter(status=status_filter)
+
+        serializer = SalarySerializer(salaries, many=True, context={'request': request})
+        
+        return Response({
+            'employee': {
+                'id': str(employee.id),
+                'name': employee.get_full_name(),
+                'employee_id': employee.employee_id,
+                'office': employee.office.name if employee.office else None,
+                'department': employee.department.name if employee.department else None
+            },
+            'salaries': serializer.data,
+            'total_salaries': salaries.count()
+        }, status=status.HTTP_200_OK)
+
+    except CustomUser.DoesNotExist:
+        return Response(
+            {'error': 'Employee not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrAccountant])
+def recalculate_salary(request, salary_id):
+    """
+    Recalculate salary based on attendance
+    - POST: Recalculate salary (Admin/Manager/Accountant only)
+    """
+    try:
+        salary = Salary.objects.get(id=salary_id)
+        
+        # Check permissions
+        user = request.user
+        if user.role == 'manager' and user.office and salary.employee.office != user.office:
+            return Response(
+                {'error': 'You can only recalculate salaries of employees in your office.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Recalculate worked days from attendance
+        salary.calculate_worked_days_from_attendance()
+        salary.save()
+
+        serializer = SalarySerializer(salary, context={'request': request})
+        
+        return Response({
+            'message': 'Salary recalculated successfully.',
+            'salary': serializer.data
+        }, status=status.HTTP_200_OK)
+
+    except Salary.DoesNotExist:
+        return Response(
+            {'error': 'Salary not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrAccountant])
+def salary_statistics(request):
+    """
+    Get detailed salary statistics
+    - GET: Get salary statistics (Admin/Manager/Accountant only)
+    """
+    # Get current month
+    current_date = timezone.now().date()
+    current_month = current_date.replace(day=1)
+
+    # Build queryset
+    queryset = Salary.objects.filter(salary_month=current_month)
+    
+    # Role-based filtering
+    user = request.user
+    if user.role == 'manager' and user.office:
+        queryset = queryset.filter(employee__office=user.office)
+
+    # Calculate detailed statistics
+    stats = {
+        'by_status': {},
+        'by_office': {},
+        'by_department': {},
+        'monthly_trends': {}
+    }
+
+    # Statistics by status
+    for status_choice in Salary.SALARY_STATUS_CHOICES:
+        status_value = status_choice[0]
+        count = queryset.filter(status=status_value).count()
+        amount = queryset.filter(status=status_value).aggregate(total=Sum('net_salary'))['total'] or 0
+        stats['by_status'][status_value] = {
+            'count': count,
+            'amount': float(amount)
+        }
+
+    # Statistics by office
+    offices = Office.objects.all()
+    for office in offices:
+        office_salaries = queryset.filter(employee__office=office)
+        count = office_salaries.count()
+        amount = office_salaries.aggregate(total=Sum('net_salary'))['total'] or 0
+        if count > 0:
+            stats['by_office'][office.name] = {
+                'count': count,
+                'amount': float(amount)
+            }
+
+    # Statistics by department
+    departments = Department.objects.all()
+    for department in departments:
+        dept_salaries = queryset.filter(employee__department=department)
+        count = dept_salaries.count()
+        amount = dept_salaries.aggregate(total=Sum('net_salary'))['total'] or 0
+        if count > 0:
+            stats['by_department'][department.name] = {
+                'count': count,
+                'amount': float(amount)
+            }
+
+    # Monthly trends (last 6 months)
+    for i in range(6):
+        month_date = current_month - timedelta(days=30 * i)
+        month_salaries = Salary.objects.filter(salary_month=month_date)
+        
+        if user.role == 'manager' and user.office:
+            month_salaries = month_salaries.filter(employee__office=user.office)
+        
+        count = month_salaries.count()
+        amount = month_salaries.aggregate(total=Sum('net_salary'))['total'] or 0
+        
+        stats['monthly_trends'][month_date.strftime('%Y-%m')] = {
+            'count': count,
+            'amount': float(amount)
+        }
+
+    return Response(stats, status=status.HTTP_200_OK)

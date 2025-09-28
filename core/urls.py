@@ -11,6 +11,12 @@ from .views import (
     AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
     ResignationViewSet, DepartmentViewSet, DesignationViewSet
 )
+from .salary_views import (
+    SalaryListView, SalaryDetailView, SalaryApprovalView, SalaryPaymentView,
+    SalaryBulkCreateView, SalaryAutoCalculateView, SalaryTemplateListView,
+    SalaryTemplateDetailView, SalaryReportView, SalarySummaryView,
+    employee_salary_history, recalculate_salary, salary_statistics
+)
 from .document_views import (
     DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
 )
@@ -84,4 +90,21 @@ urlpatterns = [
     path('api/device/push-attendance/', DevicePushDataView.as_view(), name='device-push-attendance'),
     path('api/device/receive-attendance/', receive_attendance_push, name='receive-attendance-push'),
     path('api/device/health-check/', device_health_check, name='device-health-check'),
+    
+    # Salary Management endpoints
+    path('api/salaries/', SalaryListView.as_view(), name='salary-list'),
+    path('api/salaries/<uuid:pk>/', SalaryDetailView.as_view(), name='salary-detail'),
+    path('api/salaries/<uuid:pk>/approve/', SalaryApprovalView.as_view(), name='salary-approval'),
+    path('api/salaries/<uuid:pk>/payment/', SalaryPaymentView.as_view(), name='salary-payment'),
+    path('api/salaries/bulk-create/', SalaryBulkCreateView.as_view(), name='salary-bulk-create'),
+    path('api/salaries/auto-calculate/', SalaryAutoCalculateView.as_view(), name='salary-auto-calculate'),
+    path('api/salaries/<uuid:salary_id>/recalculate/', recalculate_salary, name='salary-recalculate'),
+    path('api/salaries/employee/<uuid:employee_id>/history/', employee_salary_history, name='employee-salary-history'),
+    path('api/salaries/reports/', SalaryReportView.as_view(), name='salary-reports'),
+    path('api/salaries/summary/', SalarySummaryView.as_view(), name='salary-summary'),
+    path('api/salaries/statistics/', salary_statistics, name='salary-statistics'),
+    
+    # Salary Template endpoints
+    path('api/salary-templates/', SalaryTemplateListView.as_view(), name='salary-template-list'),
+    path('api/salary-templates/<uuid:pk>/', SalaryTemplateDetailView.as_view(), name='salary-template-detail'),
 ]
