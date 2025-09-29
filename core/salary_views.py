@@ -359,20 +359,20 @@ class SalaryTemplateListView(generics.ListCreateAPIView):
     serializer_class = SalaryTemplateSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'designation__name', 'office__name']
-    ordering_fields = ['name', 'created_at', 'basic_pay']
-    ordering = ['designation__name', 'office__name']
+    search_fields = ['name', 'designation_name', 'office_name']
+    ordering_fields = ['name', 'created_at', 'basic_pay', 'designation_name', 'office_name']
+    ordering = ['designation_name', 'office_name']
 
     def get_queryset(self):
         """Filter templates based on user role"""
         user = self.request.user
         queryset = SalaryTemplate.objects.select_related(
-            'designation', 'office', 'created_by'
+            'created_by'
         ).filter(is_active=True)
 
         if user.role == 'manager' and user.office:
             # Manager can only see templates for their office
-            queryset = queryset.filter(office=user.office)
+            queryset = queryset.filter(office_name=user.office.name)
 
         return queryset
 

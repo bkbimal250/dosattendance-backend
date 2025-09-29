@@ -913,8 +913,7 @@ class Salary(models.Model):
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="salaries",
-        limit_choices_to={'role': 'employee'}
+        related_name="salaries"
     )
     
     # Basic Salary Information

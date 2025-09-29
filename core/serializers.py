@@ -1079,9 +1079,9 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate_employee(self, value):
-        """Validate that employee is actually an employee"""
-        if value.role != 'employee':
-            raise serializers.ValidationError('Salary can only be assigned to employees.')
+        """Validate that the user exists and is active"""
+        if not value.is_active:
+            raise serializers.ValidationError('Cannot create salary for inactive users.')
         return value
     
     def validate_salary_month(self, value):
