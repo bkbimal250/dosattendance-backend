@@ -898,7 +898,7 @@ class Salary(models.Model):
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('paid', 'Paid'),
-        ('cancelled', 'Cancelled'),
+        ('rejected', 'Rejected'),
     ]
     
     PAYMENT_METHOD_CHOICES = [
@@ -940,7 +940,7 @@ class Salary(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='bank_transfer')
     
     # Status and Approval
-    status = models.CharField(max_length=20, choices=SALARY_STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=SALARY_STATUS_CHOICES, default='paid')
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -1137,7 +1137,7 @@ class Salary(models.Model):
         if rejected_by.role not in ['admin', 'manager']:
             raise ValidationError('Only admin or manager can reject salaries.')
         
-        self.status = 'cancelled'
+        self.status = 'rejected'
         self.rejection_reason = reason
         self.save()
 

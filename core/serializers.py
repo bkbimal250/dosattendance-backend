@@ -1075,7 +1075,7 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
         fields = [
             'employee', 'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days',
             'deduction', 'balance_loan', 'salary_month', 'pay_date', 'payment_method',
-            'notes', 'attendance_based'
+            'notes', 'attendance_based', 'status'
         ]
     
     def validate_employee(self, value):
@@ -1122,8 +1122,8 @@ class SalaryApprovalSerializer(serializers.ModelSerializer):
     
     def validate_status(self, value):
         """Validate status change"""
-        if value not in ['approved', 'cancelled']:
-            raise serializers.ValidationError("Status must be either 'approved' or 'cancelled'.")
+        if value not in ['approved', 'rejected']:
+            raise serializers.ValidationError("Status must be either 'approved' or 'rejected'.")
         return value
     
     def validate(self, attrs):
@@ -1131,8 +1131,8 @@ class SalaryApprovalSerializer(serializers.ModelSerializer):
         status = attrs.get('status')
         rejection_reason = attrs.get('rejection_reason', '')
         
-        if status == 'cancelled' and not rejection_reason:
-            raise serializers.ValidationError("Rejection reason is required when cancelling a salary.")
+        if status == 'rejected' and not rejection_reason:
+            raise serializers.ValidationError("Rejection reason is required when rejecting a salary.")
         
         return attrs
 

@@ -151,7 +151,7 @@ class SalaryApprovalView(generics.UpdateAPIView):
 
         if status == 'approved':
             salary.approve_salary(self.request.user)
-        elif status == 'cancelled':
+        elif status == 'rejected':
             salary.reject_salary(self.request.user, rejection_reason)
 
         serializer.save()
