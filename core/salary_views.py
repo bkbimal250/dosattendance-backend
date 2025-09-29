@@ -149,10 +149,26 @@ class SalaryApprovalView(generics.UpdateAPIView):
         status = serializer.validated_data.get('status')
         rejection_reason = serializer.validated_data.get('rejection_reason', '')
 
+        # Check permissions for approval/rejection
         if status == 'approved':
-            salary.approve_salary(self.request.user)
+            if self.request.user.role in ['admin', 'manager']:
+                salary.approve_salary(self.request.user)
+            else:
+                # For non-admin/manager users, just update status directly
+                salary.status = 'approved'
+                salary.save()
         elif status == 'rejected':
-            salary.reject_salary(self.request.user, rejection_reason)
+            if self.request.user.role in ['admin', 'manager']:
+                salary.reject_salary(self.request.user, rejection_reason)
+            else:
+                # For non-admin/manager users, just update status directly
+                salary.status = 'rejected'
+                salary.rejection_reason = rejection_reason
+                salary.save()
+        else:
+            # For other status changes, update directly
+            salary.status = status
+            salary.save()
 
         serializer.save()
 
@@ -168,7 +184,8 @@ class SalaryPaymentView(generics.UpdateAPIView):
     def get_queryset(self):
         """Filter salaries for payment"""
         user = self.request.user
-        queryset = Salary.objects.filter(status='approved')
+        # Allow payment for approved salaries, but also allow direct status changes
+        queryset = Salary.objects.all()
 
         if user.role == 'manager' and user.office:
             # Manager can only mark salaries as paid for employees in their office
@@ -182,10 +199,14 @@ class SalaryPaymentView(generics.UpdateAPIView):
         paid_date = serializer.validated_data.get('paid_date')
         payment_method = serializer.validated_data.get('payment_method')
 
-        salary.mark_as_paid(paid_date)
+        # Update status to paid
+        salary.status = 'paid'
+        salary.paid_date = paid_date or timezone.now().date()
+        
         if payment_method:
             salary.payment_method = payment_method
-            salary.save()
+            
+        salary.save()
 
         serializer.save()
 
