@@ -130,7 +130,7 @@ class SalaryApprovalView(generics.UpdateAPIView):
     - PUT/PATCH: Approve/reject salary (Admin/Manager only)
     """
     serializer_class = SalaryApprovalSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManager]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
 
     def get_queryset(self):
         """Filter salaries for approval"""
