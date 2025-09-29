@@ -905,6 +905,7 @@ class Salary(models.Model):
         ('bank_transfer', 'Bank Transfer'),
         ('cash', 'Cash'),
         ('cheque', 'Cheque'),
+        ('upi', 'Upi'),
         ('other', 'Other'),
     ]
     
@@ -927,6 +928,10 @@ class Salary(models.Model):
     deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total deductions")
     balance_loan = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Outstanding loan balance")
     remaining_pay = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Remaining pay after deductions")
+    
+    # Calculated Salary Fields (stored in database)
+    gross_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Gross salary (per_day_pay * worked_days)")
+    net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net salary after deductions")
     
     
     # Salary Period and Payment
@@ -1009,8 +1014,23 @@ class Salary(models.Model):
         self.clean()
         
         # Auto-calculate worked_days from attendance if not manually set
-        if self.attendance_based and not self._state.adding:
+        # Only recalculate if attendance_based is True AND we're not manually setting worked_days
+        if self.attendance_based and not self._state.adding and hasattr(self, '_recalculate_from_attendance'):
             self.calculate_worked_days_from_attendance()
+        
+        # Ensure worked_days has a reasonable default if it's 0
+        if self.worked_days == 0:
+            if self.attendance_based:
+                # If attendance-based but no attendance data, use total_days
+                self.worked_days = self.total_days
+            else:
+                # If not attendance-based, use total_days
+                self.worked_days = self.total_days
+        # If worked_days is manually set to a non-zero value, respect that value
+        
+        # Calculate and store gross_salary and net_salary in database fields
+        self.gross_salary = self.per_day_pay * Decimal(self.worked_days)
+        self.net_salary = self.gross_salary - self.deduction
         
         # Auto-calculate remaining_pay
         self.calculate_remaining_pay()
@@ -1029,8 +1049,8 @@ class Salary(models.Model):
         return Decimal(str(self.per_day_pay))
 
     @property
-    def gross_salary(self):
-        """Gross salary based on worked days"""
+    def gross_salary_property(self):
+        """Gross salary based on worked days (property for backward compatibility)"""
         return self.per_day_salary * Decimal(self.worked_days)
 
     @property
@@ -1044,8 +1064,8 @@ class Salary(models.Model):
         return Decimal(str(self.deduction))  # Only basic deduction
 
     @property
-    def net_salary(self):
-        """Net salary after all deductions"""
+    def net_salary_property(self):
+        """Net salary after all deductions (property for backward compatibility)"""
         return self.gross_salary - self.total_deductions
 
     @property

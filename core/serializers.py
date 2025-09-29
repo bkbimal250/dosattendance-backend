@@ -1038,7 +1038,7 @@ class SalarySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'employee', 'employee_name', 'employee_email', 'employee_employee_id',
             'employee_office_name', 'employee_department_name', 'employee_designation_name',
-            'basic_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
+            'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
             'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'status', 
             'approved_by', 'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 
             'is_auto_calculated', 'attendance_based', 'created_by', 'created_by_name', 
