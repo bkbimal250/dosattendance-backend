@@ -466,6 +466,8 @@ class SalaryReportView(APIView):
         # Calculate statistics
         total_salaries = queryset.count()
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
+        # Distinct employees present in the filtered queryset
+        total_employees = queryset.values('employee_id').distinct().count()
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
         pending_salaries = queryset.filter(status='pending').count()
@@ -521,12 +523,33 @@ class SalarySummaryView(APIView):
 
     def get(self, request):
         """Get salary summary statistics"""
-        # Get current month
+        # Get current month or use provided year/month
         current_date = timezone.now().date()
         current_month = current_date.replace(day=1)
+        
+        # Allow filtering by year/month if provided
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+        
+        used_month = current_month
+        if year and month:
+            try:
+                filter_date = current_date.replace(year=int(year), month=int(month), day=1)
+                queryset = Salary.objects.filter(salary_month=filter_date)
+                used_month = filter_date
+            except (ValueError, TypeError):
+                queryset = Salary.objects.filter(salary_month=current_month)
+                used_month = current_month
+        else:
+            queryset = Salary.objects.filter(salary_month=current_month)
+            used_month = current_month
 
-        # Build queryset
-        queryset = Salary.objects.filter(salary_month=current_month)
+        # If no data for selected/current month, fallback to latest month with data
+        if not queryset.exists():
+            latest = Salary.objects.order_by('-salary_month').first()
+            if latest:
+                used_month = latest.salary_month.replace(day=1)
+                queryset = Salary.objects.filter(salary_month=used_month)
         
         # Role-based filtering
         user = request.user
@@ -554,6 +577,7 @@ class SalarySummaryView(APIView):
             lowest_salary = 0
 
         summary_data = {
+            'total_employees': total_employees,
             'total_salaries': total_salaries,
             'total_amount': float(total_amount),
             'paid_salaries': paid_salaries,
@@ -565,7 +589,8 @@ class SalarySummaryView(APIView):
             'average_salary': float(average_salary),
             'highest_salary': float(highest_salary),
             'lowest_salary': float(lowest_salary),
-            'month': current_month.strftime('%B %Y')
+            'month': used_month.strftime('%B %Y'),
+            'month_ym': used_month.strftime('%Y-%m')
         }
 
         return Response(summary_data, status=status.HTTP_200_OK)
