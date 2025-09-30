@@ -460,14 +460,22 @@ class SalaryReportView(APIView):
 
         # Role-based filtering
         user = request.user
+        
+        # Get all users based on role permissions (not just those with salaries)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
         if user.role == 'manager' and user.office:
+            all_users = User.objects.filter(office=user.office)
             queryset = queryset.filter(employee__office=user.office)
-
+        else:
+            all_users = User.objects.all()
+        
         # Calculate statistics
         total_salaries = queryset.count()
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
-        # Distinct users present in the filtered queryset
-        total_users = queryset.values('employee_id').distinct().count()
+        # Total users (all users, not just those with salaries)
+        total_users = all_users.count()
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
         pending_salaries = queryset.filter(status='pending').count()
@@ -475,10 +483,13 @@ class SalaryReportView(APIView):
         hold_salaries = queryset.filter(status='hold').count()
         hold_amount = queryset.filter(status='hold').aggregate(total=Sum('net_salary'))['total'] or 0
 
-        # Get salary details
+        # Get salary details - include all users, even those without salary records
         salary_details = []
+        
+        # Create a mapping of employee_id to salary data
+        salary_map = {}
         for salary in queryset:
-            salary_details.append({
+            salary_map[salary.employee.id] = {
                 'id': str(salary.id),
                 'employee_name': salary.employee.get_full_name(),
                 'employee_id': salary.employee.employee_id,
@@ -488,7 +499,26 @@ class SalaryReportView(APIView):
                 'net_salary': float(salary.net_salary),
                 'status': salary.status,
                 'salary_month': salary.salary_month.strftime('%Y-%m-%d')
-            })
+            }
+        
+        # Add all users to the details
+        for user in all_users:
+            if user.id in salary_map:
+                # User has salary record
+                salary_details.append(salary_map[user.id])
+            else:
+                # User has no salary record for this month
+                salary_details.append({
+                    'id': None,
+                    'employee_name': user.get_full_name(),
+                    'employee_id': user.employee_id,
+                    'office': user.office.name if user.office else None,
+                    'department': user.department.name if user.department else None,
+                    'basic_pay': 0,
+                    'net_salary': 0,
+                    'status': 'no_salary',
+                    'salary_month': used_month.strftime('%Y-%m-%d')
+                })
 
         report_data = {
             'summary': {
