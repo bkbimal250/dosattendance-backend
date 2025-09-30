@@ -2535,11 +2535,14 @@ class LeaveViewSet(viewsets.ModelViewSet):
         leave = self.get_object()
         serializer = LeaveApprovalSerializer(leave, data=request.data, partial=True)
         if serializer.is_valid():
+            # Set approved status and clear any previous rejection reason
             leave.status = 'approved'
+            leave.rejection_reason = ''
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()
-            return Response(serializer.data)
+            # Return full leave payload
+            return Response(LeaveSerializer(leave, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
@@ -2548,11 +2551,14 @@ class LeaveViewSet(viewsets.ModelViewSet):
         leave = self.get_object()
         serializer = LeaveApprovalSerializer(leave, data=request.data, partial=True)
         if serializer.is_valid():
+            # Set rejected status and persist rejection reason if provided
             leave.status = 'rejected'
+            leave.rejection_reason = serializer.validated_data.get('rejection_reason', '')
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()
-            return Response(serializer.data)
+            # Return full leave payload
+            return Response(LeaveSerializer(leave, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'])
