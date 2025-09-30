@@ -953,6 +953,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         
         # Debug logging for filtering
         query_params = getattr(request, 'query_params', request.GET)
+        logger.info(f"CustomUserViewSet - User: {request.user.username} (admin: {request.user.is_admin})")
         logger.info(f"CustomUserViewSet - Query params: {query_params}")
         logger.info(f"CustomUserViewSet - Initial queryset count: {queryset.count()}")
         
@@ -964,6 +965,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         else:
             logger.warning(f"CustomUserViewSet - Filter errors: {filterset.errors}")
         
+        # Additional debug for admin users
+        if request.user.is_admin:
+            logger.info(f"CustomUserViewSet - Admin user, returning {queryset.count()} users")
+            # Log first few users for debugging
+            for user in queryset[:3]:
+                logger.info(f"CustomUserViewSet - User: {user.username} ({user.first_name} {user.last_name})")
+        
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -974,7 +982,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.is_admin:
             queryset = queryset.all()
         elif user.is_manager:
-            queryset = queryset.filter(office=user.office)
+            # Managers need to map device users across offices; allow full user list
+            queryset = queryset.all()
         elif user.is_accountant:
             # Accountant can see all users from all offices (read-only)
             queryset = queryset.all()
@@ -2683,12 +2692,21 @@ class DocumentViewSet(viewsets.ModelViewSet):
         try:
             from django.http import FileResponse
             import os
+            import mimetypes
+            from urllib.parse import quote
             
             file_path = document.file.path
             if os.path.exists(file_path):
-                response = FileResponse(open(file_path, 'rb'))
-                response['Content-Type'] = 'application/octet-stream'
-                response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+                filename = os.path.basename(document.file.name) or os.path.basename(file_path)
+                content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+                fh = open(file_path, 'rb')
+                response = FileResponse(fh, content_type=content_type)
+                # RFC 5987 encoding for UTF-8 filenames
+                response['Content-Disposition'] = f"attachment; filename*=UTF-8''{quote(filename)}"
+                try:
+                    response['Content-Length'] = os.path.getsize(file_path)
+                except Exception:
+                    pass
                 return response
             else:
                 return Response({'error': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
