@@ -144,32 +144,24 @@ class SalaryApprovalView(generics.UpdateAPIView):
         return queryset
 
     def perform_update(self, serializer):
-        """Handle salary approval/rejection"""
+        """Handle salary status changes (pending, paid, hold)"""
         salary = self.get_object()
         status = serializer.validated_data.get('status')
-        rejection_reason = serializer.validated_data.get('rejection_reason', '')
 
-        # Check permissions for approval/rejection
-        if status == 'approved':
-            if self.request.user.role in ['admin', 'manager']:
-                salary.approve_salary(self.request.user)
-            else:
-                # For non-admin/manager users, just update status directly
-                salary.status = 'approved'
-                salary.save()
-        elif status == 'rejected':
-            if self.request.user.role in ['admin', 'manager']:
-                salary.reject_salary(self.request.user, rejection_reason)
-            else:
-                # For non-admin/manager users, just update status directly
-                salary.status = 'rejected'
-                salary.rejection_reason = rejection_reason
-                salary.save()
-        else:
-            # For other status changes, update directly
-            salary.status = status
-            salary.save()
+        # Check permissions - admin, manager, and accountant can change status
+        if self.request.user.role not in ['admin', 'manager', 'accountant']:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only admin, manager, and accountant can change salary status.')
 
+        # Update status (pending, paid, or hold)
+        salary.status = status
+        
+        # If marking as paid, set paid_date
+        if status == 'paid' and not salary.paid_date:
+            from django.utils import timezone
+            salary.paid_date = timezone.now().date()
+            
+        salary.save()
         serializer.save()
 
 
@@ -476,8 +468,10 @@ class SalaryReportView(APIView):
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
-        pending_salaries = queryset.filter(status__in=['draft', 'pending', 'approved']).count()
-        pending_amount = queryset.filter(status__in=['draft', 'pending', 'approved']).aggregate(total=Sum('net_salary'))['total'] or 0
+        pending_salaries = queryset.filter(status='pending').count()
+        pending_amount = queryset.filter(status='pending').aggregate(total=Sum('net_salary'))['total'] or 0
+        hold_salaries = queryset.filter(status='hold').count()
+        hold_amount = queryset.filter(status='hold').aggregate(total=Sum('net_salary'))['total'] or 0
 
         # Get salary details
         salary_details = []
@@ -501,7 +495,9 @@ class SalaryReportView(APIView):
                 'paid_salaries': paid_salaries,
                 'paid_amount': float(paid_amount),
                 'pending_salaries': pending_salaries,
-                'pending_amount': float(pending_amount)
+                'pending_amount': float(pending_amount),
+                'hold_salaries': hold_salaries,
+                'hold_amount': float(hold_amount)
             },
             'details': salary_details,
             'filters': {
@@ -542,8 +538,10 @@ class SalarySummaryView(APIView):
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
-        pending_salaries = queryset.filter(status__in=['draft', 'pending', 'approved']).count()
-        pending_amount = queryset.filter(status__in=['draft', 'pending', 'approved']).aggregate(total=Sum('net_salary'))['total'] or 0
+        pending_salaries = queryset.filter(status='pending').count()
+        pending_amount = queryset.filter(status='pending').aggregate(total=Sum('net_salary'))['total'] or 0
+        hold_salaries = queryset.filter(status='hold').count()
+        hold_amount = queryset.filter(status='hold').aggregate(total=Sum('net_salary'))['total'] or 0
 
         # Calculate averages
         if total_salaries > 0:
@@ -562,6 +560,8 @@ class SalarySummaryView(APIView):
             'paid_amount': float(paid_amount),
             'pending_salaries': pending_salaries,
             'pending_amount': float(pending_amount),
+            'hold_salaries': hold_salaries,
+            'hold_amount': float(hold_amount),
             'average_salary': float(average_salary),
             'highest_salary': float(highest_salary),
             'lowest_salary': float(lowest_salary),

@@ -894,11 +894,9 @@ class Resignation(models.Model):
 class Salary(models.Model):
     """Salary model for employee salary management with auto-calculation"""
     SALARY_STATUS_CHOICES = [
-        ('draft', 'Draft'),
         ('pending', 'Pending'),
-        ('approved', 'Approved'),
         ('paid', 'Paid'),
-        ('rejected', 'Rejected'),
+        ('hold', 'Hold'),
     ]
     
     PAYMENT_METHOD_CHOICES = [
@@ -938,16 +936,17 @@ class Salary(models.Model):
     pay_date = models.DateField(null=True, blank=True, help_text="Scheduled pay date")
     paid_date = models.DateField(null=True, blank=True, help_text="Actual payment date")
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='bank_transfer')
+    Bank_name = models.CharField(max_length=100, null=True, blank=True, help_text="Bank name for salary payment")
     
     # Status and Approval
-    status = models.CharField(max_length=20, choices=SALARY_STATUS_CHOICES, default='paid')
+    status = models.CharField(max_length=20, choices=SALARY_STATUS_CHOICES, default='pending')
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='approved_salaries',
-        limit_choices_to={'role__in': ['admin', 'manager']}
+        limit_choices_to={'role__in': ['admin', 'manager','accountant']}
     )
     approved_at = models.DateTimeField(null=True, blank=True)
     
@@ -1116,30 +1115,23 @@ class Salary(models.Model):
         """Calculate remaining pay after deductions and loan balance"""
         self.remaining_pay = self.final_payable_amount
 
-    def approve_salary(self, approved_by):
-        """Approve salary"""
-        if approved_by.role not in ['admin', 'manager']:
-            raise ValidationError('Only admin or manager can approve salaries.')
-        
-        self.status = 'approved'
-        self.approved_by = approved_by
-        self.approved_at = timezone.now()
-        self.save()
-
     def mark_as_paid(self, paid_date=None):
         """Mark salary as paid"""
         self.status = 'paid'
         self.paid_date = paid_date or timezone.now().date()
         self.save()
-
-    def reject_salary(self, rejected_by, reason):
-        """Reject salary"""
-        if rejected_by.role not in ['admin', 'manager']:
-            raise ValidationError('Only admin or manager can reject salaries.')
-        
-        self.status = 'rejected'
-        self.rejection_reason = reason
+    
+    def mark_as_hold(self):
+        """Mark salary as hold"""
+        self.status = 'hold'
         self.save()
+    
+    def mark_as_pending(self):
+        """Mark salary as pending"""
+        self.status = 'pending'
+        self.save()
+
+
 
     def get_salary_breakdown(self):
         """Get detailed salary breakdown for display"""

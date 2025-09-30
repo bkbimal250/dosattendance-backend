@@ -1039,7 +1039,7 @@ class SalarySerializer(serializers.ModelSerializer):
             'id', 'employee', 'employee_name', 'employee_email', 'employee_employee_id',
             'employee_office_name', 'employee_department_name', 'employee_designation_name',
             'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
-            'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'status', 
+            'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'Bank_name', 'status', 
             'approved_by', 'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 
             'is_auto_calculated', 'attendance_based', 'created_by', 'created_by_name', 
             'created_at', 'updated_at', 'final_salary', 'per_day_salary', 'gross_salary', 
@@ -1074,7 +1074,7 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
         model = Salary
         fields = [
             'employee', 'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days',
-            'deduction', 'balance_loan', 'salary_month', 'pay_date', 'payment_method',
+            'deduction', 'balance_loan', 'salary_month', 'pay_date', 'payment_method', 'Bank_name',
             'notes', 'attendance_based', 'status'
         ]
     
@@ -1103,7 +1103,7 @@ class SalaryUpdateSerializer(serializers.ModelSerializer):
         model = Salary
         fields = [
             'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
-            'pay_date', 'payment_method', 'notes', 'attendance_based'
+            'pay_date', 'payment_method', 'Bank_name', 'notes', 'attendance_based'
         ]
     
     def validate(self, attrs):
@@ -1115,33 +1115,23 @@ class SalaryUpdateSerializer(serializers.ModelSerializer):
 
 
 class SalaryApprovalSerializer(serializers.ModelSerializer):
-    """Serializer for salary approval/rejection"""
+    """Serializer for salary status changes (pending, paid, hold)"""
     class Meta:
         model = Salary
-        fields = ['status', 'rejection_reason']
+        fields = ['status', 'notes']
     
     def validate_status(self, value):
         """Validate status change"""
-        if value not in ['approved', 'rejected']:
-            raise serializers.ValidationError("Status must be either 'approved' or 'rejected'.")
+        if value not in ['pending', 'paid', 'hold']:
+            raise serializers.ValidationError("Status must be either 'pending', 'paid', or 'hold'.")
         return value
-    
-    def validate(self, attrs):
-        """Validate approval data"""
-        status = attrs.get('status')
-        rejection_reason = attrs.get('rejection_reason', '')
-        
-        if status == 'rejected' and not rejection_reason:
-            raise serializers.ValidationError("Rejection reason is required when rejecting a salary.")
-        
-        return attrs
 
 
 class SalaryPaymentSerializer(serializers.ModelSerializer):
     """Serializer for marking salary as paid"""
     class Meta:
         model = Salary
-        fields = ['paid_date', 'payment_method']
+        fields = ['paid_date', 'payment_method', 'Bank_name']
     
     def validate_paid_date(self, value):
         """Validate payment date"""
