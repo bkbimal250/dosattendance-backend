@@ -466,8 +466,8 @@ class SalaryReportView(APIView):
         # Calculate statistics
         total_salaries = queryset.count()
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
-        # Distinct employees present in the filtered queryset
-        total_employees = queryset.values('employee_id').distinct().count()
+        # Distinct users present in the filtered queryset
+        total_users = queryset.values('employee_id').distinct().count()
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
         pending_salaries = queryset.filter(status='pending').count()
@@ -577,7 +577,7 @@ class SalarySummaryView(APIView):
             lowest_salary = 0
 
         summary_data = {
-            'total_employees': total_employees,
+            'total_users': total_users,
             'total_salaries': total_salaries,
             'total_amount': float(total_amount),
             'paid_salaries': paid_salaries,
