@@ -445,6 +445,8 @@ class SalaryReportView(APIView):
         status_filter = data.get('status')
 
         # Build queryset
+        from datetime import date
+        used_month = date(year, month, 1)
         queryset = Salary.objects.filter(
             salary_month__year=year,
             salary_month__month=month
@@ -583,12 +585,22 @@ class SalarySummaryView(APIView):
         
         # Role-based filtering
         user = request.user
+        
+        # Get all users based on role permissions (not just those with salaries)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
         if user.role == 'manager' and user.office:
+            all_users = User.objects.filter(office=user.office)
             queryset = queryset.filter(employee__office=user.office)
+        else:
+            all_users = User.objects.all()
 
         # Calculate statistics
         total_salaries = queryset.count()
         total_amount = queryset.aggregate(total=Sum('net_salary'))['total'] or 0
+        # Total users (all users, not just those with salaries)
+        total_users = all_users.count()
         paid_salaries = queryset.filter(status='paid').count()
         paid_amount = queryset.filter(status='paid').aggregate(total=Sum('net_salary'))['total'] or 0
         pending_salaries = queryset.filter(status='pending').count()

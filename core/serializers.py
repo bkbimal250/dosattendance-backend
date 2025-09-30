@@ -1231,7 +1231,11 @@ class SalaryReportSerializer(serializers.Serializer):
     department_id = serializers.UUIDField(required=False)
     year = serializers.IntegerField()
     month = serializers.IntegerField(min_value=1, max_value=12)
-    status = serializers.ChoiceField(choices=Salary.SALARY_STATUS_CHOICES, required=False)
+    # Allow filtering by standard salary statuses plus a special 'no_salary' bucket
+    status = serializers.ChoiceField(
+        choices=list(Salary.SALARY_STATUS_CHOICES) + [('no_salary', 'No Salary')],
+        required=False
+    )
     
     def validate(self, attrs):
         """Validate report parameters"""
@@ -1246,15 +1250,27 @@ class SalaryReportSerializer(serializers.Serializer):
 
 class SalarySummarySerializer(serializers.Serializer):
     """Serializer for salary summary statistics"""
+    # Totals
+    total_users = serializers.IntegerField()
     total_salaries = serializers.IntegerField()
     total_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    # By status
     paid_salaries = serializers.IntegerField()
     paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     pending_salaries = serializers.IntegerField()
     pending_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    hold_salaries = serializers.IntegerField()
+    hold_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    # Stats
     average_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
     highest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
     lowest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+    # Month labels
+    month = serializers.CharField()
+    month_ym = serializers.CharField()
 
 
 class SalaryAutoCalculateSerializer(serializers.Serializer):
