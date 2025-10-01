@@ -307,12 +307,14 @@ class Attendance(models.Model):
     STATUS_CHOICES = [
         ('present', 'Present'),
         ('absent', 'Absent'),
+        ('upcoming', 'Upcoming'),
     ]
     
     DAY_STATUS_CHOICES = [
         ('complete_day', 'Complete Day'),
         ('half_day', 'Half Day'),
         ('absent', 'Absent'),
+        ('upcoming', 'Upcoming'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -378,7 +380,17 @@ class Attendance(models.Model):
         """Calculate attendance status based on working hours and late coming"""
         try:
             from django.utils import timezone
-            from datetime import time, datetime
+            from datetime import time, datetime, date
+            
+            # Check if this is a future date
+            today = date.today()
+            if self.date > today:
+                # Future date - set as upcoming
+                self.status = 'upcoming'
+                self.day_status = 'upcoming'
+                self.is_late = False
+                self.late_minutes = 0
+                return
             
             # Get working hours settings for the user's office
             office = self.user.office
