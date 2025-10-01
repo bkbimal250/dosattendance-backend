@@ -29,11 +29,11 @@ from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdmin
 class SalaryListView(generics.ListCreateAPIView):
     """
     List all salaries or create a new salary
-    - GET: List salaries with filtering and pagination
+    - GET: List salaries with filtering and pagination (Admin/Manager/Employee can view their own)
     - POST: Create new salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrEmployee]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
         'employee__first_name', 'employee__last_name', 'employee__email',
@@ -86,19 +86,21 @@ class SalaryListView(generics.ListCreateAPIView):
         return queryset
 
     def perform_create(self, serializer):
-        """Create salary with current user as creator"""
+        """Create salary with current user as creator (Admin/Manager/Accountant only)"""
+        if self.request.user.role not in ['admin', 'manager', 'accountant']:
+            raise PermissionError("Only admin, manager, or accountant can create salary records")
         serializer.save(created_by=self.request.user)
 
 
 class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a salary
-    - GET: Get salary details
+    - GET: Get salary details (Admin/Manager/Employee can view their own)
     - PUT/PATCH: Update salary (Admin/Manager/Accountant only)
     - DELETE: Delete salary (Admin only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrEmployee]
 
     def get_queryset(self):
         """Filter salaries based on user role"""
@@ -122,6 +124,24 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PUT', 'PATCH']:
             return SalaryUpdateSerializer
         return SalarySerializer
+
+    def update(self, request, *args, **kwargs):
+        """Update salary (Admin/Manager/Accountant only)"""
+        if request.user.role not in ['admin', 'manager', 'accountant']:
+            return Response(
+                {'error': 'Only admin, manager, or accountant can update salary records'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete salary (Admin only)"""
+        if request.user.role != 'admin':
+            return Response(
+                {'error': 'Only admin can delete salary records'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class SalaryApprovalView(generics.UpdateAPIView):
