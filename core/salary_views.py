@@ -97,7 +97,7 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     Retrieve, update or delete a salary
     - GET: Get salary details (Admin/Manager/Employee can view their own)
     - PUT/PATCH: Update salary (Admin/Manager/Accountant only)
-    - DELETE: Delete salary (Admin only)
+    - DELETE: Delete salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrEmployee]
@@ -135,12 +135,22 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        """Delete salary (Admin only)"""
-        if request.user.role != 'admin':
+        """Delete salary (Admin/Manager/Accountant only)"""
+        if request.user.role not in ['admin', 'manager', 'accountant']:
             return Response(
-                {'error': 'Only admin can delete salary records'}, 
+                {'error': 'Only admin, manager, or accountant can delete salary records'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
+        
+        # For managers, ensure they can only delete salaries from their office
+        if request.user.role == 'manager':
+            salary = self.get_object()
+            if not request.user.office or salary.employee.office != request.user.office:
+                return Response(
+                    {'error': 'Manager can only delete salaries from their own office'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
         return super().destroy(request, *args, **kwargs)
 
 
