@@ -982,8 +982,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.is_admin:
             queryset = queryset.all()
         elif user.is_manager:
-            # Managers need to map device users across offices; allow full user list
-            queryset = queryset.all()
+            # Managers can only see users from their assigned office
+            if user.office:
+                queryset = queryset.filter(office=user.office)
+            else:
+                queryset = queryset.none()
         elif user.is_accountant:
             # Accountant can see all users from all offices (read-only)
             queryset = queryset.all()
