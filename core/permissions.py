@@ -127,6 +127,46 @@ class IsEmployeeOrManagerOrAdmin(permissions.BasePermission):
         return False
 
 
+class IsEmployeeSalaryAccess(permissions.BasePermission):
+    """
+    Custom permission for salary-related views.
+    Allows employees to view their own salary, managers to view office salaries,
+    accountants to view all salaries, and admins to view all salaries.
+    """
+    
+    def has_permission(self, request, view):
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role in ['admin', 'manager', 'employee', 'accountant']
+        )
+    
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        
+        # Admin can access all salaries
+        if user.role == 'admin':
+            return True
+            
+        # Accountant can access all salaries
+        if user.role == 'accountant':
+            return True
+        
+        # Manager can access salaries for their office
+        if user.role == 'manager':
+            if hasattr(obj, 'employee') and obj.employee:
+                return obj.employee.office == user.office
+        
+        # Employee can only access their own salary
+        if user.role == 'employee':
+            if hasattr(obj, 'employee') and obj.employee:
+                return obj.employee == user
+            elif hasattr(obj, 'id'):
+                return obj.id == user.id
+        
+        return False
+
+
 class IsOfficeManagerOrAdmin(permissions.BasePermission):
     """
     Custom permission for office-specific access.

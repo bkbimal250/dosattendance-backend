@@ -23,7 +23,7 @@ from .serializers import (
     SalaryTemplateCreateSerializer, SalaryBulkCreateSerializer, SalaryReportSerializer,
     SalarySummarySerializer, SalaryAutoCalculateSerializer
 )
-from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdminOrManagerOrEmployee
+from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdminOrManagerOrEmployee, IsEmployeeSalaryAccess
 
 
 class SalaryListView(generics.ListCreateAPIView):
@@ -33,7 +33,7 @@ class SalaryListView(generics.ListCreateAPIView):
     - POST: Create new salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    permission_classes = [permissions.IsAuthenticated, IsEmployeeSalaryAccess]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
         'employee__first_name', 'employee__last_name', 'employee__email',
@@ -100,7 +100,7 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     - DELETE: Delete salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
+    permission_classes = [permissions.IsAuthenticated, IsEmployeeSalaryAccess]
 
     def get_queryset(self):
         """Filter salaries based on user role"""
@@ -121,6 +121,9 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
         elif user.role == 'accountant':
             # Accountant can see all salaries
             pass
+        elif user.role == 'employee':
+            # Employee can only see their own salaries
+            queryset = queryset.filter(employee=user)
 
         return queryset
 
@@ -674,7 +677,7 @@ class SalarySummaryView(APIView):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrAccountant])
+@permission_classes([permissions.IsAuthenticated, IsEmployeeSalaryAccess])
 def employee_salary_history(request, employee_id):
     """
     Get salary history for a specific employee
@@ -685,13 +688,22 @@ def employee_salary_history(request, employee_id):
         
         # Check permissions
         user = request.user
+        
+        # Employee can only view their own salary history
+        if user.role == 'employee' and employee.id != user.id:
+            return Response(
+                {'error': 'You can only view your own salary history.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Manager can only view employees in their office
         if user.role == 'manager' and user.office and employee.office != user.office:
             return Response(
                 {'error': 'You can only view salary history of employees in your office.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        
         # Admin and Accountant can view any employee's salary history
-        # Manager can view employees in their office (checked above)
 
         # Get salary history
         salaries = Salary.objects.filter(employee=employee).order_by('-salary_month')
