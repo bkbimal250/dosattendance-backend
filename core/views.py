@@ -1,4 +1,4 @@
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, filters, viewsets, permissions, serializers
 from django_filters.rest_framework import DjangoFilterBackend
@@ -982,11 +982,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if user.is_admin:
             queryset = queryset.all()
         elif user.is_manager:
-            # Managers can only see users from their assigned office
+            # Managers can see users from their assigned office + themselves
             if user.office:
-                queryset = queryset.filter(office=user.office)
+                queryset = queryset.filter(
+                    Q(office=user.office) | Q(id=user.id)
+                )
             else:
-                queryset = queryset.none()
+                # If manager has no office, they can only see themselves
+                queryset = queryset.filter(id=user.id)
         elif user.is_accountant:
             # Accountant can see all users from all offices (read-only)
             queryset = queryset.all()
@@ -2997,6 +3000,36 @@ class AttendanceLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # Dashboard Views
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def debug_user_permissions(request):
+    """
+    Debug endpoint to check user permissions and role
+    """
+    user = request.user
+    return Response({
+        'user_id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': user.role,
+        'is_admin': user.is_admin,
+        'is_manager': user.is_manager,
+        'is_accountant': user.is_accountant,
+        'is_employee': user.is_employee,
+        'office_id': str(user.office.id) if user.office else None,
+        'office_name': user.office.name if user.office else None,
+        'is_authenticated': user.is_authenticated,
+        'is_active': user.is_active,
+        'has_office': bool(user.office),
+        'permissions': {
+            'can_create_salary': user.role in ['admin', 'manager', 'accountant'],
+            'can_update_salary': user.role in ['admin', 'manager', 'accountant'],
+            'can_delete_salary': user.role in ['admin', 'manager', 'accountant'],
+            'can_view_salary': user.role in ['admin', 'manager', 'employee'],
+        }
+    })
+
+
 class DashboardViewSet(viewsets.ViewSet):
     """ViewSet for dashboard statistics"""
     permission_classes = [permissions.IsAuthenticated]
