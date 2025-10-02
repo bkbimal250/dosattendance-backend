@@ -29,11 +29,11 @@ from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdmin
 class SalaryListView(generics.ListCreateAPIView):
     """
     List all salaries or create a new salary
-    - GET: List salaries with filtering and pagination (Admin/Manager/Employee can view their own)
+    - GET: List salaries with filtering and pagination (Admin/Manager/Accountant can view all, Employee can view their own)
     - POST: Create new salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrEmployee]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
         'employee__first_name', 'employee__last_name', 'employee__email',
@@ -95,12 +95,12 @@ class SalaryListView(generics.ListCreateAPIView):
 class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieve, update or delete a salary
-    - GET: Get salary details (Admin/Manager/Employee can view their own)
+    - GET: Get salary details (Admin/Manager/Accountant can view all, Employee can view their own)
     - PUT/PATCH: Update salary (Admin/Manager/Accountant only)
     - DELETE: Delete salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrEmployee]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrManagerOrAccountant]
 
     def get_queryset(self):
         """Filter salaries based on user role"""
@@ -110,12 +110,17 @@ class SalaryDetailView(generics.RetrieveUpdateDestroyAPIView):
             'employee__designation', 'approved_by', 'created_by'
         ).all()
 
-        if user.role == 'employee':
-            # Employee can only see their own salaries
-            queryset = queryset.filter(employee=user)
-        elif user.role == 'manager' and user.office:
+        # Role-based filtering
+        if user.role == 'admin':
+            # Admin can see all salaries
+            pass
+        elif user.role == 'manager':
             # Manager can see salaries of employees in their office
-            queryset = queryset.filter(employee__office=user.office)
+            if user.office:
+                queryset = queryset.filter(employee__office=user.office)
+        elif user.role == 'accountant':
+            # Accountant can see all salaries
+            pass
 
         return queryset
 
@@ -669,7 +674,7 @@ class SalarySummaryView(APIView):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrEmployee])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrAccountant])
 def employee_salary_history(request, employee_id):
     """
     Get salary history for a specific employee
@@ -680,16 +685,13 @@ def employee_salary_history(request, employee_id):
         
         # Check permissions
         user = request.user
-        if user.role == 'employee' and user != employee:
-            return Response(
-                {'error': 'You can only view your own salary history.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        elif user.role == 'manager' and user.office and employee.office != user.office:
+        if user.role == 'manager' and user.office and employee.office != user.office:
             return Response(
                 {'error': 'You can only view salary history of employees in your office.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        # Admin and Accountant can view any employee's salary history
+        # Manager can view employees in their office (checked above)
 
         # Get salary history
         salaries = Salary.objects.filter(employee=employee).order_by('-salary_month')
@@ -744,6 +746,8 @@ def recalculate_salary(request, salary_id):
                 {'error': 'You can only recalculate salaries of employees in your office.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        # Admin and Accountant can recalculate any salary
+        # Manager can recalculate salaries of employees in their office (checked above)
 
         # Recalculate worked days from attendance
         salary.calculate_worked_days_from_attendance()
@@ -781,6 +785,7 @@ def salary_statistics(request):
     user = request.user
     if user.role == 'manager' and user.office:
         queryset = queryset.filter(employee__office=user.office)
+    # Admin and Accountant can see all statistics
 
     # Calculate detailed statistics
     stats = {
@@ -831,6 +836,7 @@ def salary_statistics(request):
         
         if user.role == 'manager' and user.office:
             month_salaries = month_salaries.filter(employee__office=user.office)
+        # Admin and Accountant can see all monthly trends
         
         count = month_salaries.count()
         amount = month_salaries.aggregate(total=Sum('net_salary'))['total'] or 0
