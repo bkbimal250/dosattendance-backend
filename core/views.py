@@ -1507,8 +1507,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
-            # Create target date for the month
+            # Create target date for the month and capture today's date once
             target_date = date(year, month, 1)
+            today = date.today()
             
             # Get ALL days in the month (including weekends)
             all_days = []
@@ -1600,11 +1601,21 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             late_coming_days = sum(1 for day in monthly_data if day['is_late'] is True)
             
             # Calculate attendance rate based on past working days only (excluding upcoming days)
-            past_working_days = sum(1 for day in monthly_data 
-                                  if day['date'] <= today.isoformat() and 
-                                  day['status'] != 'upcoming' and 
-                                  not (datetime.strptime(day['date'], '%Y-%m-%d').weekday() >= 5))
-            attendance_rate = (present_days / past_working_days * 100) if past_working_days > 0 else 0
+            try:
+                past_working_days = sum(
+                    1
+                    for day in monthly_data
+                    if day['date'] <= today.isoformat()
+                    and day['status'] != 'upcoming'
+                    and not (datetime.strptime(day['date'], '%Y-%m-%d').weekday() >= 5)
+                )
+                if past_working_days > 0:
+                    attendance_rate = (present_days / past_working_days) * 100
+                else:
+                    attendance_rate = 0
+            except Exception:
+                # Be resilient to any unexpected parsing issues so endpoint never 500s for edge cases
+                attendance_rate = 0
             
             # Prepare response
             response_data = {
