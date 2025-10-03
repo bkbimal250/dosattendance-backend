@@ -269,10 +269,10 @@ export const documentsAPI = {
   // Try my endpoint first, fallback to main endpoint if it fails
   getMyDocuments: async () => {
     try {
-      return await api.get('/documents/my/');
+      return await api.get('/documents/my/', { params: { page_size: 1000, no_pagination: true } });
     } catch (error) {
       console.warn('⚠️ /documents/my/ endpoint failed, falling back to /documents/');
-      return await api.get('/documents/');
+      return await api.get('/documents/', { params: { page_size: 1000, no_pagination: true } });
     }
   },
   downloadDocument: (id) => api.get(`/documents/${id}/download/`, {
@@ -416,6 +416,30 @@ export const designationsAPI = {
   updateDesignation: (id, designationData) => api.put(`/designations/${id}/`, designationData),
   deleteDesignation: (id) => api.delete(`/designations/${id}/`),
   getDesignationsByDepartment: (departmentId) => api.get(`/designations/by-department/${departmentId}/`),
+};
+
+// Device Users API
+export const deviceUserAPI = {
+  // Basic CRUD operations
+  getDeviceUsers: (params = {}) => api.get('/device-users/', { params }),
+  getDeviceUser: (id) => api.get(`/device-users/${id}/`),
+  createDeviceUser: (deviceUserData) => api.post('/device-users/', deviceUserData),
+  updateDeviceUser: (id, deviceUserData) => api.put(`/device-users/${id}/`, deviceUserData),
+  deleteDeviceUser: (id) => api.delete(`/device-users/${id}/`),
+  
+  // Mapping operations
+  mapToSystemUser: (id, mappingData) => api.post(`/device-users/${id}/map_to_system_user/`, mappingData),
+  unmapFromSystemUser: (id) => api.post(`/device-users/${id}/unmap_from_system_user/`),
+  
+  // Bulk operations
+  bulkCreate: (bulkData) => api.post('/device-users/bulk_create/', bulkData),
+  
+  // Special queries
+  getUnmappedUsers: (params = {}) => api.get('/device-users/unmapped_users/', { params }),
+  getMappedUsers: (params = {}) => api.get('/device-users/mapped_users/', { params }),
+  
+  // Stats
+  getStats: () => api.get('/device-users/stats/'),
 };
 
 // ESSL Device Management API

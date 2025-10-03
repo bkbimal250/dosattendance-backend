@@ -29,7 +29,7 @@ from .permissions import IsAdminOrManager, IsAdminOrManagerOrAccountant, IsAdmin
 class SalaryListView(generics.ListCreateAPIView):
     """
     List all salaries or create a new salary
-    - GET: List salaries with filtering and pagination (Admin/Manager/Accountant can view all, Employee can view their own)
+    - GET: List salaries with filtering (Admin/Manager/Accountant can view all, Employee can view their own)
     - POST: Create new salary (Admin/Manager/Accountant only)
     """
     serializer_class = SalarySerializer
@@ -41,6 +41,7 @@ class SalaryListView(generics.ListCreateAPIView):
     ]
     ordering_fields = ['salary_month', 'created_at', 'status', 'net_salary']
     ordering = ['-salary_month', '-created_at']
+    pagination_class = None  # Disable pagination to show all salary records
 
     def get_queryset(self):
         """Filter salaries based on user role and permissions"""
