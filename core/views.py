@@ -1563,9 +1563,9 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                         day_status = 'upcoming'
                         notes = 'Upcoming day'
                     elif is_weekend:
-                        # Weekend day - mark as absent
-                        status = 'absent'
-                        day_status = 'absent'
+                        # Weekend day - mark as weekend
+                        status = 'weekend'
+                        day_status = 'weekend'
                         notes = 'Weekend'
                     else:
                         # Past working day without attendance - mark as absent
@@ -1594,6 +1594,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             present_days = sum(1 for day in monthly_data if day['status'] in ['present', 'half_day'])
             absent_days = sum(1 for day in monthly_data if day['status'] == 'absent')
             upcoming_days = sum(1 for day in monthly_data if day['status'] == 'upcoming')
+            weekend_days = sum(1 for day in monthly_data if day['status'] == 'weekend')
             complete_days = sum(1 for day in monthly_data if day['day_status'] == 'complete_day')
             half_days = sum(1 for day in monthly_data if day['day_status'] == 'half_day')
             late_coming_days = sum(1 for day in monthly_data if day['is_late'] is True)
@@ -1626,6 +1627,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     'present_days': present_days,
                     'absent_days': absent_days,
                     'upcoming_days': upcoming_days,
+                    'weekend_days': weekend_days,
                     'complete_days': complete_days,
                     'half_days': half_days,
                     'late_coming_days': late_coming_days,
@@ -1676,15 +1678,15 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            if new_status not in ['present', 'absent', 'upcoming']:
+            if new_status not in ['present', 'absent', 'upcoming', 'weekend']:
                 return Response(
-                    {'error': 'Status must be either "present", "absent", or "upcoming"'}, 
+                    {'error': 'Status must be either "present", "absent", "upcoming", or "weekend"'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            if new_day_status and new_day_status not in ['complete_day', 'half_day', 'absent', 'upcoming']:
+            if new_day_status and new_day_status not in ['complete_day', 'half_day', 'absent', 'upcoming', 'weekend']:
                 return Response(
-                    {'error': 'Day status must be either "complete_day", "half_day", "absent", or "upcoming"'}, 
+                    {'error': 'Day status must be either "complete_day", "half_day", "absent", "upcoming", or "weekend"'}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
             

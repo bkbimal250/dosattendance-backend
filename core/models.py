@@ -220,6 +220,17 @@ class CustomUser(AbstractUser):
     @property
     def is_accountant(self):
         return self.role == 'accountant'
+    
+    def get_full_name(self):
+        """Return the user's full name"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.last_name:
+            return self.last_name
+        else:
+            return self.email or "Unknown User"
 
 
 class Device(models.Model):
@@ -308,6 +319,7 @@ class Attendance(models.Model):
         ('present', 'Present'),
         ('absent', 'Absent'),
         ('upcoming', 'Upcoming'),
+        ('weekend', 'Weekend'),
     ]
     
     DAY_STATUS_CHOICES = [
@@ -315,6 +327,7 @@ class Attendance(models.Model):
         ('half_day', 'Half Day'),
         ('absent', 'Absent'),
         ('upcoming', 'Upcoming'),
+        ('weekend', 'Weekend'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -578,6 +591,7 @@ class Document(models.Model):
         ('aadhar_card', 'Aadhar Card'),
         ('pan_card', 'PAN Card'),
         ('voter_id', 'Voter ID'),
+        # ('id_card', 'ID Card'),
         ('driving_license', 'Driving License'),
         ('passport', 'Passport'),
         ('birth_certificate', 'Birth Certificate'),
