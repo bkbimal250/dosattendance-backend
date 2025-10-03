@@ -103,7 +103,10 @@ class CustomUserChangeForm(forms.ModelForm):
     """Form for changing user information including password"""
     password = forms.CharField(
         label="Password",
-        widget=forms.PasswordInput(attrs={'placeholder': 'Enter new password (leave blank to keep current password)'}),
+        widget=forms.PasswordInput(attrs={
+            'placeholder': 'Enter new password (leave blank to keep current password)',
+            'autocomplete': 'new-password'
+        }),
         required=False,
         help_text="Leave blank to keep the current password. Use 'Change Password' link for secure password change."
     )
@@ -118,11 +121,22 @@ class CustomUserChangeForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['password'].required = False
             self.fields['password'].help_text = "Leave blank to keep current password"
+            # Set initial value to empty string to avoid any issues
+            self.fields['password'].initial = ''
+    
+    def clean_password(self):
+        """Clean password field - ensure it's properly handled"""
+        password = self.cleaned_data.get('password')
+        # If password is empty or just whitespace, return None
+        if not password or password.strip() == '':
+            return None
+        return password
     
     def save(self, commit=True):
         user = super().save(commit=False)
         password = self.cleaned_data.get('password')
-        if password:
+        # Only set password if a new one was provided
+        if password and password.strip():
             user.set_password(password)
         if commit:
             user.save()
@@ -377,7 +391,10 @@ class SafeCustomUserAdmin(UserAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
+        (None, {
+            'fields': ('username', 'password'),
+            'description': 'Password field: Leave blank to keep current password unchanged. Only enter a new password if you want to change it.'
+        }),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'phone', 'address', 'date_of_birth', 'gender', 'profile_picture')}),
         ('Government ID', {'fields': ('aadhaar_card', 'pan_card')}),
         ('Employment', {'fields': ('role', 'office', 'employee_id', 'biometric_id', 'joining_date', 'department', 'designation', 'salary')}),
@@ -394,11 +411,68 @@ class SafeCustomUserAdmin(UserAdmin):
         }),
     )
     
+    actions = ['reset_passwords_to_default', 'send_password_reset_instructions']
+    
+    def reset_passwords_to_default(self, request, queryset):
+        """Reset selected users' passwords to a default password"""
+        default_password = 'TempPassword123!'  # You can customize this
+        count = 0
+        for user in queryset:
+            user.set_password(default_password)
+            user.save()
+            count += 1
+        
+        from django.contrib import messages
+        messages.success(request, f'{count} user passwords reset to default. Users should change their passwords on first login.')
+    reset_passwords_to_default.short_description = "Reset passwords to default"
+    
+    def send_password_reset_instructions(self, request, queryset):
+        """Send password reset instructions to selected users"""
+        count = 0
+        for user in queryset:
+            if user.email:
+                # Here you would implement email sending logic
+                # For now, just count the users with email addresses
+                count += 1
+        
+        from django.contrib import messages
+        messages.info(request, f'Password reset instructions would be sent to {count} users with email addresses.')
+    send_password_reset_instructions.short_description = "Send password reset instructions"
+    
     def get_queryset(self, request):
         """Get queryset without any select_related to avoid DoesNotExist errors"""
         # Don't use select_related at all to avoid any potential issues
         # with invalid foreign key references
         return super().get_queryset(request)
+    
+    def save_model(self, request, obj, form, change):
+        """Override save_model to handle password preservation"""
+        if change:  # If updating existing user
+            # Get the original password from the database
+            original_user = CustomUser.objects.get(pk=obj.pk)
+            original_password = original_user.password
+            
+            # Only update password if a new one was provided in the form
+            password = form.cleaned_data.get('password')
+            if not password or password.strip() == '':
+                # Keep the original password
+                obj.password = original_password
+            else:
+                # Set the new password (this will be hashed by Django)
+                obj.set_password(password)
+        
+        # Save the object
+        super().save_model(request, obj, form, change)
+        
+        # Provide feedback to the user
+        if change:
+            password = form.cleaned_data.get('password')
+            if not password or password.strip() == '':
+                from django.contrib import messages
+                messages.success(request, f'User "{obj.username}" updated successfully. Password was preserved.')
+            else:
+                from django.contrib import messages
+                messages.success(request, f'User "{obj.username}" updated successfully. Password was changed.')
     
     def get_object(self, request, object_id, from_field=None):
         """Override get_object to handle invalid references gracefully"""
@@ -461,6 +535,12 @@ class SafeCustomUserAdmin(UserAdmin):
                         
             except Exception:
                 pass  # Ignore errors during form preparation
+        
+        # Ensure password field is properly handled for existing users
+        if obj and hasattr(form, 'fields') and 'password' in form.fields:
+            form.fields['password'].required = False
+            form.fields['password'].initial = ''
+            form.fields['password'].help_text = "Leave blank to keep current password. Enter new password only if you want to change it."
         
         return form
     
