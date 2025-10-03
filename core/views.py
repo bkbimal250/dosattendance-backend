@@ -1555,23 +1555,23 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 else:
                     # Determine status based on date
                     today = date.today()
-                    is_weekend = day.weekday() >= 5  # Saturday = 5, Sunday = 6
+                    is_sunday = day.weekday() == 6  # Sunday = 6, Saturday = 5
                     
                     if day > today:
                         # Future date - mark as upcoming
                         status = 'upcoming'
                         day_status = 'upcoming'
                         notes = 'Upcoming day'
-                    elif is_weekend:
-                        # Weekend day - mark as weekend
+                    elif is_sunday:
+                        # Only Sunday - mark as weekend
                         status = 'weekend'
                         day_status = 'weekend'
-                        notes = 'Weekend'
+                        notes = 'Sunday - Weekend'
                     else:
-                        # Past working day without attendance - mark as absent
+                        # Past working day without attendance - mark as absent (including Saturday)
                         status = 'absent'
                         day_status = 'absent'
-                        notes = 'Automatically marked as absent'
+                        notes = 'No attendance recorded'
                     
                     monthly_data.append({
                         'id': None,
