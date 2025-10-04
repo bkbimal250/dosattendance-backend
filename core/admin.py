@@ -15,7 +15,7 @@ from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
     WorkingHoursSettings, Resignation, DocumentTemplate, GeneratedDocument,
-    Department, Designation
+    Department, Designation, Shift, EmployeeShiftAssignment
 )
 
 
@@ -1094,3 +1094,35 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
 admin.site.site_header = "Attendance System Administration"
 admin.site.site_title = "Attendance System Admin"
 admin.site.index_title = "Welcome to Attendance System Administration"
+
+
+@admin.register(Shift)
+class ShiftAdmin(admin.ModelAdmin):
+    list_display = ['name', 'shift_type', 'start_time', 'end_time', 'office', 'is_active', 'created_at']
+    list_filter = ['shift_type', 'is_active', 'office', 'created_at']
+    search_fields = ['name', 'office__name']
+    ordering = ['office', 'start_time', 'name']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_manager and request.user.office:
+            return qs.filter(office=request.user.office)
+        return qs
+
+
+@admin.register(EmployeeShiftAssignment)
+class EmployeeShiftAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['employee', 'shift', 'office_name', 'is_active', 'assigned_by', 'created_at']
+    list_filter = ['is_active', 'shift__office', 'shift__shift_type', 'created_at']
+    search_fields = ['employee__first_name', 'employee__last_name', 'shift__name']
+    ordering = ['-created_at']
+    
+    def office_name(self, obj):
+        return obj.shift.office.name
+    office_name.short_description = 'Office'
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_manager and request.user.office:
+            return qs.filter(shift__office=request.user.office)
+        return qs

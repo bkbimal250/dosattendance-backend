@@ -20,7 +20,8 @@ from rest_framework.exceptions import APIException, ValidationError as DRFValida
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, WorkingHoursSettings, 
     ESSLAttendanceLog, Leave, Document, Notification, SystemSettings,
-    DocumentTemplate, GeneratedDocument, Resignation, Department, Designation
+    DocumentTemplate, GeneratedDocument, Resignation, Department, Designation,
+    Shift, EmployeeShiftAssignment
 )
 from .serializers import (
     CustomUserSerializer, OfficeSerializer, DeviceSerializer, DeviceUserSerializer,
@@ -32,7 +33,8 @@ from .serializers import (
     DashboardStatsSerializer, AttendanceLogSerializer, OfficeStatsSerializer,
     UserLoginSerializer, DeviceSyncSerializer, DocumentTemplateSerializer, 
     GeneratedDocumentSerializer, DocumentGenerationSerializer, ResignationSerializer,
-    ResignationCreateSerializer, ResignationApprovalSerializer, DepartmentSerializer, DesignationSerializer
+    ResignationCreateSerializer, ResignationApprovalSerializer, DepartmentSerializer, DesignationSerializer,
+    ShiftSerializer, EmployeeShiftAssignmentSerializer
 )
 # Permissions are defined inline in this file
 from .zkteco_service import zkteco_service
@@ -1538,21 +1540,41 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 if day in attendance_dict:
                     # Existing attendance record
                     attendance = attendance_dict[day]
-                    monthly_data.append({
-                        'id': str(attendance.id),
-                        'date': day.isoformat(),
-                        'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
-                        'check_out_time': attendance.check_out_time.isoformat() if attendance.check_out_time else None,
-                        'total_hours': float(attendance.total_hours) if attendance.total_hours else None,
-                        'status': attendance.status,
-                        'day_status': attendance.day_status,
-                        'is_late': attendance.is_late,
-                        'late_minutes': attendance.late_minutes,
-                        'device_name': attendance.device.name if attendance.device else None,
-                        'notes': attendance.notes,
-                        'created_at': attendance.created_at.isoformat() if attendance.created_at else None,
-                        'updated_at': attendance.updated_at.isoformat() if attendance.updated_at else None,
-                    })
+                    is_sunday = day.weekday() == 6
+
+                    # Rule: If the day is Sunday and the user is not present, treat as weekend
+                    if is_sunday and attendance.status not in ['present', 'half_day']:
+                        monthly_data.append({
+                            'id': str(attendance.id),
+                            'date': day.isoformat(),
+                            'check_in_time': None,
+                            'check_out_time': None,
+                            'total_hours': None,
+                            'status': 'weekend',
+                            'day_status': 'weekend',
+                            'is_late': False,
+                            'late_minutes': 0,
+                            'device_name': None,
+                            'notes': 'Sunday - Weekend',
+                            'created_at': attendance.created_at.isoformat() if attendance.created_at else None,
+                            'updated_at': attendance.updated_at.isoformat() if attendance.updated_at else None,
+                        })
+                    else:
+                        monthly_data.append({
+                            'id': str(attendance.id),
+                            'date': day.isoformat(),
+                            'check_in_time': attendance.check_in_time.isoformat() if attendance.check_in_time else None,
+                            'check_out_time': attendance.check_out_time.isoformat() if attendance.check_out_time else None,
+                            'total_hours': float(attendance.total_hours) if attendance.total_hours else None,
+                            'status': attendance.status,
+                            'day_status': attendance.day_status,
+                            'is_late': attendance.is_late,
+                            'late_minutes': attendance.late_minutes,
+                            'device_name': attendance.device.name if attendance.device else None,
+                            'notes': attendance.notes,
+                            'created_at': attendance.created_at.isoformat() if attendance.created_at else None,
+                            'updated_at': attendance.updated_at.isoformat() if attendance.updated_at else None,
+                        })
                 else:
                     # Determine status based on date
                     today = date.today()
@@ -4174,3 +4196,75 @@ class DeviceUserViewSet(viewsets.ModelViewSet):
             'device_stats': list(device_stats),
             'privilege_stats': list(privilege_stats)
         })
+
+
+class ShiftViewSet(viewsets.ModelViewSet):
+    """ViewSet for Shift model"""
+    queryset = Shift.objects.all()
+    serializer_class = ShiftSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'shift_type']
+    ordering_fields = ['name', 'start_time', 'created_at']
+    ordering = ['office', 'start_time', 'name']
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminOrManager()]  # Only admin or manager can modify shifts
+        elif self.action in ['list', 'retrieve']:
+            return [IsAdminOrManagerOrAccountant()]  # Admin, manager, and accountant can view
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        """Get queryset based on user role"""
+        user = self.request.user
+        
+        if user.is_admin:
+            # Admin can see all shifts
+            return Shift.objects.all()
+        elif user.is_manager:
+            # Manager can only see shifts from their office
+            if user.office:
+                return Shift.objects.filter(office=user.office)
+            else:
+                return Shift.objects.none()
+        elif user.is_accountant:
+            # Accountant can see all shifts (read-only)
+            return Shift.objects.all()
+        else:
+            return Shift.objects.none()
+
+
+class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
+    """ViewSet for EmployeeShiftAssignment model"""
+    queryset = EmployeeShiftAssignment.objects.all()
+    serializer_class = EmployeeShiftAssignmentSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['employee__first_name', 'employee__last_name', 'shift__name']
+    ordering_fields = ['created_at', 'employee__first_name']
+    ordering = ['-created_at']
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminOrManager()]  # Only admin or manager can modify assignments
+        elif self.action in ['list', 'retrieve']:
+            return [IsAdminOrManagerOrAccountant()]  # Admin, manager, and accountant can view
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        """Get queryset based on user role"""
+        user = self.request.user
+        
+        if user.is_admin:
+            # Admin can see all assignments
+            return EmployeeShiftAssignment.objects.all()
+        elif user.is_manager:
+            # Manager can only see assignments from their office
+            if user.office:
+                return EmployeeShiftAssignment.objects.filter(shift__office=user.office)
+            else:
+                return EmployeeShiftAssignment.objects.none()
+        elif user.is_accountant:
+            # Accountant can see all assignments (read-only)
+            return EmployeeShiftAssignment.objects.all()
+        else:
+            return EmployeeShiftAssignment.objects.none()

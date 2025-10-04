@@ -1224,3 +1224,110 @@ class SalaryTemplate(models.Model):
         )
         
         return salary
+
+
+class Shift(models.Model):
+    """Simple Shift model for managing work shifts"""
+    SHIFT_CHOICES = [
+        ('morning', 'Morning'),
+        ('afternoon', 'Afternoon'),
+        ('evening', 'Evening'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, help_text="Shift name")
+    shift_type = models.CharField(max_length=20, choices=SHIFT_CHOICES)
+    start_time = models.TimeField(help_text="Shift start time")
+    end_time = models.TimeField(help_text="Shift end time")
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='shifts')
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='created_shifts',
+        limit_choices_to={'role__in': ['admin', 'manager']}
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Shift"
+        verbose_name_plural = "Shifts"
+        ordering = ['office', 'start_time', 'name']
+        unique_together = ['name', 'office']
+
+    def __str__(self):
+        try:
+            return f"{self.name} ({self.office.name}) - {self.start_time} to {self.end_time}"
+        except Exception:
+            return f"{self.name} - {self.start_time} to {self.end_time}"
+
+    def clean(self):
+        """Validate shift data"""
+        super().clean()
+        
+        # Ensure start time is before end time
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError('Start time must be before end time.')
+        
+        # Ensure created_by is admin or manager
+        if self.created_by and self.created_by.role not in ['admin', 'manager']:
+            raise ValidationError('Only admin or manager can create shifts.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class EmployeeShiftAssignment(models.Model):
+    """Simple model for assigning employees to shifts permanently"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    employee = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name='shift_assignments',
+        limit_choices_to={'role': 'employee'}
+    )
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='employee_assignments')
+    assigned_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='assigned_shifts',
+        limit_choices_to={'role__in': ['admin', 'manager']}
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Employee Shift Assignment"
+        verbose_name_plural = "Employee Shift Assignments"
+        ordering = ['-created_at']
+        unique_together = ['employee', 'shift']  # One assignment per employee per shift
+
+    def __str__(self):
+        try:
+            return f"{self.employee.get_full_name()} - {self.shift.name}"
+        except Exception:
+            return f"Shift Assignment - {self.shift.name}"
+
+    def clean(self):
+        """Validate assignment data"""
+        super().clean()
+        
+        # Ensure employee is actually an employee
+        if self.employee.role != 'employee':
+            raise ValidationError('Only employees can be assigned to shifts.')
+        
+        # Ensure assigned_by is admin or manager
+        if self.assigned_by and self.assigned_by.role not in ['admin', 'manager']:
+            raise ValidationError('Only admin or manager can assign shifts.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

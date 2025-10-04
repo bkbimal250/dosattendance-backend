@@ -9,7 +9,8 @@ from .views import (
     OfficeViewSet, CustomUserViewSet, DeviceViewSet, DeviceUserViewSet, AttendanceViewSet,
     LeaveViewSet, DocumentViewSet, NotificationViewSet, SystemSettingsViewSet,
     AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
-    ResignationViewSet, DepartmentViewSet, DesignationViewSet
+    ResignationViewSet, DepartmentViewSet, DesignationViewSet, debug_user_permissions,
+    ShiftViewSet, EmployeeShiftAssignmentViewSet
 )
 from .salary_views import (
     SalaryListView, SalaryDetailView, SalaryApprovalView, SalaryPaymentView,
@@ -48,6 +49,8 @@ router.register(r'zkteco-attendance', ZKTecoAttendanceViewSet, basename='zkteco-
 router.register(r'reports', ReportsViewSet, basename='reports')
 router.register(r'departments', DepartmentViewSet, basename='department')
 router.register(r'designations', DesignationViewSet, basename='designation')
+router.register(r'shifts', ShiftViewSet)
+router.register(r'employee-shift-assignments', EmployeeShiftAssignmentViewSet)
 
 # Document generation endpoints
 router.register(r'document-templates', DocumentTemplateViewSet, basename='document-template')
@@ -107,4 +110,7 @@ urlpatterns = [
     # Salary Template endpoints
     path('api/salary-templates/', SalaryTemplateListView.as_view(), name='salary-template-list'),
     path('api/salary-templates/<uuid:pk>/', SalaryTemplateDetailView.as_view(), name='salary-template-detail'),
+    
+    # Debug endpoint
+    path('api/debug/user-permissions/', debug_user_permissions, name='debug-user-permissions'),
 ]

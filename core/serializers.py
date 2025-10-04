@@ -6,7 +6,7 @@ from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
     WorkingHoursSettings, DocumentTemplate, GeneratedDocument, Resignation,
-    Department, Designation, Salary, SalaryTemplate
+    Department, Designation, Salary, SalaryTemplate, Shift, EmployeeShiftAssignment
 )
 
 
@@ -1305,3 +1305,30 @@ class SalaryAutoCalculateSerializer(serializers.Serializer):
             )
         
         return attrs
+
+
+class ShiftSerializer(serializers.ModelSerializer):
+    """Serializer for Shift model"""
+    office_name = serializers.CharField(source='office.name', read_only=True)
+    employee_count = serializers.SerializerMethodField(read_only=True)
+    
+    class Meta:
+        model = Shift
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_employee_count(self, obj):
+        """Get number of employees assigned to this shift"""
+        return obj.employee_assignments.filter(is_active=True).count()
+
+
+class EmployeeShiftAssignmentSerializer(serializers.ModelSerializer):
+    """Serializer for EmployeeShiftAssignment model"""
+    employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
+    shift_name = serializers.CharField(source='shift.name', read_only=True)
+    office_name = serializers.CharField(source='shift.office.name', read_only=True)
+    
+    class Meta:
+        model = EmployeeShiftAssignment
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
