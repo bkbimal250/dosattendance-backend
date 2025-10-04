@@ -4249,34 +4249,24 @@ class ShiftViewSet(viewsets.ModelViewSet):
         """Automatically set office and created_by for managers"""
         user = self.request.user
         
-        # Debug logging
-        logger.info(f"ShiftViewSet.perform_create - User: {user.username}, Role: {user.role}")
-        logger.info(f"ShiftViewSet.perform_create - User office (backend object): {user.office}")
-        logger.info(f"ShiftViewSet.perform_create - Request data: {self.request.data}")
-        
         # Auto-set office for managers
         if user.is_manager:
             if user.office:
-                logger.info(f"ShiftViewSet.perform_create - Manager has office: {user.office.name} ({user.office.id})")
                 serializer.save(office=user.office, created_by=user)
             else:
-                logger.warning(f"ShiftViewSet.perform_create - Manager {user.username} has no office assigned in DB. Attempting fallback.")
                 # If manager has no office, try to get the first available office
                 from core.models import Office
                 first_office = Office.objects.first()
                 if first_office:
-                    logger.info(f"ShiftViewSet.perform_create - Using first available office: {first_office.name} ({first_office.id})")
                     serializer.save(office=first_office, created_by=user)
                 else:
                     # Create default office if none exists
-                    logger.error("ShiftViewSet.perform_create - No offices found in DB, creating a default one.")
                     default_office = Office.objects.create(
                         name="Default Office",
                         address="Default Address"
                     )
                     serializer.save(office=default_office, created_by=user)
         else:
-            logger.info(f"ShiftViewSet.perform_create - User is not manager, saving with provided data.")
             serializer.save(created_by=user)
 
 
@@ -4316,6 +4306,117 @@ class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
             return EmployeeShiftAssignment.objects.none()
 
     def perform_create(self, serializer):
-        """Automatically set assigned_by for managers"""
+        """Automatically set assigned_by for managers and validate for duplicates"""
         user = self.request.user
+        
+        # Get the data from serializer
+        employee = serializer.validated_data.get('employee')
+        shift = serializer.validated_data.get('shift')
+        
+        # Check if this employee is already assigned to this shift
+        existing_assignment = EmployeeShiftAssignment.objects.filter(
+            employee=employee,
+            shift=shift,
+            is_active=True
+        ).first()
+        
+        if existing_assignment:
+            raise DRFValidationError({
+                'non_field_errors': [
+                    f'Employee {employee.get_full_name()} is already assigned to shift {shift.name}. '
+                    f'Please remove the existing assignment first or select a different shift.'
+                ]
+            })
+        
+        # Check if employee is already assigned to any other active shift
+        other_assignments = EmployeeShiftAssignment.objects.filter(
+            employee=employee,
+            is_active=True
+        ).exclude(shift=shift)
+        
+        if other_assignments.exists():
+            other_shift = other_assignments.first().shift
+            raise DRFValidationError({
+                'non_field_errors': [
+                    f'Employee {employee.get_full_name()} is already assigned to shift {other_shift.name}. '
+                    f'An employee can only be assigned to one shift at a time.'
+                ]
+            })
+        
         serializer.save(assigned_by=user)
+    
+    @action(detail=False, methods=['post'], url_path='bulk-assign')
+    def bulk_assign(self, request):
+        """Bulk assign multiple employees to a shift"""
+        try:
+            data = request.data
+            employee_ids = data.get('employees', [])
+            shift_id = data.get('shift')
+            
+            if not employee_ids or not shift_id:
+                return Response({
+                    'error': True,
+                    'message': 'Employees and shift are required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get the shift
+            try:
+                shift = Shift.objects.get(id=shift_id)
+            except Shift.DoesNotExist:
+                return Response({
+                    'error': True,
+                    'message': 'Shift not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Get employees
+            employees = CustomUser.objects.filter(id__in=employee_ids, role='employee')
+            
+            if not employees.exists():
+                return Response({
+                    'error': True,
+                    'message': 'No valid employees found'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for existing assignments
+            existing_assignments = EmployeeShiftAssignment.objects.filter(
+                employee__in=employees,
+                is_active=True
+            )
+            
+            if existing_assignments.exists():
+                conflicting_employees = []
+                for assignment in existing_assignments:
+                    if assignment.shift == shift:
+                        conflicting_employees.append(f"{assignment.employee.get_full_name()} (already assigned to this shift)")
+                    else:
+                        conflicting_employees.append(f"{assignment.employee.get_full_name()} (assigned to {assignment.shift.name})")
+                
+                return Response({
+                    'error': True,
+                    'message': 'Some employees are already assigned to shifts',
+                    'conflicts': conflicting_employees
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create assignments
+            created_assignments = []
+            for employee in employees:
+                assignment = EmployeeShiftAssignment.objects.create(
+                    employee=employee,
+                    shift=shift,
+                    assigned_by=request.user,
+                    is_active=True
+                )
+                created_assignments.append(assignment)
+            
+            return Response({
+                'success': True,
+                'message': f'Successfully assigned {len(created_assignments)} employees to shift {shift.name}',
+                'assignments': EmployeeShiftAssignmentSerializer(created_assignments, many=True).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error in bulk assignment: {str(e)}")
+            return Response({
+                'error': True,
+                'message': f'An error occurred: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
