@@ -4250,8 +4250,22 @@ class ShiftViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Auto-set office for managers
-        if user.is_manager and user.office:
-            serializer.save(office=user.office, created_by=user)
+        if user.is_manager:
+            if user.office:
+                serializer.save(office=user.office, created_by=user)
+            else:
+                # If manager has no office, try to get the first available office
+                from core.models import Office
+                first_office = Office.objects.first()
+                if first_office:
+                    serializer.save(office=first_office, created_by=user)
+                else:
+                    # If no offices exist, create a default one
+                    default_office = Office.objects.create(
+                        name="Default Office",
+                        address="Default Address"
+                    )
+                    serializer.save(office=default_office, created_by=user)
         else:
             # For admins, use the provided office or default
             serializer.save(created_by=user)
