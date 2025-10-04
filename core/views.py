@@ -4233,6 +4233,17 @@ class ShiftViewSet(viewsets.ModelViewSet):
         else:
             return Shift.objects.none()
 
+    def perform_create(self, serializer):
+        """Automatically set office and created_by for managers"""
+        user = self.request.user
+        
+        # Auto-set office for managers
+        if user.is_manager and user.office:
+            serializer.save(office=user.office, created_by=user)
+        else:
+            # For admins, use the provided office or default
+            serializer.save(created_by=user)
+
 
 class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
     """ViewSet for EmployeeShiftAssignment model"""
@@ -4268,3 +4279,8 @@ class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
             return EmployeeShiftAssignment.objects.all()
         else:
             return EmployeeShiftAssignment.objects.none()
+
+    def perform_create(self, serializer):
+        """Automatically set assigned_by for managers"""
+        user = self.request.user
+        serializer.save(assigned_by=user)
