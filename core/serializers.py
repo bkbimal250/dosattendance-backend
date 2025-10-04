@@ -1316,6 +1316,9 @@ class ShiftSerializer(serializers.ModelSerializer):
         model = Shift
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'office': {'required': False}  # Make office optional for managers
+        }
 
     def get_employee_count(self, obj):
         """Get number of employees assigned to this shift"""
