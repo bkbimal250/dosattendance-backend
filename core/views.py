@@ -4249,25 +4249,34 @@ class ShiftViewSet(viewsets.ModelViewSet):
         """Automatically set office and created_by for managers"""
         user = self.request.user
         
+        # Debug logging
+        logger.info(f"ShiftViewSet.perform_create - User: {user.username}, Role: {user.role}")
+        logger.info(f"ShiftViewSet.perform_create - User office (backend object): {user.office}")
+        logger.info(f"ShiftViewSet.perform_create - Request data: {self.request.data}")
+        
         # Auto-set office for managers
         if user.is_manager:
             if user.office:
+                logger.info(f"ShiftViewSet.perform_create - Manager has office: {user.office.name} ({user.office.id})")
                 serializer.save(office=user.office, created_by=user)
             else:
+                logger.warning(f"ShiftViewSet.perform_create - Manager {user.username} has no office assigned in DB. Attempting fallback.")
                 # If manager has no office, try to get the first available office
                 from core.models import Office
                 first_office = Office.objects.first()
                 if first_office:
+                    logger.info(f"ShiftViewSet.perform_create - Using first available office: {first_office.name} ({first_office.id})")
                     serializer.save(office=first_office, created_by=user)
                 else:
-                    # If no offices exist, create a default one
+                    # Create default office if none exists
+                    logger.error("ShiftViewSet.perform_create - No offices found in DB, creating a default one.")
                     default_office = Office.objects.create(
                         name="Default Office",
                         address="Default Address"
                     )
                     serializer.save(office=default_office, created_by=user)
         else:
-            # For admins, use the provided office or default
+            logger.info(f"ShiftViewSet.perform_create - User is not manager, saving with provided data.")
             serializer.save(created_by=user)
 
 
