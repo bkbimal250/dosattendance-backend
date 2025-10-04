@@ -4288,8 +4288,19 @@ class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
     def get_pagination_class(self):
         """Disable pagination for list action to show all assignments"""
         if self.action == 'list':
+            logger.info("EmployeeShiftAssignmentViewSet - Pagination disabled for list action")
             return None
         return super().get_pagination_class()
+    
+    def list(self, request, *args, **kwargs):
+        """Override list method to ensure all assignments are returned"""
+        queryset = self.get_queryset()
+        logger.info(f"EmployeeShiftAssignmentViewSet.list - Final queryset count: {queryset.count()}")
+        
+        serializer = self.get_serializer(queryset, many=True)
+        logger.info(f"EmployeeShiftAssignmentViewSet.list - Returning {len(serializer.data)} assignments")
+        
+        return Response(serializer.data)
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -4304,17 +4315,28 @@ class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
         
         if user.is_admin:
             # Admin can see all assignments
-            return EmployeeShiftAssignment.objects.all()
+            queryset = EmployeeShiftAssignment.objects.all()
+            logger.info(f"EmployeeShiftAssignmentViewSet - Admin: returning {queryset.count()} assignments")
+            return queryset
         elif user.is_manager:
             # Manager can only see assignments from their office
             if user.office:
-                return EmployeeShiftAssignment.objects.filter(shift__office=user.office)
+                queryset = EmployeeShiftAssignment.objects.filter(shift__office=user.office)
+                logger.info(f"EmployeeShiftAssignmentViewSet - Manager: office={user.office}, returning {queryset.count()} assignments")
+                # Log some details about the assignments
+                for assignment in queryset[:5]:  # Log first 5 assignments
+                    logger.info(f"Assignment: {assignment.employee.get_full_name()} -> {assignment.shift.name} (Office: {assignment.shift.office.name})")
+                return queryset
             else:
+                logger.info("EmployeeShiftAssignmentViewSet - Manager: no office assigned")
                 return EmployeeShiftAssignment.objects.none()
         elif user.is_accountant:
             # Accountant can see all assignments (read-only)
-            return EmployeeShiftAssignment.objects.all()
+            queryset = EmployeeShiftAssignment.objects.all()
+            logger.info(f"EmployeeShiftAssignmentViewSet - Accountant: returning {queryset.count()} assignments")
+            return queryset
         else:
+            logger.info("EmployeeShiftAssignmentViewSet - No permission")
             return EmployeeShiftAssignment.objects.none()
 
     def perform_create(self, serializer):
