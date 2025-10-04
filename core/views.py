@@ -4218,6 +4218,12 @@ class ShiftViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'shift_type']
     ordering_fields = ['name', 'start_time', 'created_at']
     ordering = ['office', 'start_time', 'name']
+    
+    def get_pagination_class(self):
+        """Disable pagination for list action to show all shifts"""
+        if self.action == 'list':
+            return None
+        return super().get_pagination_class()
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -4278,6 +4284,12 @@ class EmployeeShiftAssignmentViewSet(viewsets.ModelViewSet):
     search_fields = ['employee__first_name', 'employee__last_name', 'shift__name']
     ordering_fields = ['created_at', 'employee__first_name']
     ordering = ['-created_at']
+    
+    def get_pagination_class(self):
+        """Disable pagination for list action to show all assignments"""
+        if self.action == 'list':
+            return None
+        return super().get_pagination_class()
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
