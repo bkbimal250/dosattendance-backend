@@ -967,12 +967,15 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         else:
             logger.warning(f"CustomUserViewSet - Filter errors: {filterset.errors}")
         
-        # Additional debug for admin users
-        if request.user.is_admin:
-            logger.info(f"CustomUserViewSet - Admin user, returning {queryset.count()} users")
+        # Additional debug for all users
+        logger.info(f"CustomUserViewSet.list - Final queryset count: {queryset.count()}")
+        if queryset.exists():
+            logger.info(f"CustomUserViewSet.list - Returning {queryset.count()} users")
             # Log first few users for debugging
-            for user in queryset[:3]:
-                logger.info(f"CustomUserViewSet - User: {user.username} ({user.first_name} {user.last_name})")
+            for user_obj in queryset[:3]:
+                logger.info(f"CustomUserViewSet.list - User: {user_obj.username} ({user_obj.first_name} {user_obj.last_name}) - Office: {user_obj.office}")
+        else:
+            logger.warning("CustomUserViewSet.list - No users found in queryset")
         
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
@@ -981,23 +984,32 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = CustomUser.objects.select_related('office', 'department', 'designation')
         
+        logger.info(f"CustomUserViewSet.get_queryset - User: {user.username}, Role: {user.role}, Is Manager: {user.is_manager}")
+        logger.info(f"CustomUserViewSet.get_queryset - User office: {user.office}")
+        
         if user.is_admin:
             queryset = queryset.all()
+            logger.info("CustomUserViewSet.get_queryset - Admin: returning all users")
         elif user.is_manager:
             # Managers can see users from their assigned office + themselves
             if user.office:
                 queryset = queryset.filter(
                     Q(office=user.office) | Q(id=user.id)
                 )
+                logger.info(f"CustomUserViewSet.get_queryset - Manager: filtering by office {user.office.id}")
             else:
                 # If manager has no office, they can only see themselves
                 queryset = queryset.filter(id=user.id)
+                logger.info("CustomUserViewSet.get_queryset - Manager: no office, returning only self")
         elif user.is_accountant:
             # Accountant can see all users from all offices (read-only)
             queryset = queryset.all()
+            logger.info("CustomUserViewSet.get_queryset - Accountant: returning all users")
         else:
             queryset = queryset.filter(id=user.id)
+            logger.info("CustomUserViewSet.get_queryset - Employee: returning only self")
         
+        logger.info(f"CustomUserViewSet.get_queryset - Final queryset count: {queryset.count()}")
         return queryset
 
     def get_permissions(self):
