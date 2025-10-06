@@ -335,7 +335,7 @@ class LeaveApprovalSerializer(serializers.ModelSerializer):
     """Serializer for leave approval/rejection"""
     class Meta:
         model = Leave
-        fields = ['status', 'rejection_reason']
+        fields = ['status', 'status_reason']
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -1040,7 +1040,7 @@ class SalarySerializer(serializers.ModelSerializer):
             'employee_office_name', 'employee_department_name', 'employee_designation_name',
             'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
             'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'Bank_name', 'status', 
-            'approved_by', 'approved_by_name', 'approved_at', 'notes', 'rejection_reason', 
+            'approved_by', 'approved_by_name', 'approved_at', 'notes', 'status_reason', 
             'is_auto_calculated', 'attendance_based', 'created_by', 'created_by_name', 
             'created_at', 'updated_at', 'final_salary', 'per_day_salary', 'gross_salary', 
             'total_allowances', 'total_deductions', 'net_salary', 'final_payable_amount', 
@@ -1118,7 +1118,7 @@ class SalaryApprovalSerializer(serializers.ModelSerializer):
     """Serializer for salary status changes (pending, paid, hold)"""
     class Meta:
         model = Salary
-        fields = ['status', 'notes']
+        fields = ['status', 'notes', 'status_reason']
     
     def validate_status(self, value):
         """Validate status change"""
@@ -1317,8 +1317,13 @@ class ShiftSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
         extra_kwargs = {
-            'office': {'required': False}  # Make office optional for managers
+            'office': {'required': False, 'allow_null': True}  # Make office optional and allow null
         }
+    
+    def validate(self, attrs):
+        """Custom validation to handle office assignment"""
+        # If office is not provided, it will be set in perform_create
+        return attrs
 
     def get_employee_count(self, obj):
         """Get number of employees assigned to this shift"""

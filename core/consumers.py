@@ -235,7 +235,7 @@ class ResignationConsumer(AsyncWebsocketConsumer):
                     'status': record.status,
                     'approved_by_name': record.approved_by.get_full_name() if record.approved_by else None,
                     'approved_at': record.approved_at.isoformat() if record.approved_at else None,
-                    'rejection_reason': record.rejection_reason,
+                    'status_reason': record.status_reason,
                     'created_at': record.created_at.isoformat(),
                     'updated_at': record.updated_at.isoformat(),
                 })

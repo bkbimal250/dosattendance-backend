@@ -2617,7 +2617,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Set approved status and clear any previous rejection reason
             leave.status = 'approved'
-            leave.rejection_reason = ''
+            leave.status_reason = ''
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()
@@ -2633,7 +2633,8 @@ class LeaveViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Set rejected status and persist rejection reason if provided
             leave.status = 'rejected'
-            leave.rejection_reason = serializer.validated_data.get('rejection_reason', '')
+            leave.status_reason = serializer.validated_data.get('status_reason', '')
+            leave.status_reason = serializer.validated_data.get('status_reason', '')
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()

@@ -978,7 +978,7 @@ class Salary(models.Model):
     
     # Notes and Comments
     notes = models.TextField(blank=True, help_text="Additional notes or comments")
-    rejection_reason = models.TextField(blank=True, help_text="Reason for rejection if applicable")
+    status_reason = models.TextField(blank=True, help_text="Reason for current status if applicable")
     
     # Auto-calculation flags
     is_auto_calculated = models.BooleanField(default=False, help_text="Whether salary was auto-calculated from attendance")

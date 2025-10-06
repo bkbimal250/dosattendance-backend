@@ -847,7 +847,7 @@ class ResignationAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('user', 'resignation_date', 'notice_period_days')}),
         ('Resignation Details', {'fields': ('reason', 'handover_notes', 'is_handover_completed')}),
-        ('Approval Information', {'fields': ('status', 'approved_by', 'approved_at', 'rejection_reason')}),
+        ('Approval Information', {'fields': ('status', 'approved_by', 'approved_at', 'status_reason')}),
         ('Calculated Fields', {'fields': ('last_working_date',)}),
         ('Timestamps', {'fields': ('created_at', 'updated_at')}),
     )
