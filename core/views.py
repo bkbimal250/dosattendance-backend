@@ -1,6 +1,7 @@
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, filters, viewsets, permissions, serializers
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import rest_framework as django_filters
 from rest_framework.permissions import IsAuthenticated
@@ -942,6 +943,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
     ordering_fields = ['username', 'first_name', 'last_name', 'created_at']
     filterset_class = CustomUserFilter
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_pagination_class(self):
         """Disable pagination for list action to show all users"""
