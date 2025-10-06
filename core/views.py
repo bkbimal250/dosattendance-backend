@@ -1079,7 +1079,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         serializer = CustomUserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=False, methods=['put', 'patch'])
+    @action(detail=False, methods=['put', 'patch'], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def update_profile(self, request):
         """Update current user profile"""
         # Debug logging

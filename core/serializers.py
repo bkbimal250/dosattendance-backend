@@ -574,6 +574,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
             # Payments - UPI QR
             'upi_qr', 'upi_qr_reason'
         ]
+        extra_kwargs = {
+            'upi_qr': {'required': False, 'allow_null': True},
+            'upi_qr_reason': {'required': False, 'allow_blank': True}
+        }
         read_only_fields = [
             'id', 'username', 'role', 'office', 'is_active', 
             'last_login', 'created_at', 'updated_at'
