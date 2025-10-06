@@ -1204,14 +1204,12 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
 
             file_obj = request.FILES.get('upi_qr')
-            reason = request.data.get('upi_qr_reason', '')
             if not file_obj:
                 return Response({'upi_qr': ['File is required']}, status=status.HTTP_400_BAD_REQUEST)
 
             user = request.user
             user.upi_qr = file_obj
-            if reason is not None:
-                user.upi_qr_reason = reason
+            # reason removed
             user.save()
 
             return Response(CustomUserSerializer(user, context={'request': request}).data)

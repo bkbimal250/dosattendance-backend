@@ -102,7 +102,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'department', 'department_name', 'designation', 'designation_name', 'salary', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
-            'upi_qr', 'upi_qr_reason',
+            'upi_qr',
             'is_active', 'last_login', 'created_at', 'updated_at', 'password'
         ]
         read_only_fields = ('id', 'last_login', 'created_at', 'updated_at')
@@ -570,13 +570,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
             # Bank Details
             'account_holder_name', 'bank_name', 'account_number', 
             'ifsc_code', 'bank_branch_name',
-            
-            # Payments - UPI QR
-            'upi_qr', 'upi_qr_reason'
+            'upi_qr'
         ]
         extra_kwargs = {
-            'upi_qr': {'required': False, 'allow_null': True},
-            'upi_qr_reason': {'required': False, 'allow_blank': True}
+            'upi_qr': {'required': False, 'allow_null': True}
         }
         read_only_fields = [
             'id', 'username', 'role', 'office', 'is_active', 
