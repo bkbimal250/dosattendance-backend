@@ -136,6 +136,10 @@ class CustomUser(AbstractUser):
     ifsc_code = models.CharField(max_length=20, blank=True, help_text="IFSC Code of the bank branch")
     bank_branch_name = models.CharField(max_length=200, blank=True)
     
+    # Payments - UPI QR (user-provided, any file type allowed)
+    upi_qr = models.FileField(upload_to='user_qr_codes/', null=True, blank=True, help_text="User uploaded UPI QR code (image/pdf/any)")
+    upi_qr_reason = models.TextField(blank=True, help_text="Reason or description for UPI QR (optional)")
+    
     # System Fields
     is_active = models.BooleanField(default=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
