@@ -336,7 +336,7 @@ class LeaveApprovalSerializer(serializers.ModelSerializer):
     """Serializer for leave approval/rejection"""
     class Meta:
         model = Leave
-        fields = ['status', 'status_reason']
+        fields = ['status', 'rejection_reason']
 
 
 class DocumentSerializer(serializers.ModelSerializer):
