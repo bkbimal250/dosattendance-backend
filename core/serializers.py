@@ -671,8 +671,8 @@ class DeviceSyncSerializer(serializers.Serializer):
         ('users', 'User Data'),
         ('both', 'Both')
     ])
-    start_date = serializers.DateField(required=False)
-    end_date = serializers.DateField(required=False)
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
     
     def validate(self, attrs):
         """Validate sync data"""
@@ -730,32 +730,32 @@ class DocumentGenerationSerializer(serializers.Serializer):
     
     # Offer letter specific fields
     position = serializers.CharField(required=False, allow_blank=True)
-    start_date = serializers.DateField(required=False)
+    start_date = serializers.DateField(required=False, allow_null=True)
     starting_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     
     # Salary increment specific fields
     previous_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     increment_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
     new_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    effective_date = serializers.DateField(required=False)
+    effective_date = serializers.DateField(required=False, allow_null=True)
     
-    # Salary slip specific fields
+    # Salary slip specific fields - increased max_digits to handle larger values
     salary_month = serializers.CharField(required=False, allow_blank=True)
     salary_year = serializers.CharField(required=False, allow_blank=True)
-    basic_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    extra_days_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    basic_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    extra_days_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     
-    # Additional salary slip fields from frontend
+    # Additional salary slip fields from frontend - increased max_digits
     total_days = serializers.IntegerField(required=False)
     worked_days = serializers.IntegerField(required=False)
-    per_day_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    gross_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    net_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    total_gross_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    per_day_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    gross_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    net_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    total_gross_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     absent_days = serializers.IntegerField(required=False)
-    total_deductions = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    final_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    basic_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    total_deductions = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    final_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    basic_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     status = serializers.CharField(required=False, allow_blank=True)
     office_name = serializers.CharField(required=False, allow_blank=True)
     department = serializers.CharField(required=False, allow_blank=True)
@@ -765,7 +765,7 @@ class DocumentGenerationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     phone = serializers.CharField(required=False, allow_blank=True)
     address = serializers.CharField(required=False, allow_blank=True)
-    date_of_joining = serializers.DateField(required=False)
+    date_of_joining = serializers.DateField(required=False, allow_null=True)
     bank_name = serializers.CharField(required=False, allow_blank=True)
     account_number = serializers.CharField(required=False, allow_blank=True)
     ifsc_code = serializers.CharField(required=False, allow_blank=True)
@@ -774,8 +774,8 @@ class DocumentGenerationSerializer(serializers.Serializer):
     uan_number = serializers.CharField(required=False, allow_blank=True)
     esi_number = serializers.CharField(required=False, allow_blank=True)
     pf_number = serializers.CharField(required=False, allow_blank=True)
-    created_at = serializers.DateTimeField(required=False)
-    updated_at = serializers.DateTimeField(required=False)
+    created_at = serializers.DateTimeField(required=False, allow_null=True)
+    updated_at = serializers.DateTimeField(required=False, allow_null=True)
     
     # Handle field variations from different frontends
     employee_name = serializers.CharField(required=False, allow_blank=True)
@@ -787,19 +787,19 @@ class DocumentGenerationSerializer(serializers.Serializer):
     employee_email = serializers.EmailField(required=False, allow_blank=True)
     employee_phone = serializers.CharField(required=False, allow_blank=True)
     
-    # Additional fields from payload
-    increment = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    deduction = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    loan_deduction = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    remaining_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    # Additional fields from payload - increased max_digits for consistency
+    increment = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    deduction = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    loan_deduction = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    remaining_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     payment_method = serializers.CharField(required=False, allow_blank=True)
-    pay_date = serializers.DateField(required=False)
+    pay_date = serializers.DateField(required=False, allow_null=True)
     paid_date = serializers.DateField(required=False, allow_null=True)
     status_reason = serializers.CharField(required=False, allow_blank=True)
     notes = serializers.CharField(required=False, allow_blank=True)
     approved_by = serializers.CharField(required=False, allow_blank=True)
     approved_at = serializers.DateTimeField(required=False, allow_null=True)
-    total_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    total_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     
     # Common fields
     custom_message = serializers.CharField(required=False, allow_blank=True)
