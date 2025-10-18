@@ -1699,6 +1699,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                             <span class="info-value">{{ employee_name }}</span>
                         </div>
                         <div class="info-row">
+                            <span class="info-label">Employee ID:</span>
+                            <span class="info-value">{{ employee_id }}</span>
+                        </div>
+                        <div class="info-row">
                             <span class="info-label">Designation:</span>
                             <span class="info-value">{{ employee_designation }}</span>
                         </div>
@@ -1706,9 +1710,25 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                             <span class="info-label">Department:</span>
                             <span class="info-value">{{ employee_department }}</span>
                         </div>
+                        <div class="info-row">
+                            <span class="info-label">Office:</span>
+                            <span class="info-value">{{ office_name }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">{{ email }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Phone:</span>
+                            <span class="info-value">{{ phone }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Date of Joining:</span>
+                            <span class="info-value">{{ date_of_joining }}</span>
+                        </div>
                     </div>
                     
-                    <div class="section-title">Bank Details</div>
+                    <div class="section-title">Bank & Financial Details</div>
                     <div class="bank-info">
                         <div class="info-row">
                             <span class="info-label">Bank Name:</span>
@@ -1721,6 +1741,26 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         <div class="info-row">
                             <span class="info-label">IFSC Code:</span>
                             <span class="info-value">{{ ifsc_code }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">PAN Number:</span>
+                            <span class="info-value">{{ pan_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Aadhar Number:</span>
+                            <span class="info-value">{{ aadhar_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">UAN Number:</span>
+                            <span class="info-value">{{ uan_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ESI Number:</span>
+                            <span class="info-value">{{ esi_number }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">PF Number:</span>
+                            <span class="info-value">{{ pf_number }}</span>
                         </div>
                     </div>
                 </div>
@@ -1740,6 +1780,34 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         <tr>
                             <td>Extra Days Pay</td>
                             <td class="amount">₹{{ extra_days_pay }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Gross Salary</td>
+                            <td class="amount">₹{{ total_gross_salary }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gross Salary</td>
+                            <td class="amount">₹{{ gross_salary }}</td>
+                        </tr>
+                        <tr>
+                            <td>Per Day Pay</td>
+                            <td class="amount">₹{{ per_day_pay }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Days</td>
+                            <td class="amount">{{ total_days }}</td>
+                        </tr>
+                        <tr>
+                            <td>Worked Days</td>
+                            <td class="amount">{{ worked_days }}</td>
+                        </tr>
+                        <tr>
+                            <td>Absent Days</td>
+                            <td class="amount">{{ absent_days }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Deductions</td>
+                            <td class="amount">₹{{ total_deductions }}</td>
                         </tr>
                         <tr>
                             <td><strong>Total Salary</strong></td>
@@ -1872,32 +1940,75 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         elif document_type == 'salary_slip':
             template_content = self.get_salary_slip_template()
             
-            # Get salary slip data
+            # Get salary slip data from frontend
             basic_salary = float(data.get('basic_salary', 0))
             extra_days_pay = float(data.get('extra_days_pay', 0))
-            total_salary = basic_salary + extra_days_pay
-            net_salary = total_salary  # For now, net salary equals total salary
+            total_gross_salary = float(data.get('total_gross_salary', 0))
+            net_salary = float(data.get('net_salary', 0))
+            total_salary = float(data.get('total_salary', 0))
+            
+            # Get additional fields
+            total_days = data.get('total_days', 0)
+            worked_days = data.get('worked_days', 0)
+            per_day_pay = float(data.get('per_day_pay', 0))
+            gross_salary = float(data.get('gross_salary', 0))
+            absent_days = data.get('absent_days', 0)
+            total_deductions = float(data.get('total_deductions', 0))
+            final_salary = float(data.get('final_salary', 0))
+            basic_pay = float(data.get('basic_pay', 0))
             
             # Format salary month and year
             salary_month = data.get('salary_month', '')
             salary_year = data.get('salary_year', '')
             
-            # Get employee bank details (you may need to add these fields to your CustomUser model)
-            bank_name = getattr(employee, 'bank_name', 'Not specified')
-            account_number = getattr(employee, 'account_number', 'Not specified')
+            # Get employee details from data or fallback to employee object
+            employee_name = data.get('full_name', employee.get_full_name())
+            employee_id = data.get('employee_id', employee.employee_id if employee.employee_id else str(employee.id)[:8].upper())
+            employee_designation = data.get('designation', employee.designation or 'Not specified')
+            employee_department = data.get('department', getattr(employee, 'department', 'Not specified'))
+            office_name = data.get('office_name', getattr(employee, 'office', {}).get('name', 'Not specified') if hasattr(employee, 'office') else 'Not specified')
+            
+            # Get bank details from data or employee object
+            bank_name = data.get('bank_name', getattr(employee, 'bank_name', 'Not specified'))
+            account_number = data.get('account_number', getattr(employee, 'account_number', 'Not specified'))
+            ifsc_code = data.get('ifsc_code', getattr(employee, 'ifsc_code', 'Not specified'))
+            
+            # Get other employee details
+            email = data.get('email', employee.email)
+            phone = data.get('phone', getattr(employee, 'phone', 'Not specified'))
+            address = data.get('address', getattr(employee, 'address', 'Not specified'))
+            pan_number = data.get('pan_number', getattr(employee, 'pan_number', 'Not specified'))
+            aadhar_number = data.get('aadhar_number', getattr(employee, 'aadhar_number', 'Not specified'))
+            uan_number = data.get('uan_number', getattr(employee, 'uan_number', 'Not specified'))
+            esi_number = data.get('esi_number', getattr(employee, 'esi_number', 'Not specified'))
+            pf_number = data.get('pf_number', getattr(employee, 'pf_number', 'Not specified'))
             
             # Format date of joining
-            date_of_joining = 'Not specified'
-            if hasattr(employee, 'date_joined'):
+            date_of_joining = data.get('date_of_joining', 'Not specified')
+            if date_of_joining and hasattr(date_of_joining, 'strftime'):
+                date_of_joining = date_of_joining.strftime('%d/%m/%Y')
+            elif not date_of_joining and hasattr(employee, 'date_joined'):
                 date_of_joining = employee.date_joined.strftime('%d/%m/%Y')
+            elif not date_of_joining:
+                date_of_joining = 'Not specified'
             
             context = {
-                'employee_name': employee.get_full_name(),
-                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),  # Use actual employee_id or fallback to short ID
-                'employee_designation': employee.designation or 'Not specified',
-                'employee_department': getattr(employee, 'department', 'Not specified'),
+                'employee_name': employee_name,
+                'employee_id': employee_id,
+                'employee_designation': employee_designation,
+                'employee_department': employee_department,
+                'office_name': office_name,
                 'bank_name': bank_name,
                 'account_number': account_number,
+                'ifsc_code': ifsc_code,
+                'email': email,
+                'phone': phone,
+                'address': address,
+                'pan_number': pan_number,
+                'aadhar_number': aadhar_number,
+                'uan_number': uan_number,
+                'esi_number': esi_number,
+                'pf_number': pf_number,
                 'date_of_joining': date_of_joining,
                 'salary_month': salary_month,
                 'salary_year': salary_year,
@@ -1905,6 +2016,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'extra_days_pay': self.format_currency(extra_days_pay),
                 'total_salary': self.format_currency(total_salary),
                 'net_salary': self.format_currency(net_salary),
+                'total_gross_salary': self.format_currency(total_gross_salary),
+                'gross_salary': self.format_currency(gross_salary),
+                'per_day_pay': self.format_currency(per_day_pay),
+                'basic_pay': self.format_currency(basic_pay),
+                'final_salary': self.format_currency(final_salary),
+                'total_deductions': self.format_currency(total_deductions),
+                'total_days': total_days,
+                'worked_days': worked_days,
+                'absent_days': absent_days,
                 'logo_url': self.get_logo_url(),
                 'current_date': datetime.now().strftime('%d/%m/%Y')
             }
