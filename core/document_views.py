@@ -2078,11 +2078,23 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             salary_year = data.get('salary_year', '')
             
             # Get employee details from data or fallback to employee object
-            employee_name = data.get('full_name', employee.get_full_name())
-            employee_id = data.get('employee_id', employee.employee_id if employee.employee_id else str(employee.id)[:8].upper())
-            employee_designation = data.get('designation', employee.designation or 'Not specified')
-            employee_department = data.get('department', getattr(employee, 'department', 'Not specified'))
-            office_name = data.get('office_name', getattr(employee, 'office', {}).get('name', 'Not specified') if hasattr(employee, 'office') else 'Not specified')
+            # Handle different field name variations from frontend
+            employee_name = (data.get('employee_name') or 
+                           data.get('full_name') or 
+                           employee.get_full_name())
+            employee_id_display = (data.get('employee_id_number') or 
+                                  data.get('employee_employee_id') or 
+                                  data.get('employee_id') or 
+                                  employee.employee_id if employee.employee_id else str(employee.id)[:8].upper())
+            employee_designation = (data.get('employee_designation') or 
+                                  data.get('designation') or 
+                                  employee.designation or 'Not specified')
+            employee_department = (data.get('employee_department') or 
+                                 data.get('department') or 
+                                 str(getattr(employee, 'department', 'Not specified')))
+            office_name = (data.get('employee_office') or 
+                         data.get('office_name') or 
+                         getattr(employee.office, 'name', 'Not specified') if hasattr(employee, 'office') and employee.office else 'Not specified')
             
             # Get bank details from data or employee object
             bank_name = data.get('bank_name', getattr(employee, 'bank_name', 'Not specified'))
@@ -2110,7 +2122,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             
             context = {
                 'employee_name': employee_name,
-                'employee_id': employee_id,
+                'employee_id': employee_id_display,
                 'employee_designation': employee_designation,
                 'employee_department': employee_department,
                 'office_name': office_name,

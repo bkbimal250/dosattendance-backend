@@ -777,6 +777,30 @@ class DocumentGenerationSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(required=False)
     updated_at = serializers.DateTimeField(required=False)
     
+    # Handle field variations from different frontends
+    employee_name = serializers.CharField(required=False, allow_blank=True)
+    employee_id_number = serializers.CharField(required=False, allow_blank=True)
+    employee_employee_id = serializers.CharField(required=False, allow_blank=True)
+    employee_designation = serializers.CharField(required=False, allow_blank=True)
+    employee_department = serializers.CharField(required=False, allow_blank=True)
+    employee_office = serializers.CharField(required=False, allow_blank=True)
+    employee_email = serializers.EmailField(required=False, allow_blank=True)
+    employee_phone = serializers.CharField(required=False, allow_blank=True)
+    
+    # Additional fields from payload
+    increment = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    deduction = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    loan_deduction = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    remaining_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    payment_method = serializers.CharField(required=False, allow_blank=True)
+    pay_date = serializers.DateField(required=False)
+    paid_date = serializers.DateField(required=False, allow_null=True)
+    status_reason = serializers.CharField(required=False, allow_blank=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
+    approved_by = serializers.CharField(required=False, allow_blank=True)
+    approved_at = serializers.DateTimeField(required=False, allow_null=True)
+    total_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    
     # Common fields
     custom_message = serializers.CharField(required=False, allow_blank=True)
     send_email = serializers.BooleanField(default=True)
