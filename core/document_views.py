@@ -1481,7 +1481,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def get_salary_slip_template(self):
-        """Professional salary slip template"""
+        """Professional salary slip template with comprehensive fields"""
         return """
         <!DOCTYPE html>
         <html>
@@ -1489,7 +1489,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <meta charset="utf-8">
             <style>
                 @page {
-                    margin: 0.75in;
+                    margin: 0.5in;
                     size: A4;
                 }
                 
@@ -1501,10 +1501,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.2; 
+                    line-height: 1.3; 
                     color: #000000;
                     background-color: #ffffff;
-                    font-size: 10pt;
+                    font-size: 9pt;
                 }
                 
                 .page { 
@@ -1516,57 +1516,64 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 15px; 
-                    padding-bottom: 10px; 
-                    border-bottom: 1px solid #000; 
+                    margin-bottom: 12px; 
+                    padding-bottom: 8px; 
+                    border-bottom: 2px solid #000; 
                 }
                 
                 .company-logo { 
-                    max-height: 50px; 
-                    max-width: 150px; 
-                    margin-bottom: 8px; 
+                    max-height: 45px; 
+                    max-width: 140px; 
+                    margin-bottom: 6px; 
                 }
                 
                 .company-name { 
-                    font-size: 14pt; 
+                    font-size: 13pt; 
                     font-weight: bold; 
                     color: #000000; 
-                    margin: 3px 0; 
+                    margin: 2px 0; 
                     text-transform: uppercase;
-                    letter-spacing: 1px;
+                    letter-spacing: 1.5px;
                 }
                 
                 .company-address { 
-                    font-size: 8pt; 
+                    font-size: 7.5pt; 
                     color: #000000; 
-                    line-height: 1.1; 
+                    line-height: 1.2; 
                     margin: 2px 0;
                 }
+                
                 .document-title { 
                     text-align: center; 
-                    font-size: 12pt; 
+                    font-size: 11pt; 
                     font-weight: bold; 
-                    margin: 15px 0 10px 0; 
+                    margin: 12px 0 8px 0; 
                     color: #000000; 
                     text-transform: uppercase;
-                    letter-spacing: 1px;
+                    letter-spacing: 2px;
+                    background-color: #f0f0f0;
+                    padding: 6px;
+                    border: 1px solid #000;
                 }
                 
                 .salary-month {
                     text-align: center;
-                    font-size: 10pt;
+                    font-size: 9.5pt;
                     font-weight: bold;
-                    margin-bottom: 15px;
+                    margin-bottom: 12px;
                     color: #000000;
+                    background-color: #f8f8f8;
+                    padding: 5px;
+                    border: 1px solid #ccc;
                 }
                 
                 .employee-header {
                     display: flex;
                     justify-content: space-between;
-                    margin: 10px 0;
-                    font-size: 9pt;
+                    margin: 8px 0;
+                    font-size: 8.5pt;
                     border-bottom: 1px solid #000;
-                    padding-bottom: 8px;
+                    padding-bottom: 6px;
                 }
                 
                 .employee-id {
@@ -1577,48 +1584,68 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 .document-date {
                     color: #000000;
                 }
-                .employee-section {
-                    margin-bottom: 15px;
+                
+                .two-column-section {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 12px;
                 }
                 
-                .employee-info, .bank-info {
-                    margin-bottom: 10px;
+                .column {
+                    flex: 1;
+                }
+                
+                .employee-section {
+                    margin-bottom: 12px;
+                }
+                
+                .info-box {
+                    border: 1px solid #000;
+                    padding: 8px;
+                    margin-bottom: 8px;
+                    background-color: #fafafa;
                 }
                 
                 .section-title {
-                    font-size: 10pt;
+                    font-size: 9pt;
                     font-weight: bold;
                     color: #000000;
-                    margin-bottom: 8px;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 3px;
+                    margin-bottom: 6px;
+                    background-color: #e0e0e0;
+                    padding: 4px 6px;
+                    border-bottom: 2px solid #000;
                 }
                 
                 .info-row {
                     display: flex;
                     justify-content: space-between;
-                    margin: 4px 0;
+                    margin: 3px 0;
                     padding: 2px 0;
+                    font-size: 8.5pt;
                 }
                 
                 .info-label {
-                    font-weight: bold;
+                    font-weight: 600;
                     color: #000000;
+                    width: 45%;
                 }
                 
                 .info-value {
                     color: #000000;
+                    text-align: right;
+                    width: 55%;
                 }
+                
                 .salary-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 10px 0;
-                    font-size: 9pt;
-                    border: 1px solid #000;
+                    margin: 12px 0;
+                    font-size: 8.5pt;
+                    border: 2px solid #000;
                 }
                 
                 .salary-table th {
-                    background-color: #f0f0f0;
+                    background-color: #d0d0d0;
                     color: #000000;
                     padding: 6px 8px;
                     text-align: left;
@@ -1628,204 +1655,293 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 }
                 
                 .salary-table td {
-                    padding: 4px 8px;
+                    padding: 5px 8px;
                     border: 1px solid #000;
-                    font-size: 9pt;
+                    font-size: 8.5pt;
                 }
                 
                 .salary-table tr:nth-child(even) {
-                    background-color: #f8f8f8;
+                    background-color: #f5f5f5;
                 }
                 
-                .salary-table tr:last-child td {
+                .section-row {
+                    background-color: #e8e8e8 !important;
                     font-weight: bold;
-                    background-color: #e0e0e0;
-                    color: #000000;
+                }
+                
+                .total-row {
+                    background-color: #d8d8d8 !important;
+                    font-weight: bold;
+                }
+                
+                .net-salary-row {
+                    background-color: #c0c0c0 !important;
+                    font-weight: bold;
+                    font-size: 10pt !important;
                 }
                 
                 .amount {
                     text-align: right;
-                    font-weight: bold;
+                    font-weight: 600;
                     color: #000000;
                 }
                 
-                .net-salary {
-                    background-color: #e0e0e0 !important;
-                    font-weight: bold;
-                    font-size: 10pt;
-                    color: #000000;
-                }
                 .footer { 
-                    margin-top: 20px; 
+                    margin-top: 15px; 
                     text-align: center; 
-                    font-size: 8pt; 
+                    font-size: 7.5pt; 
                     color: #000000; 
-                    border-top: 1px solid #000; 
+                    border-top: 2px solid #000; 
                     padding-top: 8px; 
                 }
                 
                 .generated-info {
+                    text-align: right;
+                    font-size: 6.5pt;
+                    color: #666;
+                    margin-top: 8px;
+                }
+                
+                .signature-section {
+                    margin-top: 30px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                
+                .signature-box {
                     text-align: center;
-                    font-size: 7pt;
-                    color: #000000;
-                    margin-top: 10px;
+                    font-size: 8pt;
+                }
+                
+                .signature-line {
+                    border-top: 1px solid #000;
+                    margin-top: 40px;
+                    padding-top: 4px;
+                    font-weight: bold;
                 }
             </style>
         </head>
         <body>
             <div class="page">
+                <!-- Header -->
                 <div class="header">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
                     <div class="company-name">DISHA ONLINE SOLUTIONS</div>
                     <div class="company-address">
-                            Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                            Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
                 </div>
                 
+                <!-- Document Title -->
                 <div class="document-title">Salary Slip</div>
-                <div class="salary-month">{{ salary_month }} {{ salary_year }}</div>
+                <div class="salary-month">For the Month of {{ salary_month }} {{ salary_year }}</div>
                 
+                <!-- Employee Header -->
                 <div class="employee-header">
                     <div class="employee-id">Employee ID: {{ employee_id }}</div>
-                    <div class="document-date">Date: {{ current_date }}</div>
+                    <div class="document-date">Generated: {{ current_date }}</div>
                 </div>
                 
-                <div class="employee-section">
-                        <div class="section-title">Employee Information</div>
-                    <div class="employee-info">
-                        <div class="info-row">
-                            <span class="info-label">Employee Name:</span>
-                            <span class="info-value">{{ employee_name }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Employee ID:</span>
-                            <span class="info-value">{{ employee_id }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Designation:</span>
-                            <span class="info-value">{{ employee_designation }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Department:</span>
-                            <span class="info-value">{{ employee_department }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Office:</span>
-                            <span class="info-value">{{ office_name }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value">{{ email }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Phone:</span>
-                            <span class="info-value">{{ phone }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Date of Joining:</span>
-                            <span class="info-value">{{ date_of_joining }}</span>
+                <!-- Two Column Section for Employee and Bank Info -->
+                <div class="two-column-section">
+                    <!-- Employee Information Column -->
+                    <div class="column">
+                        <div class="info-box">
+                            <div class="section-title">EMPLOYEE INFORMATION</div>
+                            <div class="info-row">
+                                <span class="info-label">Name:</span>
+                                <span class="info-value">{{ employee_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Employee ID:</span>
+                                <span class="info-value">{{ employee_id }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Designation:</span>
+                                <span class="info-value">{{ employee_designation }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Department:</span>
+                                <span class="info-value">{{ employee_department }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Office:</span>
+                                <span class="info-value">{{ office_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Date of Joining:</span>
+                                <span class="info-value">{{ date_of_joining }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email:</span>
+                                <span class="info-value">{{ email }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Phone:</span>
+                                <span class="info-value">{{ phone }}</span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="section-title">Bank & Financial Details</div>
-                    <div class="bank-info">
-                        <div class="info-row">
-                            <span class="info-label">Bank Name:</span>
-                            <span class="info-value">{{ bank_name }}</span>
+                    <!-- Bank & Statutory Information Column -->
+                    <div class="column">
+                        <div class="info-box">
+                            <div class="section-title">BANK DETAILS</div>
+                            <div class="info-row">
+                                <span class="info-label">Bank Name:</span>
+                                <span class="info-value">{{ bank_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Account Number:</span>
+                                <span class="info-value">{{ account_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">IFSC Code:</span>
+                                <span class="info-value">{{ ifsc_code }}</span>
+                            </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Account Number:</span>
-                            <span class="info-value">{{ account_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">IFSC Code:</span>
-                            <span class="info-value">{{ ifsc_code }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">PAN Number:</span>
-                            <span class="info-value">{{ pan_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Aadhar Number:</span>
-                            <span class="info-value">{{ aadhar_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">UAN Number:</span>
-                            <span class="info-value">{{ uan_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">ESI Number:</span>
-                            <span class="info-value">{{ esi_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">PF Number:</span>
-                            <span class="info-value">{{ pf_number }}</span>
+                        
+                        <div class="info-box" style="margin-top: 8px;">
+                            <div class="section-title">STATUTORY INFORMATION</div>
+                            <div class="info-row">
+                                <span class="info-label">PAN Number:</span>
+                                <span class="info-value">{{ pan_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Aadhar Number:</span>
+                                <span class="info-value">{{ aadhar_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">UAN Number:</span>
+                                <span class="info-value">{{ uan_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">ESI Number:</span>
+                                <span class="info-value">{{ esi_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">PF Number:</span>
+                                <span class="info-value">{{ pf_number }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Salary Breakdown Table -->
                 <table class="salary-table">
                     <thead>
                         <tr>
-                            <th>Description</th>
-                            <th>Amount (₹)</th>
+                            <th style="width: 60%;">PARTICULARS</th>
+                            <th style="width: 20%; text-align: center;">DETAILS</th>
+                            <th style="width: 20%; text-align: right;">AMOUNT (₹)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Basic Salary</td>
-                            <td class="amount">₹{{ basic_salary }}</td>
+                        <!-- Attendance Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">ATTENDANCE DETAILS</td>
                         </tr>
                         <tr>
-                            <td>Extra Days Pay</td>
-                            <td class="amount">₹{{ extra_days_pay }}</td>
+                            <td>Total Days in Month</td>
+                            <td style="text-align: center;">{{ total_days }}</td>
+                            <td class="amount">-</td>
                         </tr>
                         <tr>
-                            <td>Total Gross Salary</td>
-                            <td class="amount">₹{{ total_gross_salary }}</td>
-                        </tr>
-                        <tr>
-                            <td>Gross Salary</td>
-                            <td class="amount">₹{{ gross_salary }}</td>
-                        </tr>
-                        <tr>
-                            <td>Per Day Pay</td>
-                            <td class="amount">₹{{ per_day_pay }}</td>
-                        </tr>
-                        <tr>
-                            <td>Total Days</td>
-                            <td class="amount">{{ total_days }}</td>
-                        </tr>
-                        <tr>
-                            <td>Worked Days</td>
-                            <td class="amount">{{ worked_days }}</td>
+                            <td>Days Worked</td>
+                            <td style="text-align: center;">{{ worked_days }}</td>
+                            <td class="amount">-</td>
                         </tr>
                         <tr>
                             <td>Absent Days</td>
-                            <td class="amount">{{ absent_days }}</td>
+                            <td style="text-align: center;">{{ absent_days }}</td>
+                            <td class="amount">-</td>
+                        </tr>
+                        
+                        <!-- Earnings Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">EARNINGS</td>
+                        </tr>
+                        <tr>
+                            <td>Basic Salary</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ basic_salary }}</td>
+                        </tr>
+                        <tr>
+                            <td>Per Day Pay Rate</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ per_day_pay }}</td>
+                        </tr>
+                        <tr>
+                            <td>Extra Days Pay (Overtime/Bonus)</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ extra_days_pay }}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td><strong>TOTAL GROSS SALARY</strong></td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount"><strong>{{ total_gross_salary }}</strong></td>
+                        </tr>
+                        
+                        <!-- Deductions Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">DEDUCTIONS</td>
                         </tr>
                         <tr>
                             <td>Total Deductions</td>
-                            <td class="amount">₹{{ total_deductions }}</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ total_deductions }}</td>
                         </tr>
-                        <tr>
-                            <td><strong>Total Salary</strong></td>
-                            <td class="amount"><strong>₹{{ total_salary }}</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="net-salary"><strong>Net Salary</strong></td>
-                            <td class="amount net-salary"><strong>₹{{ net_salary }}</strong></td>
+                        
+                        <!-- Net Salary Section -->
+                        <tr class="net-salary-row">
+                            <td><strong>NET SALARY PAYABLE</strong></td>
+                            <td style="text-align: center;"><strong>-</strong></td>
+                            <td class="amount"><strong>{{ net_salary }}</strong></td>
                         </tr>
                     </tbody>
                 </table>
                 
-                <div class="footer">
-                    <p>This is a computer generated salary slip and does not require signature</p>
+                <!-- Salary Summary Box -->
+                <div style="border: 2px solid #000; padding: 10px; margin: 15px 0; background-color: #f0f0f0;">
+                    <div style="text-align: center; font-weight: bold; font-size: 9.5pt; margin-bottom: 8px;">
+                        SALARY SUMMARY
+                    </div>
+                    <div style="display: flex; justify-content: space-around; font-size: 8.5pt;">
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Total Gross</div>
+                            <div style="font-size: 10pt; font-weight: bold;">{{ gross_salary }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Deductions</div>
+                            <div style="font-size: 10pt; font-weight: bold; color: #cc0000;">{{ total_deductions }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Net Payable</div>
+                            <div style="font-size: 11pt; font-weight: bold; color: #006600;">{{ net_salary }}</div>
+                        </div>
+                    </div>
                 </div>
                 
+                <!-- Signature Section -->
+                <div class="signature-section">
+                    <div class="signature-box">
+                        <div class="signature-line">Employee Signature</div>
+                    </div>
+                    <div class="signature-box">
+                        <div class="signature-line">Authorized Signatory</div>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="footer">
+                    <p style="margin: 5px 0; font-weight: bold;">This is a computer generated salary slip and does not require a signature.</p>
+                    <p style="margin: 5px 0; font-size: 7pt;">For any queries, please contact HR Department | Email: hr@dishaonlinesolutions.com</p>
+                </div>
+                
+                <!-- Generated Info -->
                 <div class="generated-info">
-                    Generated on: {{ current_date }}
+                    Document Generated on: {{ current_date }} | Employee Attendance Management System
                 </div>
             </div>
         </body>
