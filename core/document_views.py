@@ -214,7 +214,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     <title>{document.title}</title>
                     <style>
                         @page {{
-                            margin: 0.75in;
+                            margin: 0.4in;
                             size: A4;
                         }}
                         
@@ -277,7 +277,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                             font-weight: bold;
                             color: #000000;
                             text-align: center;
-                            margin: 15px 0 10px 0;
+                            margin: 8px 0 5px 0;
                             text-transform: uppercase;
                             letter-spacing: 1px;
                         }}
@@ -285,7 +285,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         .employee-header {{
                             display: flex;
                             justify-content: space-between;
-                            margin: 10px 0;
+                            margin: 5px 0;
                             font-size: 9pt;
                             border-bottom: 1px solid #000;
                             padding-bottom: 8px;
@@ -365,7 +365,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         }}
                         
                         .salary-table {{
-                            margin: 10px 0;
+                            margin: 5px 0;
                         }}
                         
                         .salary-table th {{
@@ -445,7 +445,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                         @media print {{
                             body {{ margin: 0; }}
                             .no-print {{ display: none; }}
-                            @page {{ margin: 0.75in; }}
+                            @page {{ margin: 0.4in; }}
                         }}
                     </style>
                 </head>
@@ -596,7 +596,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                 <title>{document.title}</title>
                 <style>
                     @page {{
-                        margin: 0.75in;
+                        margin: 0.4in;
                         size: A4;
                     }}
                     
@@ -1481,7 +1481,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def get_salary_slip_template(self):
-        """Professional salary slip template"""
+        """Professional salary slip template with comprehensive fields"""
         return """
         <!DOCTYPE html>
         <html>
@@ -1489,7 +1489,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <meta charset="utf-8">
             <style>
                 @page {
-                    margin: 0.75in;
+                    margin: 0.4in;
                     size: A4;
                 }
                 
@@ -1501,10 +1501,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.2; 
+                    line-height: 1.3; 
                     color: #000000;
                     background-color: #ffffff;
-                    font-size: 10pt;
+                    font-size: 9pt;
                 }
                 
                 .page { 
@@ -1516,57 +1516,64 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 15px; 
-                    padding-bottom: 10px; 
-                    border-bottom: 1px solid #000; 
+                    margin-bottom: 8px; 
+                    padding-bottom: 6px; 
+                    border-bottom: 2px solid #000; 
                 }
                 
                 .company-logo { 
-                    max-height: 50px; 
-                    max-width: 150px; 
-                    margin-bottom: 8px; 
+                    max-height: 45px; 
+                    max-width: 140px; 
+                    margin-bottom: 6px; 
                 }
                 
                 .company-name { 
-                    font-size: 14pt; 
+                    font-size: 13pt; 
                     font-weight: bold; 
                     color: #000000; 
-                    margin: 3px 0; 
+                    margin: 2px 0; 
                     text-transform: uppercase;
-                    letter-spacing: 1px;
+                    letter-spacing: 1.5px;
                 }
                 
                 .company-address { 
-                    font-size: 8pt; 
+                    font-size: 7.5pt; 
                     color: #000000; 
-                    line-height: 1.1; 
+                    line-height: 1.2; 
                     margin: 2px 0;
                 }
+                
                 .document-title { 
                     text-align: center; 
-                    font-size: 12pt; 
+                    font-size: 11pt; 
                     font-weight: bold; 
-                    margin: 15px 0 10px 0; 
+                    margin: 12px 0 8px 0; 
                     color: #000000; 
                     text-transform: uppercase;
-                    letter-spacing: 1px;
+                    letter-spacing: 2px;
+                    background-color: #f0f0f0;
+                    padding: 6px;
+                    border: 1px solid #000;
                 }
                 
                 .salary-month {
                     text-align: center;
-                    font-size: 10pt;
+                    font-size: 9.5pt;
                     font-weight: bold;
-                    margin-bottom: 15px;
+                    margin-bottom: 8px;
                     color: #000000;
+                    background-color: #f8f8f8;
+                    padding: 4px;
+                    border: 1px solid #ccc;
                 }
                 
                 .employee-header {
                     display: flex;
                     justify-content: space-between;
-                    margin: 10px 0;
-                    font-size: 9pt;
+                    margin: 8px 0;
+                    font-size: 8.5pt;
                     border-bottom: 1px solid #000;
-                    padding-bottom: 8px;
+                    padding-bottom: 6px;
                 }
                 
                 .employee-id {
@@ -1577,48 +1584,68 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 .document-date {
                     color: #000000;
                 }
-                .employee-section {
-                    margin-bottom: 15px;
+                
+                .two-column-section {
+                    display: flex;
+                    gap: 6px;
+                    margin-bottom: 5px;
                 }
                 
-                .employee-info, .bank-info {
-                    margin-bottom: 10px;
+                .column {
+                    flex: 1;
+                }
+                
+                .employee-section {
+                    margin-bottom: 12px;
+                }
+                
+                .info-box {
+                    border: 1px solid #000;
+                    padding: 6px;
+                    margin-bottom: 5px;
+                    background-color: #fafafa;
                 }
                 
                 .section-title {
-                    font-size: 10pt;
+                    font-size: 9pt;
                     font-weight: bold;
                     color: #000000;
-                    margin-bottom: 8px;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 3px;
+                    margin-bottom: 6px;
+                    background-color: #e0e0e0;
+                    padding: 4px 6px;
+                    border-bottom: 2px solid #000;
                 }
                 
                 .info-row {
                     display: flex;
                     justify-content: space-between;
-                    margin: 4px 0;
-                    padding: 2px 0;
+                    margin: 2px 0;
+                    padding: 1px 0;
+                    font-size: 8pt;
                 }
                 
                 .info-label {
-                    font-weight: bold;
+                    font-weight: 600;
                     color: #000000;
+                    width: 45%;
                 }
                 
                 .info-value {
                     color: #000000;
+                    text-align: right;
+                    width: 55%;
                 }
+                
                 .salary-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 10px 0;
-                    font-size: 9pt;
-                    border: 1px solid #000;
+                    margin: 8px 0;
+                    font-size: 8.5pt;
+                    border: 2px solid #000;
                 }
                 
                 .salary-table th {
-                    background-color: #f0f0f0;
+                    background-color: #d0d0d0;
                     color: #000000;
                     padding: 6px 8px;
                     text-align: left;
@@ -1628,136 +1655,256 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 }
                 
                 .salary-table td {
-                    padding: 4px 8px;
+                    padding: 5px 8px;
                     border: 1px solid #000;
-                    font-size: 9pt;
+                    font-size: 8.5pt;
                 }
                 
                 .salary-table tr:nth-child(even) {
-                    background-color: #f8f8f8;
+                    background-color: #f5f5f5;
                 }
                 
-                .salary-table tr:last-child td {
+                .section-row {
+                    background-color: #e8e8e8 !important;
                     font-weight: bold;
-                    background-color: #e0e0e0;
-                    color: #000000;
+                }
+                
+                .total-row {
+                    background-color: #d8d8d8 !important;
+                    font-weight: bold;
+                }
+                
+                .net-salary-row {
+                    background-color: #c0c0c0 !important;
+                    font-weight: bold;
+                    font-size: 10pt !important;
                 }
                 
                 .amount {
                     text-align: right;
-                    font-weight: bold;
+                    font-weight: 600;
                     color: #000000;
                 }
                 
-                .net-salary {
-                    background-color: #e0e0e0 !important;
-                    font-weight: bold;
-                    font-size: 10pt;
-                    color: #000000;
-                }
                 .footer { 
-                    margin-top: 20px; 
+                    margin-top: 8px; 
                     text-align: center; 
-                    font-size: 8pt; 
+                    font-size: 7pt; 
                     color: #000000; 
                     border-top: 1px solid #000; 
-                    padding-top: 8px; 
+                    padding-top: 5px; 
                 }
                 
                 .generated-info {
+                    text-align: right;
+                    font-size: 6.5pt;
+                    color: #666;
+                    margin-top: 8px;
+                }
+                
+                .signature-section {
+                    margin-top: 30px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                
+                .signature-box {
                     text-align: center;
-                    font-size: 7pt;
-                    color: #000000;
-                    margin-top: 10px;
+                    font-size: 8pt;
+                }
+                
+                .signature-line {
+                    border-top: 1px solid #000;
+                    margin-top: 40px;
+                    padding-top: 4px;
+                    font-weight: bold;
                 }
             </style>
         </head>
         <body>
             <div class="page">
+                <!-- Header -->
                 <div class="header">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
+                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
                     <div class="company-name">DISHA ONLINE SOLUTIONS</div>
                     <div class="company-address">
-                            Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                            Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
+                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
                     </div>
                 </div>
                 
+                <!-- Document Title -->
                 <div class="document-title">Salary Slip</div>
-                <div class="salary-month">{{ salary_month }} {{ salary_year }}</div>
+                <div class="salary-month">For the Month of {{ salary_month }} {{ salary_year }}</div>
                 
+                <!-- Employee Header -->
                 <div class="employee-header">
                     <div class="employee-id">Employee ID: {{ employee_id }}</div>
-                    <div class="document-date">Date: {{ current_date }}</div>
+                    <div class="document-date">Generated: {{ current_date }}</div>
                 </div>
                 
-                <div class="employee-section">
-                        <div class="section-title">Employee Information</div>
-                    <div class="employee-info">
-                        <div class="info-row">
-                            <span class="info-label">Employee Name:</span>
-                            <span class="info-value">{{ employee_name }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Designation:</span>
-                            <span class="info-value">{{ employee_designation }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Department:</span>
-                            <span class="info-value">{{ employee_department }}</span>
+                <!-- Two Column Section for Employee and Bank Info -->
+                <div class="two-column-section">
+                    <!-- Employee Information Column -->
+                    <div class="column">
+                        <div class="info-box">
+                            <div class="section-title">EMPLOYEE INFORMATION</div>
+                            <div class="info-row">
+                                <span class="info-label">Name:</span>
+                                <span class="info-value">{{ employee_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Employee ID:</span>
+                                <span class="info-value">{{ employee_id }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Designation:</span>
+                                <span class="info-value">{{ employee_designation }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Department:</span>
+                                <span class="info-value">{{ employee_department }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Office:</span>
+                                <span class="info-value">{{ office_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Date of Joining:</span>
+                                <span class="info-value">{{ date_of_joining }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email:</span>
+                                <span class="info-value">{{ email }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Phone:</span>
+                                <span class="info-value">{{ phone }}</span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="section-title">Bank Details</div>
-                    <div class="bank-info">
-                        <div class="info-row">
-                            <span class="info-label">Bank Name:</span>
-                            <span class="info-value">{{ bank_name }}</span>
+                    <!-- Bank & Statutory Information Column -->
+                    <div class="column">
+                        <div class="info-box">
+                            <div class="section-title">BANK DETAILS</div>
+                            <div class="info-row">
+                                <span class="info-label">Bank Name:</span>
+                                <span class="info-value">{{ bank_name }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Account Number:</span>
+                                <span class="info-value">{{ account_number }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">IFSC Code:</span>
+                                <span class="info-value">{{ ifsc_code }}</span>
+                            </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Account Number:</span>
-                            <span class="info-value">{{ account_number }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">IFSC Code:</span>
-                            <span class="info-value">{{ ifsc_code }}</span>
-                        </div>
+                        
                     </div>
                 </div>
                 
+                <!-- Salary Breakdown Table -->
                 <table class="salary-table">
                     <thead>
                         <tr>
-                            <th>Description</th>
-                            <th>Amount (₹)</th>
+                            <th style="width: 60%;">PARTICULARS</th>
+                            <th style="width: 20%; text-align: center;">DETAILS</th>
+                            <th style="width: 20%; text-align: right;">AMOUNT (₹)</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- Attendance Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">ATTENDANCE DETAILS</td>
+                        </tr>
+                        <tr>
+                            <td>Total Days in Month</td>
+                            <td style="text-align: center;">{{ total_days }}</td>
+                            <td class="amount">-</td>
+                        </tr>
+                        <tr>
+                            <td>Days Worked</td>
+                            <td style="text-align: center;">{{ worked_days }}</td>
+                            <td class="amount">-</td>
+                        </tr>
+                        
+                        <!-- Earnings Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">EARNINGS</td>
+                        </tr>
                         <tr>
                             <td>Basic Salary</td>
-                            <td class="amount">₹{{ basic_salary }}</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ basic_salary }}</td>
                         </tr>
                         <tr>
-                            <td>Extra Days Pay</td>
-                            <td class="amount">₹{{ extra_days_pay }}</td>
+                            <td>Per Day Pay Rate</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ per_day_pay }}</td>
                         </tr>
                         <tr>
-                            <td><strong>Total Salary</strong></td>
-                            <td class="amount"><strong>₹{{ total_salary }}</strong></td>
+                            <td>Extra Days Pay (Overtime/Bonus)</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ extra_days_pay }}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td><strong>TOTAL GROSS SALARY</strong></td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount"><strong>{{ total_gross_salary }}</strong></td>
+                        </tr>
+                        
+                        <!-- Deductions Section -->
+                        <tr class="section-row">
+                            <td colspan="3" style="font-weight: bold;">DEDUCTIONS</td>
                         </tr>
                         <tr>
-                            <td class="net-salary"><strong>Net Salary</strong></td>
-                            <td class="amount net-salary"><strong>₹{{ net_salary }}</strong></td>
+                            <td>Total Deductions</td>
+                            <td style="text-align: center;">-</td>
+                            <td class="amount">{{ total_deductions }}</td>
+                        </tr>
+                        
+                        <!-- Net Salary Section -->
+                        <tr class="net-salary-row">
+                            <td><strong>NET SALARY PAYABLE</strong></td>
+                            <td style="text-align: center;"><strong>-</strong></td>
+                            <td class="amount"><strong>{{ net_salary }}</strong></td>
                         </tr>
                     </tbody>
                 </table>
                 
-                <div class="footer">
-                    <p>This is a computer generated salary slip and does not require signature</p>
+                <!-- Salary Summary Box -->
+                <div style="border: 2px solid #000; padding: 10px; margin: 15px 0; background-color: #f0f0f0;">
+                    <div style="text-align: center; font-weight: bold; font-size: 9.5pt; margin-bottom: 8px;">
+                        SALARY SUMMARY
+                    </div>
+                    <div style="display: flex; justify-content: space-around; font-size: 8.5pt;">
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Total Gross</div>
+                            <div style="font-size: 10pt; font-weight: bold;">{{ gross_salary }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Deductions</div>
+                            <div style="font-size: 10pt; font-weight: bold; color: #cc0000;">{{ total_deductions }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: 600;">Net Payable</div>
+                            <div style="font-size: 11pt; font-weight: bold; color: #006600;">{{ net_salary }}</div>
+                        </div>
+                    </div>
                 </div>
                 
+                
+                <!-- Footer -->
+                <div class="footer">
+                    <p style="margin: 5px 0; font-weight: bold;">This is a computer generated salary slip and does not require a signature.</p>
+                    <p style="margin: 5px 0; font-size: 7pt;">For any queries, please contact HR Department | Email: hr@dishaonlinesolutions.com</p>
+                </div>
+                
+                <!-- Generated Info -->
                 <div class="generated-info">
-                    Generated on: {{ current_date }}
+                    Document Generated on: {{ current_date }} | Employee Attendance Management System
                 </div>
             </div>
         </body>
@@ -1765,7 +1912,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def format_currency(self, amount):
-        """Format currency in Indian format"""
+        """Format currency in Indian format with proper word representation"""
         if amount is None:
             return "Not specified"
         
@@ -1775,19 +1922,89 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         # Format with commas
         formatted = f"{amount_int:,}"
         
-        # Convert to words for display
-        if amount_int >= 100000:
-            lakhs = amount_int // 100000
-            thousands = (amount_int % 100000) // 1000
-            if thousands > 0:
-                return f"Rs. {formatted} ({lakhs} Lakh {thousands} Thousand)"
-            else:
-                return f"Rs. {formatted} ({lakhs} Lakh)"
-        elif amount_int >= 1000:
-            thousands = amount_int // 1000
-            return f"Rs. {formatted} ({thousands} Thousand)"
+        # Convert to proper words
+        words = self.number_to_words(amount_int)
+        return f"Rs. {formatted} ({words})"
+    
+    def number_to_words(self, num):
+        """Convert number to words in Indian format"""
+        if num == 0:
+            return "Zero"
+        
+        # Indian number system: Crore, Lakh, Thousand, Hundred
+        crore = num // 10000000
+        lakh = (num % 10000000) // 100000
+        thousand = (num % 100000) // 1000
+        hundred = (num % 1000) // 100
+        tens = num % 100
+        
+        result = []
+        
+        # Crore
+        if crore > 0:
+            result.append(self.convert_three_digits(crore) + " Crore")
+        
+        # Lakh
+        if lakh > 0:
+            result.append(self.convert_three_digits(lakh) + " Lakh")
+        
+        # Thousand
+        if thousand > 0:
+            result.append(self.convert_three_digits(thousand) + " Thousand")
+        
+        # Hundred
+        if hundred > 0:
+            result.append(self.convert_three_digits(hundred) + " Hundred")
+        
+        # Tens and Ones
+        if tens > 0:
+            result.append(self.convert_tens_ones(tens))
+        
+        return " ".join(result)
+    
+    def convert_three_digits(self, num):
+        """Convert 3-digit number to words"""
+        if num == 0:
+            return ""
+        
+        hundred = num // 100
+        tens_ones = num % 100
+        
+        result = []
+        
+        if hundred > 0:
+            result.append(self.ones[hundred] + " Hundred")
+        
+        if tens_ones > 0:
+            result.append(self.convert_tens_ones(tens_ones))
+        
+        return " ".join(result)
+    
+    def convert_tens_ones(self, num):
+        """Convert 2-digit number to words"""
+        if num < 20:
+            return self.ones[num]
         else:
-            return f"Rs. {formatted}"
+            tens = num // 10
+            ones = num % 10
+            if ones == 0:
+                return self.tens[tens]
+            else:
+                return self.tens[tens] + " " + self.ones[ones]
+    
+    @property
+    def ones(self):
+        return [
+            "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+            "Seventeen", "Eighteen", "Nineteen"
+        ]
+    
+    @property
+    def tens(self):
+        return [
+            "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"
+        ]
     
     def get_logo_url(self):
         """Get the company logo URL"""
@@ -1872,32 +2089,87 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         elif document_type == 'salary_slip':
             template_content = self.get_salary_slip_template()
             
-            # Get salary slip data
+            # Get salary slip data from frontend
             basic_salary = float(data.get('basic_salary', 0))
             extra_days_pay = float(data.get('extra_days_pay', 0))
-            total_salary = basic_salary + extra_days_pay
-            net_salary = total_salary  # For now, net salary equals total salary
+            total_gross_salary = float(data.get('total_gross_salary', 0))
+            net_salary = float(data.get('net_salary', 0))
+            total_salary = float(data.get('total_salary', 0))
+            
+            # Get additional fields
+            total_days = data.get('total_days', 0)
+            worked_days = data.get('worked_days', 0)
+            per_day_pay = float(data.get('per_day_pay', 0))
+            gross_salary = float(data.get('gross_salary', 0))
+            absent_days = data.get('absent_days', 0)
+            total_deductions = float(data.get('total_deductions', 0))
+            final_salary = float(data.get('final_salary', 0))
+            basic_pay = float(data.get('basic_pay', 0))
             
             # Format salary month and year
             salary_month = data.get('salary_month', '')
             salary_year = data.get('salary_year', '')
             
-            # Get employee bank details (you may need to add these fields to your CustomUser model)
-            bank_name = getattr(employee, 'bank_name', 'Not specified')
-            account_number = getattr(employee, 'account_number', 'Not specified')
+            # Get employee details from data or fallback to employee object
+            # Handle different field name variations from frontend
+            employee_name = (data.get('employee_name') or 
+                           data.get('full_name') or 
+                           employee.get_full_name())
+            employee_id_display = (data.get('employee_id_number') or 
+                                  data.get('employee_employee_id') or 
+                                  data.get('employee_id') or 
+                                  employee.employee_id if employee.employee_id else str(employee.id)[:8].upper())
+            employee_designation = (data.get('employee_designation') or 
+                                  data.get('designation') or 
+                                  employee.designation or 'Not specified')
+            employee_department = (data.get('employee_department') or 
+                                 data.get('department') or 
+                                 str(getattr(employee, 'department', 'Not specified')))
+            office_name = (data.get('employee_office') or 
+                         data.get('office_name') or 
+                         getattr(employee.office, 'name', 'Not specified') if hasattr(employee, 'office') and employee.office else 'Not specified')
+            
+            # Get bank details from data or employee object
+            bank_name = data.get('bank_name', getattr(employee, 'bank_name', 'Not specified'))
+            account_number = data.get('account_number', getattr(employee, 'account_number', 'Not specified'))
+            ifsc_code = data.get('ifsc_code', getattr(employee, 'ifsc_code', 'Not specified'))
+            
+            # Get other employee details
+            email = data.get('email', employee.email)
+            phone = data.get('phone', getattr(employee, 'phone', 'Not specified'))
+            address = data.get('address', getattr(employee, 'address', 'Not specified'))
+            pan_number = data.get('pan_number', getattr(employee, 'pan_number', 'Not specified'))
+            aadhar_number = data.get('aadhar_number', getattr(employee, 'aadhar_number', 'Not specified'))
+            uan_number = data.get('uan_number', getattr(employee, 'uan_number', 'Not specified'))
+            esi_number = data.get('esi_number', getattr(employee, 'esi_number', 'Not specified'))
+            pf_number = data.get('pf_number', getattr(employee, 'pf_number', 'Not specified'))
             
             # Format date of joining
-            date_of_joining = 'Not specified'
-            if hasattr(employee, 'date_joined'):
+            date_of_joining = data.get('date_of_joining', 'Not specified')
+            if date_of_joining and hasattr(date_of_joining, 'strftime'):
+                date_of_joining = date_of_joining.strftime('%d/%m/%Y')
+            elif not date_of_joining and hasattr(employee, 'date_joined'):
                 date_of_joining = employee.date_joined.strftime('%d/%m/%Y')
+            elif not date_of_joining:
+                date_of_joining = 'Not specified'
             
             context = {
-                'employee_name': employee.get_full_name(),
-                'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),  # Use actual employee_id or fallback to short ID
-                'employee_designation': employee.designation or 'Not specified',
-                'employee_department': getattr(employee, 'department', 'Not specified'),
+                'employee_name': employee_name,
+                'employee_id': employee_id_display,
+                'employee_designation': employee_designation,
+                'employee_department': employee_department,
+                'office_name': office_name,
                 'bank_name': bank_name,
                 'account_number': account_number,
+                'ifsc_code': ifsc_code,
+                'email': email,
+                'phone': phone,
+                'address': address,
+                'pan_number': pan_number,
+                'aadhar_number': aadhar_number,
+                'uan_number': uan_number,
+                'esi_number': esi_number,
+                'pf_number': pf_number,
                 'date_of_joining': date_of_joining,
                 'salary_month': salary_month,
                 'salary_year': salary_year,
@@ -1905,6 +2177,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'extra_days_pay': self.format_currency(extra_days_pay),
                 'total_salary': self.format_currency(total_salary),
                 'net_salary': self.format_currency(net_salary),
+                'total_gross_salary': self.format_currency(total_gross_salary),
+                'gross_salary': self.format_currency(gross_salary),
+                'per_day_pay': self.format_currency(per_day_pay),
+                'basic_pay': self.format_currency(basic_pay),
+                'final_salary': self.format_currency(final_salary),
+                'total_deductions': self.format_currency(total_deductions),
+                'total_days': total_days,
+                'worked_days': worked_days,
+                'absent_days': absent_days,
                 'logo_url': self.get_logo_url(),
                 'current_date': datetime.now().strftime('%d/%m/%Y')
             }

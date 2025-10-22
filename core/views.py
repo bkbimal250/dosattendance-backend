@@ -1079,7 +1079,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         serializer = CustomUserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=False, methods=['put'])
+    @action(detail=False, methods=['put', 'patch'], parser_classes=[MultiPartParser, FormParser, JSONParser])
     def update_profile(self, request):
         """Update current user profile"""
         # Debug logging
@@ -1195,6 +1195,27 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             user.save()
             return Response({'message': 'Password changed successfully'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='upload_upi_qr', parser_classes=[MultiPartParser, FormParser])
+    def upload_upi_qr(self, request):
+        """Dedicated endpoint to upload UPI QR with minimal validation."""
+        try:
+            if not request.user.is_authenticated:
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            file_obj = request.FILES.get('upi_qr')
+            if not file_obj:
+                return Response({'upi_qr': ['File is required']}, status=status.HTTP_400_BAD_REQUEST)
+
+            user = request.user
+            user.upi_qr = file_obj
+            # reason removed
+            user.save()
+
+            return Response(CustomUserSerializer(user, context={'request': request}).data)
+        except Exception as e:
+            logger.exception(f"upload_upi_qr failed: {e}")
+            return Response({'error': 'Failed to upload UPI QR'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'])
     def count(self, request):

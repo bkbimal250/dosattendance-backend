@@ -79,6 +79,7 @@ urlpatterns = [
     path('api/auth/register/', CustomUserViewSet.as_view({'post': 'register'}), name='register'),
     path('api/auth/profile/', CustomUserViewSet.as_view({'get': 'profile', 'patch': 'update_profile'}), name='profile'),
     path('api/auth/profile/update/', CustomUserViewSet.as_view({'put': 'update_profile', 'patch': 'update_profile'}), name='update_profile'),
+    path('api/auth/profile/upload_upi_qr/', CustomUserViewSet.as_view({'post': 'upload_upi_qr'}), name='upload_upi_qr'),
     path('api/auth/change-password/', CustomUserViewSet.as_view({'post': 'change_password'}), name='change_password'),
     path('api/auth/debug_auth/', CustomUserViewSet.as_view({'get': 'debug_auth'}), name='debug_auth'),
     
