@@ -1895,7 +1895,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     </div>
                 </div>
                 
-                
                 <!-- Footer -->
                 <div class="footer">
                     <p style="margin: 5px 0; font-weight: bold;">This is a computer generated salary slip and does not require a signature.</p>

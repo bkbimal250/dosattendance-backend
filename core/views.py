@@ -2632,7 +2632,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrManager])
     def approve(self, request, pk=None):
         """Approve leave request"""
         leave = self.get_object()
@@ -2640,7 +2640,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Set approved status and clear any previous rejection reason
             leave.status = 'approved'
-            leave.status_reason = ''
+            leave.rejection_reason = ''
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()
@@ -2648,7 +2648,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
             return Response(LeaveSerializer(leave, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrManager])
     def reject(self, request, pk=None):
         """Reject leave request"""
         leave = self.get_object()
@@ -2656,8 +2656,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             # Set rejected status and persist rejection reason if provided
             leave.status = 'rejected'
-            leave.status_reason = serializer.validated_data.get('status_reason', '')
-            leave.status_reason = serializer.validated_data.get('status_reason', '')
+            leave.rejection_reason = request.data.get('rejection_reason', serializer.validated_data.get('rejection_reason', ''))
             leave.approved_by = request.user
             leave.approved_at = timezone.now()
             leave.save()
