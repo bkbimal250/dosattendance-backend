@@ -1921,7 +1921,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def format_currency(self, amount):
-        """Format currency in Indian format"""
+        """Format currency in Indian format with proper word representation"""
         if amount is None:
             return "Not specified"
         
@@ -1931,19 +1931,89 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         # Format with commas
         formatted = f"{amount_int:,}"
         
-        # Convert to words for display
-        if amount_int >= 100000:
-            lakhs = amount_int // 100000
-            thousands = (amount_int % 100000) // 1000
-            if thousands > 0:
-                return f"Rs. {formatted} ({lakhs} Lakh {thousands} Thousand)"
-            else:
-                return f"Rs. {formatted} ({lakhs} Lakh)"
-        elif amount_int >= 1000:
-            thousands = amount_int // 1000
-            return f"Rs. {formatted} ({thousands} Thousand)"
+        # Convert to proper words
+        words = self.number_to_words(amount_int)
+        return f"Rs. {formatted} ({words})"
+    
+    def number_to_words(self, num):
+        """Convert number to words in Indian format"""
+        if num == 0:
+            return "Zero"
+        
+        # Indian number system: Crore, Lakh, Thousand, Hundred
+        crore = num // 10000000
+        lakh = (num % 10000000) // 100000
+        thousand = (num % 100000) // 1000
+        hundred = (num % 1000) // 100
+        tens = num % 100
+        
+        result = []
+        
+        # Crore
+        if crore > 0:
+            result.append(self.convert_three_digits(crore) + " Crore")
+        
+        # Lakh
+        if lakh > 0:
+            result.append(self.convert_three_digits(lakh) + " Lakh")
+        
+        # Thousand
+        if thousand > 0:
+            result.append(self.convert_three_digits(thousand) + " Thousand")
+        
+        # Hundred
+        if hundred > 0:
+            result.append(self.convert_three_digits(hundred) + " Hundred")
+        
+        # Tens and Ones
+        if tens > 0:
+            result.append(self.convert_tens_ones(tens))
+        
+        return " ".join(result)
+    
+    def convert_three_digits(self, num):
+        """Convert 3-digit number to words"""
+        if num == 0:
+            return ""
+        
+        hundred = num // 100
+        tens_ones = num % 100
+        
+        result = []
+        
+        if hundred > 0:
+            result.append(self.ones[hundred] + " Hundred")
+        
+        if tens_ones > 0:
+            result.append(self.convert_tens_ones(tens_ones))
+        
+        return " ".join(result)
+    
+    def convert_tens_ones(self, num):
+        """Convert 2-digit number to words"""
+        if num < 20:
+            return self.ones[num]
         else:
-            return f"Rs. {formatted}"
+            tens = num // 10
+            ones = num % 10
+            if ones == 0:
+                return self.tens[tens]
+            else:
+                return self.tens[tens] + " " + self.ones[ones]
+    
+    @property
+    def ones(self):
+        return [
+            "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+            "Seventeen", "Eighteen", "Nineteen"
+        ]
+    
+    @property
+    def tens(self):
+        return [
+            "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"
+        ]
     
     def get_logo_url(self):
         """Get the company logo URL"""
