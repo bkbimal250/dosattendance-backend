@@ -1489,7 +1489,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <meta charset="utf-8">
             <style>
                 @page {
-                    margin: 0.5in;
+                    margin: 0.4in;
                     size: A4;
                 }
                 
@@ -1516,8 +1516,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 12px; 
-                    padding-bottom: 8px; 
+                    margin-bottom: 8px; 
+                    padding-bottom: 6px; 
                     border-bottom: 2px solid #000; 
                 }
                 
@@ -1560,10 +1560,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     text-align: center;
                     font-size: 9.5pt;
                     font-weight: bold;
-                    margin-bottom: 12px;
+                    margin-bottom: 8px;
                     color: #000000;
                     background-color: #f8f8f8;
-                    padding: 5px;
+                    padding: 4px;
                     border: 1px solid #ccc;
                 }
                 
@@ -1587,8 +1587,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .two-column-section {
                     display: flex;
-                    gap: 10px;
-                    margin-bottom: 12px;
+                    gap: 8px;
+                    margin-bottom: 8px;
                 }
                 
                 .column {
@@ -1639,7 +1639,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 .salary-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 12px 0;
+                    margin: 8px 0;
                     font-size: 8.5pt;
                     border: 2px solid #000;
                 }
@@ -1802,29 +1802,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                             </div>
                         </div>
                         
-                        <div class="info-box" style="margin-top: 8px;">
-                            <div class="section-title">STATUTORY INFORMATION</div>
-                            <div class="info-row">
-                                <span class="info-label">PAN Number:</span>
-                                <span class="info-value">{{ pan_number }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Aadhar Number:</span>
-                                <span class="info-value">{{ aadhar_number }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">UAN Number:</span>
-                                <span class="info-value">{{ uan_number }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">ESI Number:</span>
-                                <span class="info-value">{{ esi_number }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">PF Number:</span>
-                                <span class="info-value">{{ pf_number }}</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 
@@ -1850,11 +1827,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         <tr>
                             <td>Days Worked</td>
                             <td style="text-align: center;">{{ worked_days }}</td>
-                            <td class="amount">-</td>
-                        </tr>
-                        <tr>
-                            <td>Absent Days</td>
-                            <td style="text-align: center;">{{ absent_days }}</td>
                             <td class="amount">-</td>
                         </tr>
                         
