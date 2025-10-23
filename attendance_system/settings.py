@@ -308,7 +308,22 @@ SIMPLE_JWT = {
 # =============================================================================
 # CORS CONFIGURATION
 # =============================================================================
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    'https://dosemployees.dishaonlinesolution.in',
+    'https://dosmanagers.dishaonlinesolution.in',
+    'https://admindos.dishaonlinesolution.in',
+    'https://dosaccounts.dishaonlinesolution.in',
+    'http://localhost:5173',
+    'http://127.0.0.1:5174',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.dishaonlinesolution\.in$",
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -345,9 +360,19 @@ CORS_ALLOW_HEADERS = [
     'cache-control',
     'pragma',
     'expires',
+    'x-csrftoken',
+    'x-requested-with',
+    'authorization',
+    'content-type',
+    'accept',
+    'origin',
+    'user-agent',
 ]
 CORS_ALLOW_PRIVATE_NETWORK = True
 CORS_ALLOW_PRIVATE_NETWORK_ACCESS = True
+
+# Additional CORS settings for better compatibility
+CORS_ALLOW_ALL_HEADERS = True
 
 # =============================================================================
 # SECURITY SETTINGS
