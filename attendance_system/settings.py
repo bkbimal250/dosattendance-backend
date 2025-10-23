@@ -76,8 +76,6 @@ MIDDLEWARE = [
     # 'core.middleware.DisableTrailingSlashMiddleware',  # Disable trailing slashes - TEMPORARILY DISABLED
     'core.middleware.APIAuthenticationDebugMiddleware',  # Debug API authentication
     'core.middleware.DatabaseConnectionMiddleware',  # Database connection management
-    'core.middleware.ErrorHandlingMiddleware',  # Enhanced error handling
-    'core.middleware.RequestLoggingMiddleware',  # Request logging for debugging
 ]
 
 ROOT_URLCONF = 'attendance_system.urls'
