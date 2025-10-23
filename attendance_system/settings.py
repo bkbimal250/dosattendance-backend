@@ -76,6 +76,8 @@ MIDDLEWARE = [
     # 'core.middleware.DisableTrailingSlashMiddleware',  # Disable trailing slashes - TEMPORARILY DISABLED
     'core.middleware.APIAuthenticationDebugMiddleware',  # Debug API authentication
     'core.middleware.DatabaseConnectionMiddleware',  # Database connection management
+    'core.middleware.ErrorHandlingMiddleware',  # Enhanced error handling
+    'core.middleware.RequestLoggingMiddleware',  # Request logging for debugging
 ]
 
 ROOT_URLCONF = 'attendance_system.urls'
@@ -123,54 +125,42 @@ else:
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database Configuration
-if IS_PRODUCTION:
-    DATABASES = {
-        'default': {
-            'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
-            'NAME': os.environ.get('DB_NAME', 'u434975676_DOS'),
-            'USER': os.environ.get('DB_USER', 'u434975676_bimal'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'DishaSolution@8989'),
-            'HOST': os.environ.get('DB_HOST', '193.203.184.215'),
-            'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30'",
-                'connect_timeout': 30,
-                'read_timeout': 30,
-                'write_timeout': 30,
-                'autocommit': True,
-                'max_allowed_packet': 16777216,  # 16MB
-                'sql_mode': 'STRICT_TRANS_TABLES',
-            },
-            'CONN_MAX_AGE': 3600,  # 1 hour for production
-            'ATOMIC_REQUESTS': False,
-        }
+# Database Configuration - Optimized for production
+DATABASES = {
+    'default': {
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
+        'NAME': os.environ.get('DB_NAME', 'u434975676_DOS'),
+        'USER': os.environ.get('DB_USER', 'u434975676_bimal'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'DishaSolution@8989'),
+        'HOST': os.environ.get('DB_HOST', '193.203.184.215'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
+            'connect_timeout': 60,
+            'read_timeout': 60,
+            'write_timeout': 60,
+            'autocommit': True,
+            'max_allowed_packet': 16777216,  # 16MB
+            'sql_mode': 'STRICT_TRANS_TABLES',
+            'use_unicode': True,
+            'isolation_level': None,
+        },
+        'CONN_MAX_AGE': 600 if IS_PRODUCTION else 300,  # 10 minutes for production, 5 minutes for development
+        'ATOMIC_REQUESTS': False,
+        'AUTOCOMMIT': True,
     }
-else:
-    # Development database configuration
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'u434975676_DOS',
-            'USER': 'u434975676_bimal',
-            'PASSWORD': 'DishaSolution@8989',
-            'HOST': '193.203.184.215',
-            'PORT': '3306',
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
-                'connect_timeout': 60,
-                'read_timeout': 60,
-                'write_timeout': 60,
-                'autocommit': True,
-                'max_allowed_packet': 16777216,  # 16MB
-                'sql_mode': 'STRICT_TRANS_TABLES',
-            },
-            'CONN_MAX_AGE': 300,  # 5 minutes - shorter to avoid stale connections
-            'ATOMIC_REQUESTS': False,
-        }
-    }
+}
+
+# Database connection pool settings
+DATABASE_CONNECTION_POOL = {
+    'max_connections': 20,
+    'min_connections': 5,
+    'max_overflow': 10,
+    'pool_timeout': 30,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+}
 
 
 # Password validation
@@ -242,6 +232,37 @@ DB_OPTIMIZATION = {
     }
 }
 
+# Database connection retry settings
+DATABASE_RETRY_SETTINGS = {
+    'max_retries': 3,
+    'retry_delay': 1,
+    'backoff_factor': 2,
+}
+
+# Database connection health check
+DATABASE_HEALTH_CHECK = {
+    'enabled': True,
+    'interval': 300,  # 5 minutes
+    'timeout': 10,
+}
+
+# Additional database settings for better connection handling
+DATABASES['default'].update({
+    'CONN_HEALTH_CHECKS': True,
+    'CONN_MAX_AGE': 600 if IS_PRODUCTION else 300,
+    'CONN_MAX_AGE_OVERRIDE': True,
+    'CONN_MAX_AGE_OVERRIDE_VALUE': 0,
+})
+
+# Database connection pool configuration
+DATABASE_POOL_ARGS = {
+    'max_overflow': 20,
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+    'pool_timeout': 30,
+}
+
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -294,61 +315,49 @@ SIMPLE_JWT = {
 }
 
 
-# CORS Settings
-if IS_PRODUCTION:
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost,http://127.0.0.1').split(',')
-    CORS_ALLOW_CREDENTIALS = True
-    CORS_ALLOW_METHODS = [
-        'DELETE',
-        'GET',
-        'OPTIONS',
-        'PATCH',
-        'POST',
-        'PUT',
-    ]
-    CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-    CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-    ]
-else:
-    # Development CORS settings - Allow all for testing
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ALLOW_CREDENTIALS = True
-    CORS_ALLOW_METHODS = [
-        'DELETE',
-        'GET',
-        'OPTIONS',
-        'PATCH',
-        'POST',
-        'PUT',
-    ]
-    CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-    CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
-    CORS_URLS_REGEX = r'^.*$'  # Allow CORS for all URLs
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'access-control-allow-origin',
-        'access-control-allow-methods',
-        'access-control-allow-headers',
-    ]
+# CORS Settings - Allow all origins for production
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+    'HEAD',
+]
+CORS_EXPOSE_HEADERS = [
+    'Content-Type', 
+    'X-CSRFToken',
+    'Authorization',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Headers',
+]
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
+CORS_URLS_REGEX = r'^.*$'  # Allow CORS for all URLs
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'access-control-allow-origin',
+    'access-control-allow-methods',
+    'access-control-allow-headers',
+    'cache-control',
+    'pragma',
+    'expires',
+]
+
+# Additional CORS settings for better compatibility
+CORS_ALLOW_PRIVATE_NETWORK = True
+CORS_ALLOW_PRIVATE_NETWORK_ACCESS = True
 
 # Security Settings for Production
 # Security Settings for Production
@@ -368,7 +377,7 @@ if IS_PRODUCTION:
     # Additional security headers
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-    # Logging for production
+    # Enhanced logging for production
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -381,22 +390,44 @@ if IS_PRODUCTION:
                 'format': '{levelname} {message}',
                 'style': '{',
             },
+            'detailed': {
+                'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
+                'style': '{',
+            },
         },
         'handlers': {
             'file': {
                 'level': 'INFO',
-                'class': 'logging.FileHandler',
+                'class': 'logging.handlers.RotatingFileHandler',
                 'filename': BASE_DIR / 'logs' / 'django.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 5,
                 'formatter': 'verbose',
+            },
+            'error_file': {
+                'level': 'ERROR',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'error.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 5,
+                'formatter': 'detailed',
             },
             'console': {
                 'level': 'WARNING',
                 'class': 'logging.StreamHandler',
                 'formatter': 'simple',
             },
+            'database': {
+                'level': 'ERROR',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'database.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 5,
+                'formatter': 'detailed',
+            },
         },
         'root': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console', 'file', 'error_file'],
             'level': 'INFO',
         },
         'loggers': {
@@ -405,9 +436,24 @@ if IS_PRODUCTION:
                 'level': 'INFO',
                 'propagate': False,
             },
+            'django.db': {
+                'handlers': ['database'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
             'django.security': {
-                'handlers': ['console', 'file'],
+                'handlers': ['console', 'file', 'error_file'],
                 'level': 'WARNING',
+                'propagate': False,
+            },
+            'django.request': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+            'core': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'INFO',
                 'propagate': False,
             },
         },
@@ -415,7 +461,7 @@ if IS_PRODUCTION:
 
 
 else:
-    # Development logging
+    # Enhanced development logging
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -428,28 +474,70 @@ else:
                 'format': '{levelname} {message}',
                 'style': '{',
             },
+            'detailed': {
+                'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
+                'style': '{',
+            },
         },
         'handlers': {
             'file': {
-                'level': 'INFO',
-                'class': 'logging.FileHandler',
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
                 'filename': BASE_DIR / 'logs' / 'django.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 3,
                 'formatter': 'verbose',
+            },
+            'error_file': {
+                'level': 'ERROR',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'error.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 3,
+                'formatter': 'detailed',
             },
             'console': {
                 'level': 'DEBUG',
                 'class': 'logging.StreamHandler',
                 'formatter': 'simple',
             },
+            'database': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'database.log',
+                'maxBytes': 10485760,  # 10MB
+                'backupCount': 3,
+                'formatter': 'detailed',
+            },
         },
         'root': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
         },
         'loggers': {
             'django': {
                 'handlers': ['console', 'file'],
-                'level': 'INFO',
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'django.db': {
+                'handlers': ['database'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'django.security': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+            'django.request': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+            'core': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'DEBUG',
                 'propagate': False,
             },
         },
@@ -476,6 +564,96 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Create logs directory if it doesn't exist
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+# Additional settings for better error handling
+USE_TZ = True
+USE_I18N = True
+
+# Session settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Cache settings for better performance
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+FILE_UPLOAD_PERMISSIONS = 0o644
+
+# Security settings
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Additional settings for production stability
+if IS_PRODUCTION:
+    # Disable Django's built-in error pages in production
+    DEBUG_PROPAGATE_EXCEPTIONS = False
+    
+    # Additional security settings
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Additional headers
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    
+    # Database connection settings for production
+    DATABASES['default']['CONN_MAX_AGE'] = 600
+    DATABASES['default']['ATOMIC_REQUESTS'] = False
+    
+    # Static files settings
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    
+    # Media files settings
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    
+    # Additional production settings
+    ALLOWED_HOSTS = ['*']  # Allow all hosts for production
+    CSRF_TRUSTED_ORIGINS = ['https://company.d0s369.co.in', 'http://localhost:3000', 'http://127.0.0.1:3000']
+    
+    # Email settings for production
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = 'info.dishaonlinesoution@gmail.com'
+    EMAIL_HOST_PASSWORD = 'ktrc uzzy upkr ftbv'
+    DEFAULT_FROM_EMAIL = 'Disha Online Solution <info.dishaonlinesoution@gmail.com>'
+    SERVER_EMAIL = 'info.dishaonlinesoution@gmail.com'
+    
+    # Celery settings for production
+    CELERY_BROKER_URL = 'redis://localhost:6379/0'
+    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+    CELERY_ACCEPT_CONTENT = ['json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = TIME_ZONE
+    CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+    
+    # Additional production optimizations
+    CONN_MAX_AGE = 600
+    CONN_HEALTH_CHECKS = True
+    CONN_MAX_AGE_OVERRIDE = True
+    CONN_MAX_AGE_OVERRIDE_VALUE = 0
 
 # Attendance Service Configuration
 AUTO_START_ATTENDANCE_SERVICE = os.environ.get('AUTO_START_ATTENDANCE_SERVICE', 'false').lower() == 'true'

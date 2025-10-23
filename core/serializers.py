@@ -1,4 +1,32 @@
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
+from rest_framework.fields import DateField, DateTimeField
+
+class NullableDateField(DateField):
+    """Custom DateField that converts empty strings to None"""
+    def to_internal_value(self, data):
+        if data == "" or data is None:
+            return None
+        return super().to_internal_value(data)
+    
+    def validate_empty_values(self, data):
+        """Override to handle empty strings"""
+        if data == "":
+            return (True, None)
+        return super().validate_empty_values(data)
+
+class NullableDateTimeField(DateTimeField):
+    """Custom DateTimeField that converts empty strings to None"""
+    def to_internal_value(self, data):
+        if data == "" or data is None:
+            return None
+        return super().to_internal_value(data)
+    
+    def validate_empty_values(self, data):
+        """Override to handle empty strings"""
+        if data == "":
+            return (True, None)
+        return super().validate_empty_values(data)
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 import uuid
@@ -731,12 +759,12 @@ class DocumentGenerationSerializer(serializers.Serializer):
     # Offer letter specific fields
     position = serializers.CharField(required=False, allow_blank=True)
     start_date = serializers.DateField(required=False, allow_null=True)
-    starting_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    starting_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     
     # Salary increment specific fields
-    previous_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    previous_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     increment_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
-    new_salary = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    new_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     effective_date = serializers.DateField(required=False, allow_null=True)
     
     # Salary slip specific fields - increased max_digits to handle larger values
@@ -774,8 +802,8 @@ class DocumentGenerationSerializer(serializers.Serializer):
     uan_number = serializers.CharField(required=False, allow_blank=True)
     esi_number = serializers.CharField(required=False, allow_blank=True)
     pf_number = serializers.CharField(required=False, allow_blank=True)
-    created_at = serializers.DateTimeField(required=False, allow_null=True)
-    updated_at = serializers.DateTimeField(required=False, allow_null=True)
+    created_at = NullableDateTimeField(required=False, allow_null=True)
+    updated_at = NullableDateTimeField(required=False, allow_null=True)
     
     # Handle field variations from different frontends
     employee_name = serializers.CharField(required=False, allow_blank=True)
@@ -805,6 +833,7 @@ class DocumentGenerationSerializer(serializers.Serializer):
     custom_message = serializers.CharField(required=False, allow_blank=True)
     send_email = serializers.BooleanField(default=True)
     
+
     def validate(self, attrs):
         document_type = attrs.get('document_type')
         
@@ -1083,13 +1112,13 @@ class SalarySerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     
     # Auto-calculated fields
-    final_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    per_day_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    gross_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    total_allowances = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    total_deductions = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    net_salary = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    final_payable_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    final_salary = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    per_day_salary = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    gross_salary = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    total_allowances = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    total_deductions = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    net_salary = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
+    final_payable_amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     
     # Salary breakdown
     salary_breakdown = serializers.SerializerMethodField(read_only=True)
@@ -1252,8 +1281,8 @@ class SalaryBulkCreateSerializer(serializers.Serializer):
     employee_ids = serializers.ListField(child=serializers.UUIDField())
     salary_month = serializers.DateField()
     template_id = serializers.UUIDField(required=False)
-    basic_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
-    increment = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    basic_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
+    increment = serializers.DecimalField(max_digits=15, decimal_places=2, default=0)
     attendance_based = serializers.BooleanField(default=True)
     
     def validate_employee_ids(self, value):
@@ -1325,9 +1354,9 @@ class SalarySummarySerializer(serializers.Serializer):
     hold_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
 
     # Stats
-    average_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
-    highest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
-    lowest_salary = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_salary = serializers.DecimalField(max_digits=15, decimal_places=2)
+    highest_salary = serializers.DecimalField(max_digits=15, decimal_places=2)
+    lowest_salary = serializers.DecimalField(max_digits=15, decimal_places=2)
 
     # Month labels
     month = serializers.CharField()
@@ -1341,7 +1370,7 @@ class SalaryAutoCalculateSerializer(serializers.Serializer):
     office_id = serializers.UUIDField(required=False)
     department_id = serializers.UUIDField(required=False)
     template_id = serializers.UUIDField(required=False)
-    basic_pay = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    basic_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     
     def validate_salary_month(self, value):
         """Validate salary month"""

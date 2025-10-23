@@ -162,6 +162,8 @@ Thumbs.db
 .env.staging
 
 # Frontend - Completely excluded
+frontend/AccountantDashboard/
+frontend/accountdashboard/
 frontend/
 src/
 public/
