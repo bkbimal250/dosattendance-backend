@@ -25,47 +25,69 @@ pymysql.install_as_MySQLdb()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Environment detection
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development')
 IS_PRODUCTION = ENVIRONMENT == 'production'
+IS_DEVELOPMENT = ENVIRONMENT == 'development'
+IS_TESTING = ENVIRONMENT == 'testing'
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-eg&hkh!w@e(%wx6aztj4+flb*fcl&a)*2zeh8rzzf^#n31!vb^')
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = not IS_PRODUCTION
 
 # Allowed hosts configuration
 if IS_PRODUCTION:
-    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,company.d0s369.co.in,').split(',')
+    ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,company.d0s369.co.in').split(',') if host.strip()]
 else:
     ALLOWED_HOSTS = ['*']
 
-# Application definition
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://company.d0s369.co.in',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
 
-INSTALLED_APPS = [
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+# Django Core Apps
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Third party apps
+]
+
+# Third Party Apps
+THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'channels',  # Django Channels for WebSocket support
-    
-    # Local apps
+]
+
+# Local Apps
+LOCAL_APPS = [
     'core.apps.CoreConfig',
 ]
 
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+# Combine all apps
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# =============================================================================
+# MIDDLEWARE CONFIGURATION
+# =============================================================================
+
+# Core Django Middleware
+DJANGO_MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -73,10 +95,21 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'core.middleware.DisableTrailingSlashMiddleware',  # Disable trailing slashes - TEMPORARILY DISABLED
+]
+
+# Third Party Middleware
+THIRD_PARTY_MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+# Custom Middleware
+CUSTOM_MIDDLEWARE = [
     'core.middleware.APIAuthenticationDebugMiddleware',  # Debug API authentication
     'core.middleware.DatabaseConnectionMiddleware',  # Database connection management
 ]
+
+# Combine all middleware
+MIDDLEWARE = THIRD_PARTY_MIDDLEWARE + DJANGO_MIDDLEWARE + CUSTOM_MIDDLEWARE
 
 ROOT_URLCONF = 'attendance_system.urls'
 
@@ -120,50 +153,51 @@ else:
     }
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
 
-# Database Configuration - Optimized for production
+# Database connection settings
+DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.mysql')
+DB_NAME = os.environ.get('DB_NAME', 'u434975676_DOS')
+DB_USER = os.environ.get('DB_USER', 'u434975676_bimal')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'DishaSolution@8989')
+DB_HOST = os.environ.get('DB_HOST', '193.203.184.215')
+DB_PORT = os.environ.get('DB_PORT', '3306')
+
+# Database options for MySQL
+DB_OPTIONS = {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
+    'connect_timeout': 60,
+    'read_timeout': 60,
+    'write_timeout': 60,
+    'autocommit': True,
+    'max_allowed_packet': 16777216,  # 16MB
+    'sql_mode': 'STRICT_TRANS_TABLES',
+    'use_unicode': True,
+    'isolation_level': None,
+}
+
+# Database configuration
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.mysql'),
-        'NAME': os.environ.get('DB_NAME', 'u434975676_DOS'),
-        'USER': os.environ.get('DB_USER', 'u434975676_bimal'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'DishaSolution@8989'),
-        'HOST': os.environ.get('DB_HOST', '193.203.184.215'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
-            'connect_timeout': 60,
-            'read_timeout': 60,
-            'write_timeout': 60,
-            'autocommit': True,
-            'max_allowed_packet': 16777216,  # 16MB
-            'sql_mode': 'STRICT_TRANS_TABLES',
-            'use_unicode': True,
-            'isolation_level': None,
-        },
-        'CONN_MAX_AGE': 600 if IS_PRODUCTION else 300,  # 10 minutes for production, 5 minutes for development
+        'ENGINE': DB_ENGINE,
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'OPTIONS': DB_OPTIONS,
+        'CONN_MAX_AGE': 600 if IS_PRODUCTION else 300,
         'ATOMIC_REQUESTS': False,
         'AUTOCOMMIT': True,
     }
 }
 
-# Database connection pool settings
-DATABASE_CONNECTION_POOL = {
-    'max_connections': 20,
-    'min_connections': 5,
-    'max_overflow': 10,
-    'pool_timeout': 30,
-    'pool_recycle': 3600,
-    'pool_pre_ping': True,
-}
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# =============================================================================
+# PASSWORD VALIDATION
+# =============================================================================
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -179,38 +213,31 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
+# =============================================================================
+# INTERNATIONALIZATION
+# =============================================================================
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'Asia/Kolkata'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# =============================================================================
+# STATIC AND MEDIA FILES
+# =============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
+# =============================================================================
+# AUTHENTICATION AND USER MODEL
+# =============================================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Custom User Model
 AUTH_USER_MODEL = 'core.CustomUser'
 
 # Custom Authentication Backend
@@ -219,49 +246,9 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Disable last_login signal to prevent UUID field update issues
-# This will be handled in the app's ready() method
-
-# Database connection optimization
-DB_OPTIMIZATION = {
-    'CONN_MAX_AGE': 600,
-    'OPTIONS': {
-        'autocommit': True,
-    }
-}
-
-# Database connection retry settings
-DATABASE_RETRY_SETTINGS = {
-    'max_retries': 3,
-    'retry_delay': 1,
-    'backoff_factor': 2,
-}
-
-# Database connection health check
-DATABASE_HEALTH_CHECK = {
-    'enabled': True,
-    'interval': 300,  # 5 minutes
-    'timeout': 10,
-}
-
-# Additional database settings for better connection handling
-DATABASES['default'].update({
-    'CONN_HEALTH_CHECKS': True,
-    'CONN_MAX_AGE': 600 if IS_PRODUCTION else 300,
-    'CONN_MAX_AGE_OVERRIDE': True,
-    'CONN_MAX_AGE_OVERRIDE_VALUE': 0,
-})
-
-# Database connection pool configuration
-DATABASE_POOL_ARGS = {
-    'max_overflow': 20,
-    'pool_size': 10,
-    'pool_recycle': 3600,
-    'pool_pre_ping': True,
-    'pool_timeout': 30,
-}
-
-# REST Framework Configuration
+# =============================================================================
+# REST FRAMEWORK CONFIGURATION
+# =============================================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -287,7 +274,9 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'core.exception_handlers.custom_exception_handler',
 }
 
-# JWT Settings
+# =============================================================================
+# JWT CONFIGURATION
+# =============================================================================
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -307,13 +296,14 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
-    # Additional settings for better compatibility
     'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
     'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
 }
 
 
-# CORS Settings - Allow all origins for production
+# =============================================================================
+# CORS CONFIGURATION
+# =============================================================================
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -352,197 +342,112 @@ CORS_ALLOW_HEADERS = [
     'pragma',
     'expires',
 ]
-
-# Additional CORS settings for better compatibility
 CORS_ALLOW_PRIVATE_NETWORK = True
 CORS_ALLOW_PRIVATE_NETWORK_ACCESS = True
 
-# Security Settings for Production
-# Security Settings for Production
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
 if IS_PRODUCTION:
     # Security middleware settings
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_PRELOAD = True  # Add this line to enable HSTS Preload
-    SECURE_REDIRECT_EXEMPT = []
+    SECURE_HSTS_PRELOAD = True
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
-
-    # Additional security headers
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-    # Enhanced logging for production
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-                'style': '{',
-            },
-            'simple': {
-                'format': '{levelname} {message}',
-                'style': '{',
-            },
-            'detailed': {
-                'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
-                'style': '{',
-            },
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
         },
-        'handlers': {
-            'file': {
-                'level': 'INFO',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'django.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-            'error_file': {
-                'level': 'ERROR',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'error.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 5,
-                'formatter': 'detailed',
-            },
-            'console': {
-                'level': 'WARNING',
-                'class': 'logging.StreamHandler',
-                'formatter': 'simple',
-            },
-            'database': {
-                'level': 'ERROR',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'database.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 5,
-                'formatter': 'detailed',
-            },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
         },
-        'root': {
+        'detailed': {
+            'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5 if IS_PRODUCTION else 3,
+            'formatter': 'verbose',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'error.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5 if IS_PRODUCTION else 3,
+            'formatter': 'detailed',
+        },
+        'console': {
+            'level': 'WARNING' if IS_PRODUCTION else 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'database': {
+            'level': 'ERROR' if IS_PRODUCTION else 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'database.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5 if IS_PRODUCTION else 3,
+            'formatter': 'detailed',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file', 'error_file'],
+        'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
+            'propagate': False,
+        },
+        'django.db': {
+            'handlers': ['database'],
+            'level': 'ERROR' if IS_PRODUCTION else 'DEBUG',
+            'propagate': False,
+        },
+        'django.security': {
             'handlers': ['console', 'file', 'error_file'],
-            'level': 'INFO',
+            'level': 'WARNING',
+            'propagate': False,
         },
-        'loggers': {
-            'django': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-            'django.db': {
-                'handlers': ['database'],
-                'level': 'ERROR',
-                'propagate': False,
-            },
-            'django.security': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'WARNING',
-                'propagate': False,
-            },
-            'django.request': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'ERROR',
-                'propagate': False,
-            },
-            'core': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
-        },
-    }
-
-
-else:
-    # Enhanced development logging
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-                'style': '{',
-            },
-            'simple': {
-                'format': '{levelname} {message}',
-                'style': '{',
-            },
-            'detailed': {
-                'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
-                'style': '{',
-            },
-        },
-        'handlers': {
-            'file': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'django.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 3,
-                'formatter': 'verbose',
-            },
-            'error_file': {
-                'level': 'ERROR',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'error.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 3,
-                'formatter': 'detailed',
-            },
-            'console': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-                'formatter': 'simple',
-            },
-            'database': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': BASE_DIR / 'logs' / 'database.log',
-                'maxBytes': 10485760,  # 10MB
-                'backupCount': 3,
-                'formatter': 'detailed',
-            },
-        },
-        'root': {
+        'django.request': {
             'handlers': ['console', 'file', 'error_file'],
-            'level': 'DEBUG',
+            'level': 'ERROR',
+            'propagate': False,
         },
-        'loggers': {
-            'django': {
-                'handlers': ['console', 'file'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
-            'django.db': {
-                'handlers': ['database'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
-            'django.security': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'WARNING',
-                'propagate': False,
-            },
-            'django.request': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'ERROR',
-                'propagate': False,
-            },
-            'core': {
-                'handlers': ['console', 'file', 'error_file'],
-                'level': 'DEBUG',
-                'propagate': False,
-            },
+        'core': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
+            'propagate': False,
         },
-    }
+    },
+}
 
-# Email Configuration (for future use)
-# Email Configuration for Gmail with App Password
+# =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -552,7 +457,9 @@ EMAIL_HOST_PASSWORD = 'ktrc uzzy upkr ftbv'
 DEFAULT_FROM_EMAIL = 'Disha Online Solution <info.dishaonlinesoution@gmail.com>'
 SERVER_EMAIL = 'info.dishaonlinesoution@gmail.com'
 
-# Celery Configuration (for background tasks)
+# =============================================================================
+# CELERY CONFIGURATION
+# =============================================================================
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
@@ -560,20 +467,14 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# Create logs directory if it doesn't exist
-os.makedirs(BASE_DIR / 'logs', exist_ok=True)
-
-# Additional settings for better error handling
-USE_TZ = True
-USE_I18N = True
-
-# Session settings
+# =============================================================================
+# SESSION AND CACHE CONFIGURATION
+# =============================================================================
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# Cache settings for better performance
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -585,73 +486,25 @@ CACHES = {
     }
 }
 
-# File upload settings
+# =============================================================================
+# FILE UPLOAD SETTINGS
+# =============================================================================
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 FILE_UPLOAD_PERMISSIONS = 0o644
 
-# Security settings
+# =============================================================================
+# ADDITIONAL SECURITY SETTINGS
+# =============================================================================
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-# Additional settings for production stability
-if IS_PRODUCTION:
-    # Disable Django's built-in error pages in production
-    DEBUG_PROPAGATE_EXCEPTIONS = False
-    
-    # Additional security settings
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    X_FRAME_OPTIONS = 'DENY'
-    
-    # Additional headers
-    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-    
-    # Database connection settings for production
-    DATABASES['default']['CONN_MAX_AGE'] = 600
-    DATABASES['default']['ATOMIC_REQUESTS'] = False
-    
-    # Static files settings
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-    
-    # Media files settings
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
-    
-    # Additional production settings
-    ALLOWED_HOSTS = ['*']  # Allow all hosts for production
-    CSRF_TRUSTED_ORIGINS = ['https://company.d0s369.co.in', 'http://localhost:3000', 'http://127.0.0.1:3000']
-    
-    # Email settings for production
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = 'info.dishaonlinesoution@gmail.com'
-    EMAIL_HOST_PASSWORD = 'ktrc uzzy upkr ftbv'
-    DEFAULT_FROM_EMAIL = 'Disha Online Solution <info.dishaonlinesoution@gmail.com>'
-    SERVER_EMAIL = 'info.dishaonlinesoution@gmail.com'
-    
-    # Celery settings for production
-    CELERY_BROKER_URL = 'redis://localhost:6379/0'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-    CELERY_ACCEPT_CONTENT = ['json']
-    CELERY_TASK_SERIALIZER = 'json'
-    CELERY_RESULT_SERIALIZER = 'json'
-    CELERY_TIMEZONE = TIME_ZONE
-    CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-    
-    # Additional production optimizations
-    CONN_MAX_AGE = 600
-    CONN_HEALTH_CHECKS = True
-    CONN_MAX_AGE_OVERRIDE = True
-    CONN_MAX_AGE_OVERRIDE_VALUE = 0
+# Create logs directory if it doesn't exist
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+# =============================================================================
+# APPLICATION-SPECIFIC SETTINGS
+# =============================================================================
 
 # Attendance Service Configuration
 AUTO_START_ATTENDANCE_SERVICE = os.environ.get('AUTO_START_ATTENDANCE_SERVICE', 'false').lower() == 'true'
