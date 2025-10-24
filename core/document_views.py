@@ -11,42 +11,55 @@ from django.conf import settings
 import logging
 from datetime import datetime, date
 from django.utils.dateparse import parse_date
-try:
-    import weasyprint
-    import pydyf
-    WEASYPRINT_AVAILABLE = True
-    logger = logging.getLogger(__name__)
-    logger.info(f"WeasyPrint is available for PDF generation - Version: {weasyprint.__version__}")
-    logger.info(f"pydyf version: {pydyf.__version__}")
-    
-    # Test if pydyf.PDF constructor is compatible
-    try:
-        # Test the PDF constructor with different argument counts
-        test_pdf = pydyf.PDF()
-        logger.info("pydyf.PDF() constructor test: SUCCESS (0 args)")
-        PDF_CONSTRUCTOR_ARGS = 0
-    except TypeError as e:
-        try:
-            test_pdf = pydyf.PDF('1.7')
-            logger.info("pydyf.PDF() constructor test: SUCCESS (1 arg)")
-            PDF_CONSTRUCTOR_ARGS = 1
-        except TypeError as e2:
-            try:
-                test_pdf = pydyf.PDF('1.7', 'test')
-                logger.info("pydyf.PDF() constructor test: SUCCESS (2 args)")
-                PDF_CONSTRUCTOR_ARGS = 2
-            except TypeError as e3:
-                logger.error(f"pydyf.PDF() constructor test: FAILED - {e3}")
-                PDF_CONSTRUCTOR_ARGS = -1
-                WEASYPRINT_AVAILABLE = False
-                
-except (ImportError, OSError) as e:
-    WEASYPRINT_AVAILABLE = False
-    PDF_CONSTRUCTOR_ARGS = -1
-    logger = logging.getLogger(__name__)
-    logger.error(f"WeasyPrint not available: {e}. PDF generation will be disabled.")
+# WeasyPrint availability will be checked when needed
+WEASYPRINT_AVAILABLE = None
+PDF_CONSTRUCTOR_ARGS = None
 
 from io import BytesIO
+
+def check_weasyprint_availability():
+    """Check if WeasyPrint is available and return status"""
+    global WEASYPRINT_AVAILABLE, PDF_CONSTRUCTOR_ARGS
+    
+    if WEASYPRINT_AVAILABLE is not None:
+        return WEASYPRINT_AVAILABLE
+    
+    try:
+        import weasyprint
+        import pydyf
+        WEASYPRINT_AVAILABLE = True
+        logger = logging.getLogger(__name__)
+        logger.info(f"WeasyPrint is available for PDF generation - Version: {weasyprint.__version__}")
+        logger.info(f"pydyf version: {pydyf.__version__}")
+        
+        # Test if pydyf.PDF constructor is compatible
+        try:
+            # Test the PDF constructor with different argument counts
+            test_pdf = pydyf.PDF()
+            logger.info("pydyf.PDF() constructor test: SUCCESS (0 args)")
+            PDF_CONSTRUCTOR_ARGS = 0
+        except TypeError as e:
+            try:
+                test_pdf = pydyf.PDF('1.7')
+                logger.info("pydyf.PDF() constructor test: SUCCESS (1 arg)")
+                PDF_CONSTRUCTOR_ARGS = 1
+            except TypeError as e2:
+                try:
+                    test_pdf = pydyf.PDF('1.7', 'test')
+                    logger.info("pydyf.PDF() constructor test: SUCCESS (2 args)")
+                    PDF_CONSTRUCTOR_ARGS = 2
+                except TypeError as e3:
+                    logger.error(f"pydyf.PDF() constructor test: FAILED - {e3}")
+                    PDF_CONSTRUCTOR_ARGS = -1
+                    WEASYPRINT_AVAILABLE = False
+                    
+    except (ImportError, OSError) as e:
+        WEASYPRINT_AVAILABLE = False
+        PDF_CONSTRUCTOR_ARGS = -1
+        logger = logging.getLogger(__name__)
+        logger.error(f"WeasyPrint not available: {e}. PDF generation will be disabled.")
+    
+    return WEASYPRINT_AVAILABLE
 
 from .models import (
     CustomUser, DocumentTemplate, GeneratedDocument, Office
@@ -1489,7 +1502,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <meta charset="utf-8">
             <style>
                 @page {
-                    margin: 0.4in;
+                    margin: 0.3in;
                     size: A4;
                 }
                 
@@ -1501,10 +1514,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     font-family: 'Arial', 'Helvetica', sans-serif; 
                     margin: 0; 
                     padding: 0; 
-                    line-height: 1.3; 
+                    line-height: 1.2; 
                     color: #000000;
                     background-color: #ffffff;
-                    font-size: 9pt;
+                    font-size: 8.5pt;
                 }
                 
                 .page { 
@@ -1516,64 +1529,64 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 8px; 
-                    padding-bottom: 6px; 
+                    margin-bottom: 6px; 
+                    padding-bottom: 4px; 
                     border-bottom: 2px solid #000; 
                 }
                 
                 .company-logo { 
-                    max-height: 45px; 
-                    max-width: 140px; 
-                    margin-bottom: 6px; 
+                    max-height: 40px; 
+                    max-width: 120px; 
+                    margin-bottom: 4px; 
                 }
                 
                 .company-name { 
-                    font-size: 13pt; 
+                    font-size: 12pt; 
                     font-weight: bold; 
                     color: #000000; 
-                    margin: 2px 0; 
+                    margin: 1px 0; 
                     text-transform: uppercase;
-                    letter-spacing: 1.5px;
+                    letter-spacing: 1px;
                 }
                 
                 .company-address { 
-                    font-size: 7.5pt; 
+                    font-size: 7pt; 
                     color: #000000; 
-                    line-height: 1.2; 
-                    margin: 2px 0;
+                    line-height: 1.1; 
+                    margin: 1px 0;
                 }
                 
                 .document-title { 
                     text-align: center; 
-                    font-size: 11pt; 
+                    font-size: 10pt; 
                     font-weight: bold; 
-                    margin: 12px 0 8px 0; 
+                    margin: 8px 0 6px 0; 
                     color: #000000; 
                     text-transform: uppercase;
-                    letter-spacing: 2px;
+                    letter-spacing: 1.5px;
                     background-color: #f0f0f0;
-                    padding: 6px;
+                    padding: 4px;
                     border: 1px solid #000;
                 }
                 
                 .salary-month {
                     text-align: center;
-                    font-size: 9.5pt;
+                    font-size: 8.5pt;
                     font-weight: bold;
-                    margin-bottom: 8px;
+                    margin-bottom: 6px;
                     color: #000000;
                     background-color: #f8f8f8;
-                    padding: 4px;
+                    padding: 3px;
                     border: 1px solid #ccc;
                 }
                 
                 .employee-header {
                     display: flex;
                     justify-content: space-between;
-                    margin: 8px 0;
-                    font-size: 8.5pt;
+                    margin: 6px 0;
+                    font-size: 8pt;
                     border-bottom: 1px solid #000;
-                    padding-bottom: 6px;
+                    padding-bottom: 4px;
                 }
                 
                 .employee-id {
@@ -1587,8 +1600,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 
                 .two-column-section {
                     display: flex;
-                    gap: 6px;
-                    margin-bottom: 5px;
+                    gap: 4px;
+                    margin-bottom: 4px;
                 }
                 
                 .column {
@@ -1596,32 +1609,32 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 }
                 
                 .employee-section {
-                    margin-bottom: 12px;
+                    margin-bottom: 8px;
                 }
                 
                 .info-box {
                     border: 1px solid #000;
-                    padding: 6px;
-                    margin-bottom: 5px;
+                    padding: 4px;
+                    margin-bottom: 3px;
                     background-color: #fafafa;
                 }
                 
                 .section-title {
-                    font-size: 9pt;
+                    font-size: 8pt;
                     font-weight: bold;
                     color: #000000;
-                    margin-bottom: 6px;
+                    margin-bottom: 4px;
                     background-color: #e0e0e0;
-                    padding: 4px 6px;
+                    padding: 3px 4px;
                     border-bottom: 2px solid #000;
                 }
                 
                 .info-row {
                     display: flex;
                     justify-content: space-between;
-                    margin: 2px 0;
-                    padding: 1px 0;
-                    font-size: 8pt;
+                    margin: 1px 0;
+                    padding: 0.5px 0;
+                    font-size: 7.5pt;
                 }
                 
                 .info-label {
@@ -1639,25 +1652,25 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 .salary-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 8px 0;
-                    font-size: 8.5pt;
+                    margin: 6px 0;
+                    font-size: 8pt;
                     border: 2px solid #000;
                 }
                 
                 .salary-table th {
                     background-color: #d0d0d0;
                     color: #000000;
-                    padding: 6px 8px;
+                    padding: 4px 6px;
                     text-align: left;
                     font-weight: bold;
-                    font-size: 9pt;
+                    font-size: 8pt;
                     border: 1px solid #000;
                 }
                 
                 .salary-table td {
-                    padding: 5px 8px;
+                    padding: 3px 6px;
                     border: 1px solid #000;
-                    font-size: 8.5pt;
+                    font-size: 8pt;
                 }
                 
                 .salary-table tr:nth-child(even) {
@@ -1677,7 +1690,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 .net-salary-row {
                     background-color: #c0c0c0 !important;
                     font-weight: bold;
-                    font-size: 10pt !important;
+                    font-size: 9pt !important;
                 }
                 
                 .amount {
@@ -1687,36 +1700,36 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 }
                 
                 .footer { 
-                    margin-top: 8px; 
+                    margin-top: 6px; 
                     text-align: center; 
-                    font-size: 7pt; 
+                    font-size: 6.5pt; 
                     color: #000000; 
                     border-top: 1px solid #000; 
-                    padding-top: 5px; 
+                    padding-top: 3px; 
                 }
                 
                 .generated-info {
                     text-align: right;
-                    font-size: 6.5pt;
+                    font-size: 6pt;
                     color: #666;
-                    margin-top: 8px;
+                    margin-top: 6px;
                 }
                 
                 .signature-section {
-                    margin-top: 30px;
+                    margin-top: 20px;
                     display: flex;
                     justify-content: space-between;
                 }
                 
                 .signature-box {
                     text-align: center;
-                    font-size: 8pt;
+                    font-size: 7pt;
                 }
                 
                 .signature-line {
                     border-top: 1px solid #000;
-                    margin-top: 40px;
-                    padding-top: 4px;
+                    margin-top: 25px;
+                    padding-top: 3px;
                     font-weight: bold;
                 }
             </style>
@@ -1768,18 +1781,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                             <div class="info-row">
                                 <span class="info-label">Office:</span>
                                 <span class="info-value">{{ office_name }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Date of Joining:</span>
-                                <span class="info-value">{{ date_of_joining }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Email:</span>
-                                <span class="info-value">{{ email }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Phone:</span>
-                                <span class="info-value">{{ phone }}</span>
                             </div>
                         </div>
                     </div>
@@ -2351,9 +2352,10 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             )
             
             # Generate file based on document type
-            if WEASYPRINT_AVAILABLE:
+            if check_weasyprint_availability():
                 # Generate PDF for other document types
                 try:
+                    import weasyprint
                     logger.info(f"Generating PDF for document {generated_doc.id}")
                     pdf_buffer = BytesIO()
                     weasyprint.HTML(string=content).write_pdf(pdf_buffer)
