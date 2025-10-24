@@ -2135,8 +2135,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             ifsc_code = data.get('ifsc_code', getattr(employee, 'ifsc_code', 'Not specified'))
             
             # Get other employee details
-            email = data.get('email', employee.email)
-            phone = data.get('phone', getattr(employee, 'phone', 'Not specified'))
             address = data.get('address', getattr(employee, 'address', 'Not specified'))
             pan_number = data.get('pan_number', getattr(employee, 'pan_number', 'Not specified'))
             aadhar_number = data.get('aadhar_number', getattr(employee, 'aadhar_number', 'Not specified'))
@@ -2144,14 +2142,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             esi_number = data.get('esi_number', getattr(employee, 'esi_number', 'Not specified'))
             pf_number = data.get('pf_number', getattr(employee, 'pf_number', 'Not specified'))
             
-            # Format date of joining
-            date_of_joining = data.get('date_of_joining', 'Not specified')
-            if date_of_joining and hasattr(date_of_joining, 'strftime'):
-                date_of_joining = date_of_joining.strftime('%d/%m/%Y')
-            elif not date_of_joining and hasattr(employee, 'date_joined'):
-                date_of_joining = employee.date_joined.strftime('%d/%m/%Y')
-            elif not date_of_joining:
-                date_of_joining = 'Not specified'
             
             context = {
                 'employee_name': employee_name,
@@ -2162,15 +2152,12 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'bank_name': bank_name,
                 'account_number': account_number,
                 'ifsc_code': ifsc_code,
-                'email': email,
-                'phone': phone,
                 'address': address,
                 'pan_number': pan_number,
                 'aadhar_number': aadhar_number,
                 'uan_number': uan_number,
                 'esi_number': esi_number,
                 'pf_number': pf_number,
-                'date_of_joining': date_of_joining,
                 'salary_month': salary_month,
                 'salary_year': salary_year,
                 'basic_salary': self.format_currency(basic_salary),
