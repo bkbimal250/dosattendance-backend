@@ -147,10 +147,13 @@ def attendance_saved(sender, instance, created, **kwargs):
             'action': 'created' if created else 'updated'
         }
         
-        # Broadcast the update
-        broadcast_attendance_update_sync(attendance_data)
-        
-        logger.info(f"Broadcasted attendance {'creation' if created else 'update'} for user {instance.user.get_full_name()}")
+        # Broadcast the update (only if Redis is available)
+        try:
+            broadcast_attendance_update_sync(attendance_data)
+            logger.info(f"Broadcasted attendance {'creation' if created else 'update'} for user {instance.user.get_full_name()}")
+        except Exception as broadcast_error:
+            # In development mode, Redis might not be available, so we'll just log and continue
+            logger.warning(f"Could not broadcast attendance update (Redis may not be available): {broadcast_error}")
         
     except Exception as e:
         logger.error(f"Error broadcasting attendance update: {e}")
@@ -171,10 +174,13 @@ def attendance_deleted(sender, instance, **kwargs):
             'action': 'deleted'
         }
         
-        # Broadcast the deletion
-        broadcast_attendance_update_sync(deletion_data)
-        
-        logger.info(f"Broadcasted attendance deletion for user {instance.user.get_full_name()}")
+        # Broadcast the deletion (only if Redis is available)
+        try:
+            broadcast_attendance_update_sync(deletion_data)
+            logger.info(f"Broadcasted attendance deletion for user {instance.user.get_full_name()}")
+        except Exception as broadcast_error:
+            # In development mode, Redis might not be available, so we'll just log and continue
+            logger.warning(f"Could not broadcast attendance deletion (Redis may not be available): {broadcast_error}")
         
     except Exception as e:
         logger.error(f"Error broadcasting attendance deletion: {e}")
