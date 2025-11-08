@@ -69,7 +69,7 @@ DJANGO_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
-
+    
 # Third Party Apps
 THIRD_PARTY_APPS = [
     'rest_framework',
@@ -78,13 +78,19 @@ THIRD_PARTY_APPS = [
     'channels',  # Django Channels for WebSocket support
 ]
 
+# Admin Theme Apps (must be loaded before django.contrib.admin)
+ADMIN_THEME_APPS = [
+    'jet',
+    'jet.dashboard',
+]
+    
 # Local Apps
 LOCAL_APPS = [
     'core.apps.CoreConfig',
 ]
 
 # Combine all apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = ADMIN_THEME_APPS + DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # =============================================================================
 # MIDDLEWARE CONFIGURATION
@@ -171,16 +177,16 @@ DB_PORT = os.environ.get('DB_PORT', '3306')
 
 # Database options for MySQL
 DB_OPTIONS = {
-    'charset': 'utf8mb4',
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
-    'connect_timeout': 60,
-    'read_timeout': 60,
-    'write_timeout': 60,
-    'autocommit': True,
-    'max_allowed_packet': 16777216,  # 16MB
-    'sql_mode': 'STRICT_TRANS_TABLES',
-    'use_unicode': True,
-    'isolation_level': None,
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+05:30', wait_timeout=28800, interactive_timeout=28800",
+            'connect_timeout': 60,
+            'read_timeout': 60,
+            'write_timeout': 60,
+            'autocommit': True,
+            'max_allowed_packet': 16777216,  # 16MB
+            'sql_mode': 'STRICT_TRANS_TABLES',
+            'use_unicode': True,
+            'isolation_level': None,
 }
 
 # Database configuration
@@ -393,86 +399,86 @@ if IS_PRODUCTION:
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                'style': '{',
+            },
+            'simple': {
+                'format': '{levelname} {message}',
+                'style': '{',
+            },
+            'detailed': {
+                'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
+                'style': '{',
+            },
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-        'detailed': {
-            'format': '{levelname} {asctime} {name} {process:d} {thread:d} {pathname}:{lineno:d} {funcName} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
+        'handlers': {
+            'file': {
             'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 10485760,  # 10MB
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'django.log',
+                'maxBytes': 10485760,  # 10MB
             'backupCount': 5 if IS_PRODUCTION else 3,
-            'formatter': 'verbose',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'error.log',
-            'maxBytes': 10485760,  # 10MB
+                'formatter': 'verbose',
+            },
+            'error_file': {
+                'level': 'ERROR',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'error.log',
+                'maxBytes': 10485760,  # 10MB
             'backupCount': 5 if IS_PRODUCTION else 3,
-            'formatter': 'detailed',
-        },
-        'console': {
+                'formatter': 'detailed',
+            },
+            'console': {
             'level': 'WARNING' if IS_PRODUCTION else 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'database': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple',
+            },
+            'database': {
             'level': 'ERROR' if IS_PRODUCTION else 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'database.log',
-            'maxBytes': 10485760,  # 10MB
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'database.log',
+                'maxBytes': 10485760,  # 10MB
             'backupCount': 5 if IS_PRODUCTION else 3,
-            'formatter': 'detailed',
+                'formatter': 'detailed',
+            },
         },
-    },
-    'root': {
-        'handlers': ['console', 'file', 'error_file'],
+        'root': {
+            'handlers': ['console', 'file', 'error_file'],
         'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
-            'propagate': False,
         },
-        'django.db': {
-            'handlers': ['database'],
+        'loggers': {
+            'django': {
+                'handlers': ['console', 'file'],
+            'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
+                'propagate': False,
+            },
+            'django.db': {
+                'handlers': ['database'],
             'level': 'ERROR' if IS_PRODUCTION else 'DEBUG',
-            'propagate': False,
-        },
-        'django.security': {
-            'handlers': ['console', 'file', 'error_file'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['console', 'file', 'error_file'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'core': {
-            'handlers': ['console', 'file', 'error_file'],
+                'propagate': False,
+            },
+            'django.security': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'WARNING',
+                'propagate': False,
+            },
+            'django.request': {
+                'handlers': ['console', 'file', 'error_file'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+            'core': {
+                'handlers': ['console', 'file', 'error_file'],
             'level': 'INFO' if IS_PRODUCTION else 'DEBUG',
-            'propagate': False,
+                'propagate': False,
+            },
         },
-    },
-}
+    }
 
 # =============================================================================
 # EMAIL CONFIGURATION
