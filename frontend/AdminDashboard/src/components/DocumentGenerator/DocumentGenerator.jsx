@@ -6,8 +6,9 @@ import {
   Eye, 
   Send, 
   Plus,
+  Search,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Briefcase,
   User,
   Building,
@@ -20,7 +21,8 @@ import {
   Loader2,
   X,
   RefreshCw,
-  Trash2
+  Trash2,
+  Printer
 } from 'lucide-react';
 import { documentGenerationAPI } from '../../services/api';
 import { Button } from '../ui/Button';
@@ -29,7 +31,7 @@ import { Input } from '../ui/Input';
 import { Dialog } from '../ui/Dialog';
 import { Label } from '../ui/Label';
 import { Textarea } from '../ui/Textarea';
-import { downloadDocument } from '../../utils/pdfGenerator';
+import { downloadDocument, generateFilename, canDownloadDocument } from '../../utils/downloadUtils';
 
 const DocumentGenerator = () => {
   const [employees, setEmployees] = useState([]);
@@ -43,12 +45,16 @@ const DocumentGenerator = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [documentType, setDocumentType] = useState('offer_letter');
   const [formData, setFormData] = useState({});
-  const [previewData, setPreviewData] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
   
-  // Search functionality
+  // Search functionality for employees
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  
+  // Search and filter functionality for generated documents
+  const [docSearchTerm, setDocSearchTerm] = useState('');
+  const [docFilterType, setDocFilterType] = useState('all');
+  const [docFilterStatus, setDocFilterStatus] = useState('all');
+  const [filteredDocuments, setFilteredDocuments] = useState([]);
   
   // Document types - matching backend templates
   const documentTypes = [
@@ -62,7 +68,7 @@ const DocumentGenerator = () => {
     { 
       value: 'salary_increment', 
       label: 'Salary Increment Letter', 
-      icon: DollarSign,
+      icon: IndianRupee,
       description: 'Create salary increment letters for existing employees',
       fields: ['previous_salary', 'new_salary', 'effective_date']
     },
@@ -72,28 +78,10 @@ const DocumentGenerator = () => {
       icon: FileText,
       description: 'Generate monthly salary slips for employees',
       fields: ['salary_month', 'salary_year', 'basic_salary', 'extra_days_pay']
-    },
-    { 
-      value: 'appointment_letter', 
-      label: 'Appointment Letter', 
-      icon: User,
-      description: 'Generate formal appointment letters',
-      fields: ['position', 'start_date', 'department']
-    },
-    { 
-      value: 'experience_certificate', 
-      label: 'Experience Certificate', 
-      icon: FileText,
-      description: 'Generate experience certificates for employees',
-      fields: ['start_date', 'end_date', 'position']
-    },
-    { 
-      value: 'relieving_letter', 
-      label: 'Relieving Letter', 
-      icon: FileText,
-      description: 'Generate relieving letters for departing employees',
-      fields: ['last_working_date', 'reason']
     }
+
+
+
   ];
 
   useEffect(() => {
@@ -124,6 +112,50 @@ const DocumentGenerator = () => {
       setFilteredEmployees(filtered);
     }
   }, [employees, searchTerm]);
+
+  // Filter generated documents based on search term and filters
+  useEffect(() => {
+    if (!generatedDocuments || !Array.isArray(generatedDocuments)) {
+      setFilteredDocuments([]);
+      return;
+    }
+
+    let filtered = [...generatedDocuments];
+
+    // Apply search filter
+    if (docSearchTerm.trim() !== '') {
+      const searchLower = docSearchTerm.toLowerCase();
+      filtered = filtered.filter(doc => {
+        const title = doc.title || '';
+        const employeeName = doc.employee?.first_name || doc.employee?.last_name || doc.employee_name || '';
+        const fullEmployeeName = `${doc.employee?.first_name || ''} ${doc.employee?.last_name || ''}`.trim() || employeeName;
+        const docType = doc.document_type || '';
+        
+        return (
+          title.toLowerCase().includes(searchLower) ||
+          fullEmployeeName.toLowerCase().includes(searchLower) ||
+          docType.toLowerCase().includes(searchLower) ||
+          (doc.employee?.employee_id && doc.employee.employee_id.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+
+    // Apply document type filter
+    if (docFilterType !== 'all') {
+      filtered = filtered.filter(doc => doc.document_type === docFilterType);
+    }
+
+    // Apply status filter
+    if (docFilterStatus !== 'all') {
+      if (docFilterStatus === 'sent') {
+        filtered = filtered.filter(doc => doc.is_sent === true);
+      } else if (docFilterStatus === 'pending') {
+        filtered = filtered.filter(doc => !doc.is_sent || doc.is_sent === false);
+      }
+    }
+
+    setFilteredDocuments(filtered);
+  }, [generatedDocuments, docSearchTerm, docFilterType, docFilterStatus]);
 
   const fetchData = async () => {
     try {
@@ -189,13 +221,11 @@ const DocumentGenerator = () => {
   const handleEmployeeSelect = (employee) => {
     setSelectedEmployee(employee);
     setFormData({});
-    setPreviewData(null);
   };
 
   const handleDocumentTypeChange = (type) => {
     setDocumentType(type);
     setFormData({});
-    setPreviewData(null);
   };
 
   const handleFormChange = (field, value) => {
@@ -205,35 +235,6 @@ const DocumentGenerator = () => {
     }));
   };
 
-  const handlePreview = async () => {
-    if (!selectedEmployee) {
-      setError('Please select an employee');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const previewData = {
-        employee_id: selectedEmployee.id,
-        document_type: documentType,
-        ...formData
-      };
-      
-      console.log('📄 Previewing document:', previewData);
-      
-      const previewRes = await documentGenerationAPI.previewDocument(previewData);
-      
-      setPreviewData(previewRes.data);
-      setShowPreview(true);
-    } catch (error) {
-      console.error('❌ Preview failed:', error);
-      setError(error.response?.data?.detail || error.response?.data?.error || 'Failed to preview document');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!selectedEmployee) {
@@ -257,11 +258,16 @@ const DocumentGenerator = () => {
       
       const generateRes = await documentGenerationAPI.generateDocument(generateData);
       
-      setSuccess('Document generated successfully!');
+      // Get the generated document ID
+      const documentId = generateRes.data.id;
+      
+      // Immediately open the document in a new tab ready for print
+      await handleViewDocument(documentId);
+      
+      setSuccess('Document generated and opened in new tab!');
       setShowGenerator(false);
       setSelectedEmployee(null);
       setFormData({});
-      setPreviewData(null);
       fetchData(); // Refresh the list
     } catch (error) {
       console.error('❌ Generation failed:', error);
@@ -283,39 +289,70 @@ const DocumentGenerator = () => {
       const docResponse = await documentGenerationAPI.getGeneratedDocument(documentId);
       const document = docResponse.data;
       
-      // Use the enhanced download function with fallbacks
-      const result = await downloadDocument(document, documentGenerationAPI);
-      
-      if (result.success) {
-        setSuccess(result.message);
-      } else {
-        setError(result.message || 'Failed to download document');
+      // Try PDF download first (like employee dashboard)
+      try {
+        const response = await documentGenerationAPI.downloadGeneratedDocument(documentId);
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        
+        // Check if we got HTML instead of PDF or if blob is empty
+        if (blob.size === 0) {
+          throw new Error('Empty document received');
+        }
+        
+        // Verify it's actually a PDF by checking the header
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const header = String.fromCharCode(...uint8Array.slice(0, 4));
+        
+        if (header !== '%PDF') {
+          // Try to parse as JSON error
+          try {
+            const text = await blob.text();
+            const errorData = JSON.parse(text);
+            console.error('Server returned error instead of PDF:', errorData);
+            
+            if (errorData.error === 'PDF generation failed' || errorData.error === 'PDF generation not available') {
+              // Fallback to error message
+              setError('PDF generation is not available on the server. Please try again later.');
+              return;
+            } else {
+              throw new Error(errorData.detail || errorData.error || 'PDF generation failed');
+            }
+          } catch (parseError) {
+            // Final fallback: Show error
+            setError('PDF generation is not available. Please try again later.');
+            return;
+          }
+        }
+        
+        // Open PDF in new tab (like employee dashboard)
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        window.URL.revokeObjectURL(url);
+        
+        setSuccess('Document opened in new tab!');
+        
+      } catch (pdfError) {
+        console.warn('PDF download failed, trying print view:', pdfError);
+        
+        // If PDF download fails, show error message
+        if (pdfError.response?.status === 500 || pdfError.response?.status === 503) {
+          setError('PDF generation is not available on the server. Please try again later.');
+          return;
+        }
+        throw pdfError;
       }
+      
     } catch (error) {
       console.error('Download failed:', error);
-      console.error('Error details:', error.response);
       
       // Handle different types of errors
       let errorMessage = 'Failed to download document';
       
       if (error.response?.status === 500) {
-        const errorData = error.response.data;
-        if (errorData?.error === 'PDF generation failed') {
-          const detail = errorData.detail || 'Unknown error';
-          errorMessage = `PDF generation failed: ${detail}. The document content is available but PDF conversion is not working.`;
-          console.error('PDF generation error details:', errorData);
-        } else if (errorData?.error === 'PDF generation not available') {
-          errorMessage = 'PDF generation is not available on this server. WeasyPrint library needs to be installed on the server. Please contact your system administrator to install WeasyPrint and its dependencies.';
-        } else {
-          errorMessage = 'Server error occurred while generating PDF. Please try again later.';
-        }
+        errorMessage = 'PDF generation failed on the server. Try using the print view instead.';
       } else if (error.response?.status === 503) {
-        const errorData = error.response.data;
-        if (errorData?.error === 'PDF generation not available') {
-          errorMessage = 'PDF generation is not available on this server. WeasyPrint library needs to be installed on the server. Please contact your system administrator to install WeasyPrint and its dependencies.';
-        } else {
-          errorMessage = 'PDF service is temporarily unavailable. Please try again later.';
-        }
+        errorMessage = 'PDF service is temporarily unavailable. Try using the print view instead.';
       } else if (error.response?.status === 404) {
         errorMessage = 'Document not found. It may have been deleted.';
       } else if (error.response?.status === 403) {
@@ -332,6 +369,7 @@ const DocumentGenerator = () => {
       setLoading(false);
     }
   };
+
 
 
   const handleSendEmail = async (documentId) => {
@@ -353,21 +391,87 @@ const DocumentGenerator = () => {
       setLoading(true);
       setError(null);
       
+      console.log('Starting view for document:', documentId);
+      
       // Get the document first to have access to its content
       const docResponse = await documentGenerationAPI.getGeneratedDocument(documentId);
       const document = docResponse.data;
       
-      if (document.pdf_file) {
-        // Open the document in a new tab
-        const viewUrl = document.pdf_file;
-        window.open(viewUrl, '_blank');
-        setSuccess('Document opened in new tab');
-      } else {
-        setError('No file available for this document');
+      // Try to open PDF first (like employee dashboard)
+      try {
+        const response = await documentGenerationAPI.downloadGeneratedDocument(documentId);
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        
+        // Check if we got HTML instead of PDF or if blob is empty
+        if (blob.size === 0) {
+          throw new Error('Empty document received');
+        }
+        
+        // Verify it's actually a PDF by checking the header
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const header = String.fromCharCode(...uint8Array.slice(0, 4));
+        
+        if (header !== '%PDF') {
+          // Try to parse as JSON error
+          try {
+            const text = await blob.text();
+            const errorData = JSON.parse(text);
+            console.error('Server returned error instead of PDF:', errorData);
+            
+            if (errorData.error === 'PDF generation failed' || errorData.error === 'PDF generation not available') {
+              // Fallback to error message
+              setError('PDF generation is not available on the server. Please try again later.');
+              return;
+            } else {
+              throw new Error(errorData.detail || errorData.error || 'PDF generation failed');
+            }
+          } catch (parseError) {
+            // Final fallback: Show error
+            setError('PDF generation is not available. Please try again later.');
+            return;
+          }
+        }
+        
+        // Open PDF in new tab
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        window.URL.revokeObjectURL(url);
+        setSuccess('Document opened in new tab!');
+        
+      } catch (pdfError) {
+        console.warn('PDF view failed, trying print view:', pdfError);
+        
+        // If PDF view fails, show error message
+        if (pdfError.response?.status === 500 || pdfError.response?.status === 503) {
+          setError('PDF generation is not available on the server. Please try again later.');
+          return;
+        }
+        throw pdfError;
       }
+      
     } catch (error) {
       console.error('View failed:', error);
-      setError('Failed to view document');
+      
+      // Handle different types of errors
+      let errorMessage = 'Failed to view document';
+      
+      if (error.response?.status === 500) {
+        errorMessage = 'PDF generation failed on the server. Try using the print view instead.';
+      } else if (error.response?.status === 503) {
+        errorMessage = 'PDF service is temporarily unavailable. Try using the print view instead.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Document not found. It may have been deleted.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to view this document';
+      } else {
+        errorMessage = error.response?.data?.detail || 
+                      error.response?.data?.error || 
+                      error.message || 
+                      'Failed to view document';
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -626,18 +730,94 @@ const DocumentGenerator = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Generated Documents</h3>
             <span className="text-sm text-gray-500">
-              {Array.isArray(generatedDocuments) ? generatedDocuments.length : 0} documents
+              {filteredDocuments.length} of {Array.isArray(generatedDocuments) ? generatedDocuments.length : 0} documents
             </span>
           </div>
+
+          {/* Search and Filters */}
+          {Array.isArray(generatedDocuments) && generatedDocuments.length > 0 && (
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search documents..."
+                  value={docSearchTerm}
+                  onChange={(e) => setDocSearchTerm(e.target.value)}
+                  className="w-full pl-9"
+                />
+                {docSearchTerm ? (
+                  <button
+                    onClick={() => setDocSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                )}
+              </div>
+
+              {/* Document Type Filter */}
+              <div>
+                <select
+                  value={docFilterType}
+                  onChange={(e) => setDocFilterType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Types</option>
+                  <option value="salary_slip">Salary Slip</option>
+                  <option value="offer_letter">Offer Letter</option>
+                  <option value="salary_increment">Salary Increment</option>
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <select
+                  value={docFilterStatus}
+                  onChange={(e) => setDocFilterStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Status</option>
+                  <option value="sent">Sent</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              <div>
+                <Button
+                  onClick={() => {
+                    setDocSearchTerm('');
+                    setDocFilterType('all');
+                    setDocFilterStatus('all');
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  disabled={docSearchTerm === '' && docFilterType === 'all' && docFilterStatus === 'all'}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!Array.isArray(generatedDocuments) || generatedDocuments.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg font-medium mb-2">No documents generated yet</p>
               <p className="text-sm">Click "Generate Document" to create your first document</p>
             </div>
+          ) : filteredDocuments.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium mb-2">No documents found</p>
+              <p className="text-sm">Try adjusting your search or filters</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {generatedDocuments.map((doc) => (
+              {filteredDocuments.map((doc) => (
                 <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -684,7 +864,7 @@ const DocumentGenerator = () => {
                         onClick={() => handleDownload(doc.id)}
                         className="flex items-center space-x-1"
                         disabled={loading}
-                        title="Download as PDF"
+                        title="Download PDF"
                       >
                         {loading ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -692,19 +872,8 @@ const DocumentGenerator = () => {
                           <Download className="w-4 h-4" />
                         )}
                         <span className="hidden sm:inline">
-                          {loading ? 'Downloading...' : 'PDF'}
+                          {loading ? 'Downloading...' : 'Download'}
                         </span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSendEmail(doc.id)}
-                        className="flex items-center space-x-1"
-                        disabled={loading}
-                        title="Send Email"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span className="hidden sm:inline">Send</span>
                       </Button>
                       <Button
                         variant="outline"
@@ -875,17 +1044,6 @@ const DocumentGenerator = () => {
               >
                 Cancel
               </Button>
-              {selectedEmployee && documentType && (
-                <Button
-                  variant="outline"
-                  onClick={handlePreview}
-                  disabled={loading}
-                  className="flex items-center space-x-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>Preview</span>
-                </Button>
-              )}
               <Button
                 onClick={handleGenerate}
                 disabled={!selectedEmployee || !documentType || loading}
@@ -903,70 +1061,6 @@ const DocumentGenerator = () => {
         </div>
       </Dialog>
 
-      {/* Preview Modal */}
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col">
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Document Preview</h3>
-            <button
-              onClick={() => setShowPreview(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {previewData && (
-              <div className="flex flex-col h-full">
-                <div className="bg-gray-50 p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{previewData.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        For: {previewData.employee_name} ({previewData.employee_email})
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowPreview(false)}
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setShowPreview(false);
-                          handleGenerate();
-                        }}
-                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <FileText className="w-4 h-4" />
-                        )}
-                        <span>Generate Document</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex-1 overflow-hidden">
-                  <iframe
-                    srcDoc={previewData.content}
-                    className="w-full h-full border-0"
-                    title="Document Preview"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Dialog>
     </div>
   );
 };
