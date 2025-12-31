@@ -16,7 +16,7 @@ from .salary_views import (
     SalaryListView, SalaryDetailView, SalaryApprovalView, SalaryPaymentView,
     SalaryBulkCreateView, SalaryAutoCalculateView, SalaryTemplateListView,
     SalaryTemplateDetailView, SalaryReportView, SalarySummaryView,
-    employee_salary_history, recalculate_salary, salary_statistics
+    employee_salary_history, recalculate_salary, salary_statistics, salary_creation_status
 )
 from .document_views import (
     DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
@@ -107,6 +107,7 @@ urlpatterns = [
     path('api/salaries/reports/', SalaryReportView.as_view(), name='salary-reports'),
     path('api/salaries/summary/', SalarySummaryView.as_view(), name='salary-summary'),
     path('api/salaries/statistics/', salary_statistics, name='salary-statistics'),
+    path('api/salaries/creation-status/', salary_creation_status, name='salary-creation-status'),
     
     # Salary Template endpoints
     path('api/salary-templates/', SalaryTemplateListView.as_view(), name='salary-template-list'),

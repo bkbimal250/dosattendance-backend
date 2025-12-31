@@ -1091,9 +1091,9 @@ class GeneratedDocumentAdmin(admin.ModelAdmin):
 
 
 # Customize admin site
-admin.site.site_header = "Attendance System Administration"
-admin.site.site_title = "Attendance System Admin"
-admin.site.index_title = "Welcome to Attendance System Administration"
+admin.site.site_header = "Disha Online Solution"
+admin.site.site_title = "Disha Online Solution"
+admin.site.index_title = "Welcome to Disha Online Solution"
 
 
 @admin.register(Shift)

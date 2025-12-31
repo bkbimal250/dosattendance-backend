@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from django.db.models import Q, Sum, Count, Avg, Max, Min
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from datetime import datetime, timedelta
 from decimal import Decimal
 import uuid
@@ -777,6 +778,170 @@ def recalculate_salary(request, salary_id):
         return Response(
             {'error': 'Salary not found.'},
             status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrManagerOrAccountant])
+def salary_creation_status(request):
+    """
+    Get employees with their salary creation status for a specific month
+    - GET: Returns employees with salary status (created/not created) for the month
+    Query Parameters:
+        - year: Year (e.g., 2025)
+        - month: Month (1-12)
+        - office_id: Filter by office (optional)
+        - department_id: Filter by department (optional)
+    """
+    from datetime import date
+    
+    try:
+        # Get query parameters
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+        office_id = request.query_params.get('office_id')
+        department_id = request.query_params.get('department_id')
+        
+        # Default to current month if not provided
+        if not year or not month:
+            current_date = timezone.now().date()
+            year = current_date.year
+            month = current_date.month
+        else:
+            try:
+                year = int(year)
+                month = int(month)
+                # Validate month range
+                if month < 1 or month > 12:
+                    return Response(
+                        {'error': 'Invalid month. Month must be between 1 and 12.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid year or month format. Must be integers.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Create salary month date (first day of the month)
+        try:
+            salary_month = date(year, month, 1)
+        except ValueError as e:
+            return Response(
+                {'error': f'Invalid date: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get all employees based on role and filters
+        user = request.user
+        employees = CustomUser.objects.filter(role='employee', is_active=True)
+        
+        # Role-based filtering
+        if user.role == 'manager' and user.office:
+            employees = employees.filter(office=user.office)
+        elif user.role == 'admin' or user.role == 'accountant':
+            # Admin and accountant can see all employees
+            pass
+        
+        # Apply additional filters
+        if office_id:
+            try:
+                employees = employees.filter(office_id=office_id)
+            except (ValueError, ValidationError):
+                return Response(
+                    {'error': 'Invalid office_id format.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        if department_id:
+            try:
+                employees = employees.filter(department_id=department_id)
+            except (ValueError, ValidationError):
+                return Response(
+                    {'error': 'Invalid department_id format.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Get all salaries for the month (filter by salary_month, not pay_date)
+        salaries = Salary.objects.filter(salary_month=salary_month).select_related('employee')
+        
+        # Create a dictionary mapping employee_id to salary for quick lookup
+        salary_dict = {str(salary.employee_id): salary for salary in salaries}
+        employees_with_salary_ids = set(salary_dict.keys())
+        
+        # Build response data
+        employees_with_salary_list = []
+        employees_without_salary_list = []
+        
+        # Process all employees
+        for employee in employees.select_related('office', 'department', 'designation').order_by('first_name', 'last_name'):
+            employee_id_str = str(employee.id)
+            
+            employee_data = {
+                'id': employee_id_str,
+                'employee_id': employee.employee_id or '',
+                'first_name': employee.first_name or '',
+                'last_name': employee.last_name or '',
+                'full_name': employee.get_full_name() or '',
+                'email': employee.email or '',
+                'office': employee.office.name if employee.office else None,
+                'office_id': str(employee.office.id) if employee.office else None,
+                'department': employee.department.name if employee.department else None,
+                'department_id': str(employee.department.id) if employee.department else None,
+                'designation': employee.designation.name if employee.designation else None,
+                'salary': float(employee.salary) if employee.salary else 0.0,
+            }
+            
+            if employee_id_str in employees_with_salary_ids:
+                # Employee has salary for this month
+                salary = salary_dict[employee_id_str]
+                employee_data['salary_id'] = str(salary.id)
+                employee_data['salary_status'] = salary.status
+                employee_data['net_salary'] = float(salary.net_salary) if salary.net_salary else 0.0
+                employee_data['created_at'] = salary.created_at.isoformat() if salary.created_at else None
+                employees_with_salary_list.append(employee_data)
+            else:
+                # Employee does NOT have salary for this month - this is what we want to show
+                employee_data['salary_id'] = None
+                employee_data['salary_status'] = 'not_created'
+                employee_data['net_salary'] = 0.0
+                employee_data['created_at'] = None
+                employees_without_salary_list.append(employee_data)
+        
+        # Calculate statistics
+        total_employees = employees.count()
+        employees_with_salary_count = len(employees_with_salary_list)
+        employees_without_salary_count = len(employees_without_salary_list)
+        
+        response_data = {
+            'salary_month': salary_month.strftime('%Y-%m-%d'),
+            'year': year,
+            'month': month,
+            'statistics': {
+                'total_employees': total_employees,
+                'employees_with_salary': employees_with_salary_count,
+                'employees_without_salary': employees_without_salary_count,
+                'completion_percentage': round((employees_with_salary_count / total_employees * 100) if total_employees > 0 else 0, 2)
+            },
+            'employees_with_salary': employees_with_salary_list,
+            'employees_without_salary': employees_without_salary_list,  # This is the list of remaining users
+            'filters': {
+                'office_id': str(office_id) if office_id else None,
+                'department_id': str(department_id) if department_id else None
+            }
+        }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        return Response(
+            {
+                'error': 'An error occurred while fetching salary creation status.',
+                'detail': str(e),
+                'trace': error_trace if settings.DEBUG else None
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 
