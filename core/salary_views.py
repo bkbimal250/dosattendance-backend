@@ -862,11 +862,24 @@ def salary_creation_status(request):
                 )
         
         # Get all salaries for the month (filter by salary_month, not pay_date)
+        # Use exact date match to ensure we get salaries for the specific month
         salaries = Salary.objects.filter(salary_month=salary_month).select_related('employee')
         
-        # Create a dictionary mapping employee_id to salary for quick lookup
-        salary_dict = {str(salary.employee_id): salary for salary in salaries}
-        employees_with_salary_ids = set(salary_dict.keys())
+        # Create a dictionary mapping employee UUID to salary for quick lookup
+        # Use employee.id (UUID) as the key to match with employee.id later
+        salary_dict = {}
+        employees_with_salary_ids = set()
+        for salary in salaries:
+            # Use the employee's UUID as the key (not employee_id field)
+            employee_uuid = str(salary.employee.id)
+            salary_dict[employee_uuid] = salary
+            employees_with_salary_ids.add(employee_uuid)
+        
+        # Debug logging (only in DEBUG mode)
+        if settings.DEBUG:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Salary creation status - Month: {salary_month}, Found {len(salaries)} salaries, {len(employees_with_salary_ids)} unique employees with salary")
         
         # Build response data
         employees_with_salary_list = []
