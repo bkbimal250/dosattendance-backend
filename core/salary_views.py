@@ -823,7 +823,7 @@ def salary_creation_status(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Create salary month date (first day of the month)
+        # Create salary month date (first day of the month) for response
         try:
             salary_month = date(year, month, 1)
         except ValueError as e:
@@ -861,9 +861,13 @@ def salary_creation_status(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Get all salaries for the month (filter by salary_month, not pay_date)
-        # Use exact date match to ensure we get salaries for the specific month
-        salaries = Salary.objects.filter(salary_month=salary_month).select_related('employee')
+        # Get all salaries for the month (filter by year and month, not exact date)
+        # This ensures we catch all salaries for November 2025 regardless of which day was used
+        # Some salaries might be stored as 2025-11-01, others as 2025-11-30, etc.
+        salaries = Salary.objects.filter(
+            salary_month__year=year,
+            salary_month__month=month
+        ).select_related('employee')
         
         # Create a dictionary mapping employee UUID to salary for quick lookup
         # Use employee.id (UUID) as the key to match with employee.id later
@@ -879,7 +883,11 @@ def salary_creation_status(request):
         if settings.DEBUG:
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Salary creation status - Month: {salary_month}, Found {len(salaries)} salaries, {len(employees_with_salary_ids)} unique employees with salary")
+            logger.info(f"Salary creation status - Year: {year}, Month: {month}, Found {len(salaries)} salaries, {len(employees_with_salary_ids)} unique employees with salary")
+            # Log sample salary months to verify filtering
+            if salaries.exists():
+                sample_dates = [s.salary_month.strftime('%Y-%m-%d') for s in salaries[:5]]
+                logger.info(f"Sample salary_month dates found: {sample_dates}")
         
         # Build response data
         employees_with_salary_list = []
