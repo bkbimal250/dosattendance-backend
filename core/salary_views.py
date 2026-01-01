@@ -832,21 +832,27 @@ def salary_creation_status(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Get all employees based on role and filters
+        # Get all users based on role and filters
         user = request.user
-        employees = CustomUser.objects.filter(role='employee', is_active=True)
+        # For admin and accountant: get all users (all roles) to create salary for everyone
+        # For manager: get only employees (existing behavior)
+        if user.role == 'admin' or user.role == 'accountant':
+            users = CustomUser.objects.filter(is_active=True)
+        else:
+            # Manager sees only employees
+            users = CustomUser.objects.filter(role='employee', is_active=True)
         
         # Role-based filtering
         if user.role == 'manager' and user.office:
-            employees = employees.filter(office=user.office)
+            users = users.filter(office=user.office)
         elif user.role == 'admin' or user.role == 'accountant':
-            # Admin and accountant can see all employees
+            # Admin and accountant can see all users (already handled above)
             pass
         
         # Apply additional filters
         if office_id:
             try:
-                employees = employees.filter(office_id=office_id)
+                users = users.filter(office_id=office_id)
             except (ValueError, ValidationError):
                 return Response(
                     {'error': 'Invalid office_id format.'},
@@ -854,7 +860,7 @@ def salary_creation_status(request):
                 )
         if department_id:
             try:
-                employees = employees.filter(department_id=department_id)
+                users = users.filter(department_id=department_id)
             except (ValueError, ValidationError):
                 return Response(
                     {'error': 'Invalid department_id format.'},
@@ -883,7 +889,7 @@ def salary_creation_status(request):
         if settings.DEBUG:
             import logging
             logger = logging.getLogger(__name__)
-            logger.info(f"Salary creation status - Year: {year}, Month: {month}, Found {len(salaries)} salaries, {len(employees_with_salary_ids)} unique employees with salary")
+            logger.info(f"Salary creation status - Year: {year}, Month: {month}, Found {len(salaries)} salaries, {len(employees_with_salary_ids)} unique users with salary")
             # Log sample salary months to verify filtering
             if salaries.exists():
                 sample_dates = [s.salary_month.strftime('%Y-%m-%d') for s in salaries[:5]]
@@ -893,8 +899,8 @@ def salary_creation_status(request):
         employees_with_salary_list = []
         employees_without_salary_list = []
         
-        # Process all employees
-        for employee in employees.select_related('office', 'department', 'designation').order_by('first_name', 'last_name'):
+        # Process all users
+        for employee in users.select_related('office', 'department', 'designation').order_by('first_name', 'last_name'):
             employee_id_str = str(employee.id)
             
             employee_data = {
@@ -929,7 +935,8 @@ def salary_creation_status(request):
                 employees_without_salary_list.append(employee_data)
         
         # Calculate statistics
-        total_employees = employees.count()
+        total_users = users.count()
+        active_users = users.filter(is_active=True).count()  # Should be same as total_users since we filter is_active=True
         employees_with_salary_count = len(employees_with_salary_list)
         employees_without_salary_count = len(employees_without_salary_list)
         
@@ -938,10 +945,12 @@ def salary_creation_status(request):
             'year': year,
             'month': month,
             'statistics': {
-                'total_employees': total_employees,
+                'total_users': total_users,
+                'active_users': active_users,
+                'total_employees': total_users,  # Keep for backward compatibility
                 'employees_with_salary': employees_with_salary_count,
                 'employees_without_salary': employees_without_salary_count,
-                'completion_percentage': round((employees_with_salary_count / total_employees * 100) if total_employees > 0 else 0, 2)
+                'completion_percentage': round((employees_with_salary_count / total_users * 100) if total_users > 0 else 0, 2)
             },
             'employees_with_salary': employees_with_salary_list,
             'employees_without_salary': employees_without_salary_list,  # This is the list of remaining users
