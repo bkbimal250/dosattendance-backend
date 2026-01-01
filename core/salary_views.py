@@ -835,17 +835,26 @@ def salary_creation_status(request):
         # Get all users based on role and filters
         user = request.user
         # For admin and accountant: get all users (all roles) to create salary for everyone
-        # For manager: get only employees (existing behavior)
+        # For manager: get employees and managers in their office
         if user.role == 'admin' or user.role == 'accountant':
             users = CustomUser.objects.filter(is_active=True)
+        elif user.role == 'manager':
+            # Manager sees employees and managers in their office
+            if user.office:
+                users = CustomUser.objects.filter(
+                    is_active=True,
+                    office=user.office,
+                    role__in=['employee', 'manager']
+                )
+            else:
+                # If manager has no office, show nothing
+                users = CustomUser.objects.none()
         else:
-            # Manager sees only employees
+            # Other roles see only employees
             users = CustomUser.objects.filter(role='employee', is_active=True)
         
-        # Role-based filtering
-        if user.role == 'manager' and user.office:
-            users = users.filter(office=user.office)
-        elif user.role == 'admin' or user.role == 'accountant':
+        # Role-based filtering (additional filters if needed)
+        if user.role == 'admin' or user.role == 'accountant':
             # Admin and accountant can see all users (already handled above)
             pass
         
