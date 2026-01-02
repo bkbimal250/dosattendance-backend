@@ -933,6 +933,7 @@ def salary_creation_status(request):
                 'department_id': str(employee.department.id) if employee.department else None,
                 'designation': employee.designation.name if employee.designation else None,
                 'salary': float(employee.salary) if employee.salary else 0.0,
+                'pay_bank_name': employee.pay_bank_name or '',
             }
             
             if employee_id_str in employees_with_salary_ids:

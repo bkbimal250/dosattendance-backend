@@ -3413,7 +3413,7 @@ class DashboardViewSet(viewsets.ViewSet):
         queryset = CustomUser.objects.filter(
             office=office,
             role='employee'
-        ).select_related('office')
+        ).select_related('office', 'department', 'designation')
         
         # Apply filters
         if search:
