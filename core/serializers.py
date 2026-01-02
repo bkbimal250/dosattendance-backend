@@ -127,7 +127,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
             'role', 'office', 'office_name', 'phone', 'address', 'date_of_birth',
             'gender', 'profile_picture', 'profile_picture_url', 'aadhaar_card', 'pan_card', 'employee_id', 'biometric_id', 'joining_date',
-            'department', 'department_name', 'designation', 'designation_name', 'salary', 'emergency_contact_name',
+            'department', 'department_name', 'designation', 'designation_name', 'salary', 'pay_bank_name', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
             'upi_qr',
@@ -1108,6 +1108,7 @@ class SalarySerializer(serializers.ModelSerializer):
     employee_office_name = serializers.CharField(source='employee.office.name', read_only=True)
     employee_department_name = serializers.CharField(source='employee.department.name', read_only=True)
     employee_designation_name = serializers.CharField(source='employee.designation.name', read_only=True)
+    employee_pay_bank_name = serializers.CharField(source='employee.pay_bank_name', read_only=True)
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     
@@ -1128,7 +1129,7 @@ class SalarySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'employee', 'employee_name', 'employee_email', 'employee_employee_id',
             'employee_office_name', 'employee_department_name', 'employee_designation_name',
-            'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
+            'employee_pay_bank_name', 'basic_pay', 'per_day_pay', 'increment', 'total_days', 'worked_days', 'deduction', 'balance_loan',
             'remaining_pay', 'salary_month', 'pay_date', 'paid_date', 'payment_method', 'Bank_name', 'status', 
             'approved_by', 'approved_by_name', 'approved_at', 'notes', 'status_reason', 
             'is_auto_calculated', 'attendance_based', 'created_by', 'created_by_name', 
@@ -1184,6 +1185,13 @@ class SalaryCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create salary record with current user as creator"""
         validated_data['created_by'] = self.context['request'].user
+        
+        # If Bank_name is not provided, use employee's pay_bank_name
+        if not validated_data.get('Bank_name') and validated_data.get('employee'):
+            employee = validated_data['employee']
+            if employee.pay_bank_name:
+                validated_data['Bank_name'] = employee.pay_bank_name
+        
         return super().create(validated_data)
 
 

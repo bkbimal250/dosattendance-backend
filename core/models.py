@@ -123,6 +123,7 @@ class CustomUser(AbstractUser):
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='department_id')
     designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='designation_id')
     salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    pay_bank_name=models.CharField(max_length=200, blank=True, help_text="Bank name for salary payment");
     
     # Emergency Contact
     emergency_contact_name = models.CharField(max_length=100, blank=True)

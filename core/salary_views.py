@@ -301,6 +301,10 @@ class SalaryBulkCreateView(APIView):
                         'is_auto_calculated': True,
                         'created_by': request.user
                     }
+                
+                # Use employee's pay_bank_name if available
+                if employee.pay_bank_name:
+                    salary_data['Bank_name'] = employee.pay_bank_name
 
                 salary = Salary.objects.create(**salary_data)
                 created_salaries.append(SalarySerializer(salary).data)
@@ -377,6 +381,10 @@ class SalaryAutoCalculateView(APIView):
                         # Template fields are already set in salary_data
                 else:
                     salary.basic_pay = basic_pay
+
+                # Use employee's pay_bank_name if available and Bank_name is not set
+                if employee.pay_bank_name and not salary.Bank_name:
+                    salary.Bank_name = employee.pay_bank_name
 
                 # Auto-calculate worked days from attendance
                 salary.calculate_worked_days_from_attendance()
