@@ -80,8 +80,7 @@ THIRD_PARTY_APPS = [
 
 # Admin Theme Apps (must be loaded before django.contrib.admin)
 ADMIN_THEME_APPS = [
-    'jet',
-    'jet.dashboard',
+    'unfold',  # django-unfold admin theme
 ]
     
 # Local Apps
@@ -395,6 +394,33 @@ if IS_PRODUCTION:
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# =============================================================================
+# DJANGO-UNFOLD CONFIGURATION
+# =============================================================================
+UNFOLD = {
+    "SITE_TITLE": "Disha Online Solution",
+    "SITE_HEADER": "Disha Online Solution",
+    "SITE_URL": "/",
+    "SITE_ICON": None,
+    "SITE_LOGO": None,
+    "SITE_SYMBOL": "settings",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "ENVIRONMENT": "attendance_system.settings.environment_callback",
+    "DASHBOARD_CALLBACK": None,
+    "LOGIN": {
+        "image": None,
+        "redirect_after": None,
+    },
+    "STYLES": [],
+    "SCRIPTS": [],
+}
+
+def environment_callback(request):
+    """Return environment name for django-unfold"""
+    from django.conf import settings
+    return getattr(settings, "ENVIRONMENT", "development")
 
 # =============================================================================
 # LOGGING CONFIGURATION

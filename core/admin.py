@@ -210,9 +210,9 @@ class CustomUserAdminForm(forms.ModelForm):
 class SafeCustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserAdminForm
-    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
-    list_filter = ['role', 'office', 'is_active', 'department', 'created_at']
-    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'pay_bank_name', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
+    list_filter = ['role', 'office', 'is_active', 'department', 'pay_bank_name', 'created_at']
+    search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card', 'pay_bank_name']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
     
@@ -224,7 +224,7 @@ class SafeCustomUserAdmin(UserAdmin):
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Office Information', {'fields': ('office', 'department', 'designation')}),
         ('Personal Details', {'fields': ('date_of_birth', 'gender', 'address', 'aadhaar_card', 'pan_card')}),
-        ('Employment Details', {'fields': ('biometric_id', 'joining_date', 'salary')}),
+        ('Employment Details', {'fields': ('biometric_id', 'joining_date', 'salary', 'pay_bank_name')}),
         ('Emergency Contact', {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
         ('Bank Details', {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name')}),
     )
@@ -397,7 +397,7 @@ class SafeCustomUserAdmin(UserAdmin):
         }),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'phone', 'address', 'date_of_birth', 'gender', 'profile_picture')}),
         ('Government ID', {'fields': ('aadhaar_card', 'pan_card')}),
-        ('Employment', {'fields': ('role', 'office', 'employee_id', 'biometric_id', 'joining_date', 'department', 'designation', 'salary')}),
+        ('Employment', {'fields': ('role', 'office', 'employee_id', 'biometric_id', 'joining_date', 'department', 'designation', 'salary', 'pay_bank_name')}),
         ('Emergency Contact', {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
         ('Bank Details', {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
