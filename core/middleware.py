@@ -85,7 +85,7 @@ class APIAuthenticationDebugMiddleware:
     
     def __init__(self, get_response):
         self.get_response = get_response
-        
+    
     def __call__(self, request):
         # Skip authentication debug for login/register endpoints
         if request.path.startswith('/api/') and not request.path in ['/api/auth/login/', '/api/auth/register/']:
@@ -99,5 +99,35 @@ class APIAuthenticationDebugMiddleware:
         # Debug response for API requests (except login/register)
         if request.path.startswith('/api/') and not request.path in ['/api/auth/login/', '/api/auth/register/']:
             logger.debug(f"API Response: {response.status_code} for {request.path}")
+        
+        return response
+
+class AdminCSPMiddleware:
+    """Middleware to set permissive CSP headers for Django admin panel
+    
+    This allows Alpine.js (used by django-unfold) to work properly by
+    allowing 'unsafe-eval' for the admin panel only.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        response = self.get_response(request)
+        
+        # Only apply CSP override for admin URLs
+        if request.path.startswith('/admin/'):
+            # Set permissive CSP for admin panel to allow Alpine.js
+            # This allows 'unsafe-eval' which Alpine.js needs for dynamic evaluation
+            csp_policy = (
+                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:; "
+                "style-src 'self' 'unsafe-inline' https: http:; "
+                "img-src 'self' data: https: http: blob:; "
+                "font-src 'self' data: https: http:; "
+                "connect-src 'self' https: http:; "
+                "frame-ancestors 'self';"
+            )
+            response['Content-Security-Policy'] = csp_policy
         
         return response

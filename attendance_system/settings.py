@@ -119,6 +119,7 @@ THIRD_PARTY_MIDDLEWARE = [
 
 # Custom Middleware
 CUSTOM_MIDDLEWARE = [
+    'core.middleware.AdminCSPMiddleware',  # Allow unsafe-eval for admin panel (django-unfold/Alpine.js)
     'core.middleware.APIAuthenticationDebugMiddleware',  # Debug API authentication
     'core.middleware.DatabaseConnectionMiddleware',  # Database connection management
 ]
