@@ -15,6 +15,9 @@ import os
 from datetime import timedelta
 import pymysql
 from dotenv import load_dotenv
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 # Load environment variables
 load_dotenv()
@@ -240,6 +243,18 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+# Static files finders
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+# Static files storage for production
+if IS_PRODUCTION:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -382,6 +397,10 @@ CORS_ALLOW_ALL_HEADERS = True
 # =============================================================================
 # SECURITY SETTINGS
 # =============================================================================
+# X_FRAME_OPTIONS for django-unfold (needs SAMEORIGIN for modals)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SILENCED_SYSTEM_CHECKS = ['security.W019']  # Silence warning about X_FRAME_OPTIONS
+
 if IS_PRODUCTION:
     # Security middleware settings
     SECURE_BROWSER_XSS_FILTER = True
@@ -392,12 +411,16 @@ if IS_PRODUCTION:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    X_FRAME_OPTIONS = 'DENY'
+    # X_FRAME_OPTIONS is set above for django-unfold compatibility
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # =============================================================================
 # DJANGO-UNFOLD CONFIGURATION
 # =============================================================================
+def environment_callback(request):
+    """Return environment name for django-unfold"""
+    return ENVIRONMENT
+
 UNFOLD = {
     "SITE_TITLE": "Disha Online Solution",
     "SITE_HEADER": "Disha Online Solution",
@@ -407,25 +430,40 @@ UNFOLD = {
     "SITE_SYMBOL": "settings",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
-    "ENVIRONMENT": "attendance_system.settings.environment_callback",
+    "ENVIRONMENT": environment_callback,
     "DASHBOARD_CALLBACK": None,
     "LOGIN": {
         "image": None,
         "redirect_after": None,
     },
-    "STYLES": [],
-    "SCRIPTS": [],
+    "STYLES": [
+        # Add custom CSS files here if needed
+        # lambda request: static("css/custom-admin.css"),
+    ],
+    "SCRIPTS": [
+        # Add custom JS files here if needed
+        # lambda request: static("js/custom-admin.js"),
+    ],
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255",
+            "200": "233 213 255",
+            "300": "216 180 254",
+            "400": "192 132 252",
+            "500": "168 85 247",
+            "600": "147 51 234",
+            "700": "126 34 206",
+            "800": "107 33 168",
+            "900": "88 28 135",
+        },
+    },
 }
-
-def environment_callback(request):
-    """Return environment name for django-unfold"""
-    from django.conf import settings
-    return getattr(settings, "ENVIRONMENT", "development")
 
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
-    LOGGING = {
+LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
