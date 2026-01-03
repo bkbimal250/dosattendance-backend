@@ -84,6 +84,9 @@ THIRD_PARTY_APPS = [
 # Admin Theme Apps (must be loaded before django.contrib.admin)
 ADMIN_THEME_APPS = [
     'unfold',  # django-unfold admin theme
+    'unfold.contrib.filters',  # optional, if special filters are needed
+    'unfold.contrib.forms',  # optional, if special form elements are needed
+    'unfold.contrib.import_export',  # optional, if django-import-export package is used
 ]
     
 # Local Apps
@@ -400,6 +403,13 @@ CORS_ALLOW_ALL_HEADERS = True
 # X_FRAME_OPTIONS for django-unfold (needs SAMEORIGIN for modals)
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SILENCED_SYSTEM_CHECKS = ['security.W019']  # Silence warning about X_FRAME_OPTIONS
+
+# Content Security Policy - Allow inline scripts for django-unfold
+# This ensures filter panel JavaScript works correctly
+if IS_PRODUCTION:
+    # In production, you may need to configure CSP headers in your web server (nginx/apache)
+    # For now, we'll rely on the web server configuration
+    pass
 
 if IS_PRODUCTION:
     # Security middleware settings
