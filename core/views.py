@@ -1276,6 +1276,88 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         
         return Response(debug_data)
 
+    def update(self, request, *args, **kwargs):
+        """Override update to detect bank account changes"""
+        instance = self.get_object()
+        
+        # Store old bank account values before update
+        bank_fields = ['account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name']
+        old_bank_values = {}
+        for field in bank_fields:
+            old_bank_values[field] = getattr(instance, field, None)
+        old_upi_qr = instance.upi_qr
+        
+        # Perform the update
+        response = super().update(request, *args, **kwargs)
+        
+        # Check if bank account fields changed
+        if response.status_code == status.HTTP_200_OK:
+            instance.refresh_from_db()
+            changed_fields = {}
+            
+            for field in bank_fields:
+                new_value = getattr(instance, field, None)
+                old_value = old_bank_values.get(field)
+                if old_value != new_value:
+                    changed_fields[field] = (old_value, new_value)
+            
+            # Check UPI QR change
+            if old_upi_qr != instance.upi_qr:
+                changed_fields['upi_qr'] = (
+                    str(old_upi_qr) if old_upi_qr else None,
+                    str(instance.upi_qr) if instance.upi_qr else None
+                )
+            
+            # Send notifications if bank account fields changed
+            if changed_fields:
+                from .notification_service import notify_bank_account_updated
+                notify_bank_account_updated(instance, request.user, changed_fields)
+        
+        return response
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update to detect bank account changes"""
+        instance = self.get_object()
+        
+        # Store old bank account values before update
+        bank_fields = ['account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name']
+        old_bank_values = {}
+        for field in bank_fields:
+            old_bank_values[field] = getattr(instance, field, None)
+        old_upi_qr = instance.upi_qr
+        
+        # Perform the partial update
+        response = super().partial_update(request, *args, **kwargs)
+        
+        # Check if bank account fields changed
+        if response.status_code == status.HTTP_200_OK:
+            instance.refresh_from_db()
+            changed_fields = {}
+            
+            # Only check fields that were actually updated
+            updated_fields = request.data.keys()
+            
+            for field in bank_fields:
+                if field in updated_fields:
+                    new_value = getattr(instance, field, None)
+                    old_value = old_bank_values.get(field)
+                    if old_value != new_value:
+                        changed_fields[field] = (old_value, new_value)
+            
+            # Check UPI QR change
+            if 'upi_qr' in updated_fields and old_upi_qr != instance.upi_qr:
+                changed_fields['upi_qr'] = (
+                    str(old_upi_qr) if old_upi_qr else None,
+                    str(instance.upi_qr) if instance.upi_qr else None
+                )
+            
+            # Send notifications if bank account fields changed
+            if changed_fields:
+                from .notification_service import notify_bank_account_updated
+                notify_bank_account_updated(instance, request.user, changed_fields)
+        
+        return response
+
     @action(detail=False, methods=['get'])
     def debug_auth(self, request):
         """Debug endpoint to test authentication"""
@@ -1288,6 +1370,41 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             'http_auth_header': request.META.get('HTTP_AUTHORIZATION'),
             'all_headers': dict(request.headers),
             'all_meta': {k: v for k, v in request.META.items() if k.startswith('HTTP_')}
+        })
+
+    @action(detail=False, methods=['get'])
+    def updated_bank_accounts(self, request):
+        """Get users with recently updated bank accounts"""
+        from datetime import timedelta
+        
+        # Get users updated in the last 30 days (configurable)
+        days = int(request.query_params.get('days', 30))
+        cutoff_date = timezone.now() - timedelta(days=days)
+        
+        # Get users with bank account fields that were updated
+        queryset = self.get_queryset().filter(
+            updated_at__gte=cutoff_date
+        ).exclude(
+            Q(account_holder_name='') & Q(bank_name='') & Q(account_number='') & Q(ifsc_code='')
+        ).order_by('-updated_at')
+        
+        # Filter to only include users with bank account information
+        users_with_bank_info = []
+        for user in queryset:
+            if any([
+                user.account_holder_name,
+                user.bank_name,
+                user.account_number,
+                user.ifsc_code,
+                user.bank_branch_name,
+                user.upi_qr
+            ]):
+                users_with_bank_info.append(user)
+        
+        serializer = CustomUserSerializer(users_with_bank_info, many=True, context={'request': request})
+        return Response({
+            'count': len(users_with_bank_info),
+            'results': serializer.data
         })
 
 

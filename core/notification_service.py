@@ -463,3 +463,114 @@ def notify_system_alert(message, priority='high'):
         'system_alert',
         message=message
     )
+
+def notify_bank_account_updated(updated_user, updated_by, changed_fields):
+    """
+    Notify accountants, admins, and managers when a user's bank account is updated.
+    
+    Args:
+        updated_user: The CustomUser whose bank account was updated
+        updated_by: The CustomUser who made the update (admin/manager)
+        changed_fields: Dictionary of changed bank account fields with old and new values
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Bank account fields to track
+    bank_fields = [
+        'account_holder_name', 'bank_name', 'account_number', 
+        'ifsc_code', 'bank_branch_name', 'upi_qr'
+    ]
+    
+    # Build change message
+    changes_list = []
+    for field, (old_value, new_value) in changed_fields.items():
+        if field in bank_fields:
+            # Format the change nicely
+            field_display = field.replace('_', ' ').title()
+            old_display = str(old_value) if old_value else 'Not set'
+            new_display = str(new_value) if new_value else 'Not set'
+            changes_list.append(f"{field_display}: {old_display} → {new_display}")
+    
+    if not changes_list:
+        return []  # No bank account changes detected
+    
+    change_message = "\n".join(changes_list)
+    employee_name = updated_user.get_full_name()
+    updater_name = updated_by.get_full_name() if updated_by else 'System'
+    
+    # Create notification message
+    message = f"Bank account details for {employee_name} (ID: {updated_user.employee_id or 'N/A'}) have been updated by {updater_name}.\n\nChanges:\n{change_message}"
+    
+    notifications = []
+    
+    # Notify all accountants
+    accountants = CustomUser.objects.filter(
+        role='accountant',
+        is_active=True
+    )
+    
+    for accountant in accountants:
+        notification = NotificationService.create_notification(
+            user=accountant,
+            title=f"Bank Account Updated: {employee_name}",
+            message=message,
+            notification_type='bank_update',
+            category='info',
+            priority='high',
+            action_url=f"/users/{updated_user.id}",
+            action_text="View User",
+            created_by=updated_by,
+            send_email=True
+        )
+        if notification:
+            notifications.append(notification)
+    
+    # Notify all admins (except the one who made the update)
+    admins = CustomUser.objects.filter(
+        role='admin',
+        is_active=True
+    ).exclude(id=updated_by.id if updated_by else None)
+    
+    for admin in admins:
+        notification = NotificationService.create_notification(
+            user=admin,
+            title=f"Bank Account Updated: {employee_name}",
+            message=message,
+            notification_type='bank_update',
+            category='info',
+            priority='medium',
+            action_url=f"/users/{updated_user.id}",
+            action_text="View User",
+            created_by=updated_by,
+            send_email=True
+        )
+        if notification:
+            notifications.append(notification)
+    
+    # Notify managers from the same office (except the one who made the update)
+    if updated_user.office:
+        managers = CustomUser.objects.filter(
+            role='manager',
+            office=updated_user.office,
+            is_active=True
+        ).exclude(id=updated_by.id if updated_by else None)
+        
+        for manager in managers:
+            notification = NotificationService.create_notification(
+                user=manager,
+                title=f"Bank Account Updated: {employee_name}",
+                message=message,
+                notification_type='system',
+                category='info',
+                priority='medium',
+                action_url=f"/users/{updated_user.id}",
+                action_text="View User",
+                created_by=updated_by,
+                send_email=True
+            )
+            if notification:
+                notifications.append(notification)
+    
+    logger.info(f"Created {len(notifications)} notifications for bank account update of {employee_name}")
+    return notifications

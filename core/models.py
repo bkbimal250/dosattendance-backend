@@ -644,6 +644,7 @@ class Notification(models.Model):
         ('reminder', 'Reminder'),
         ('approval', 'Approval'),
         ('rejection', 'Rejection'),
+        ('bank_update', 'Bank Account Update'),
     ]
     
     PRIORITY_CHOICES = [
@@ -707,6 +708,11 @@ class Notification(models.Model):
         """Mark email as sent"""
         self.is_email_sent = True
         self.save(update_fields=['is_email_sent', 'updated_at'])
+
+
+
+
+
 
 
 class SystemSettings(models.Model):
