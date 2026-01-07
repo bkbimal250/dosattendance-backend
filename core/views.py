@@ -1280,12 +1280,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         """Override update to detect bank account changes"""
         instance = self.get_object()
         
-        # Store old bank account values before update
+        # Store old bank account values before update (as dictionary for JSON storage)
         bank_fields = ['account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name']
         old_bank_values = {}
         for field in bank_fields:
-            old_bank_values[field] = getattr(instance, field, None)
-        old_upi_qr = instance.upi_qr
+            old_bank_values[field] = getattr(instance, field, None) or ''
+        
+        old_upi_qr = str(instance.upi_qr) if instance.upi_qr else None
         
         # Perform the update
         response = super().update(request, *args, **kwargs)
@@ -1296,17 +1297,15 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             changed_fields = {}
             
             for field in bank_fields:
-                new_value = getattr(instance, field, None)
-                old_value = old_bank_values.get(field)
+                new_value = getattr(instance, field, None) or ''
+                old_value = old_bank_values.get(field, '')
                 if old_value != new_value:
                     changed_fields[field] = (old_value, new_value)
             
             # Check UPI QR change
-            if old_upi_qr != instance.upi_qr:
-                changed_fields['upi_qr'] = (
-                    str(old_upi_qr) if old_upi_qr else None,
-                    str(instance.upi_qr) if instance.upi_qr else None
-                )
+            new_upi_qr = str(instance.upi_qr) if instance.upi_qr else None
+            if old_upi_qr != new_upi_qr:
+                changed_fields['upi_qr'] = (old_upi_qr, new_upi_qr)
             
             # Send notifications if bank account fields changed
             if changed_fields:
@@ -1319,12 +1318,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         """Override partial_update to detect bank account changes"""
         instance = self.get_object()
         
-        # Store old bank account values before update
+        # Store old bank account values before update (as dictionary for JSON storage)
         bank_fields = ['account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name']
         old_bank_values = {}
         for field in bank_fields:
-            old_bank_values[field] = getattr(instance, field, None)
-        old_upi_qr = instance.upi_qr
+            old_bank_values[field] = getattr(instance, field, None) or ''
+        
+        old_upi_qr = str(instance.upi_qr) if instance.upi_qr else None
         
         # Perform the partial update
         response = super().partial_update(request, *args, **kwargs)
@@ -1339,17 +1339,16 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             
             for field in bank_fields:
                 if field in updated_fields:
-                    new_value = getattr(instance, field, None)
-                    old_value = old_bank_values.get(field)
+                    new_value = getattr(instance, field, None) or ''
+                    old_value = old_bank_values.get(field, '')
                     if old_value != new_value:
                         changed_fields[field] = (old_value, new_value)
             
             # Check UPI QR change
-            if 'upi_qr' in updated_fields and old_upi_qr != instance.upi_qr:
-                changed_fields['upi_qr'] = (
-                    str(old_upi_qr) if old_upi_qr else None,
-                    str(instance.upi_qr) if instance.upi_qr else None
-                )
+            if 'upi_qr' in updated_fields:
+                new_upi_qr = str(instance.upi_qr) if instance.upi_qr else None
+                if old_upi_qr != new_upi_qr:
+                    changed_fields['upi_qr'] = (old_upi_qr, new_upi_qr)
             
             # Send notifications if bank account fields changed
             if changed_fields:
@@ -1381,30 +1380,51 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         days = int(request.query_params.get('days', 30))
         cutoff_date = timezone.now() - timedelta(days=days)
         
-        # Get users with bank account fields that were updated
+        # Filter by bank_account_updated_at field (more accurate)
         queryset = self.get_queryset().filter(
-            updated_at__gte=cutoff_date
+            bank_account_updated_at__gte=cutoff_date
         ).exclude(
-            Q(account_holder_name='') & Q(bank_name='') & Q(account_number='') & Q(ifsc_code='')
-        ).order_by('-updated_at')
+            bank_account_updated_at__isnull=True
+        ).order_by('-bank_account_updated_at')
         
-        # Filter to only include users with bank account information
-        users_with_bank_info = []
-        for user in queryset:
-            if any([
-                user.account_holder_name,
-                user.bank_name,
-                user.account_number,
-                user.ifsc_code,
-                user.bank_branch_name,
-                user.upi_qr
-            ]):
-                users_with_bank_info.append(user)
-        
-        serializer = CustomUserSerializer(users_with_bank_info, many=True, context={'request': request})
+        serializer = CustomUserSerializer(queryset, many=True, context={'request': request})
         return Response({
-            'count': len(users_with_bank_info),
+            'count': queryset.count(),
             'results': serializer.data
+        })
+    
+    @action(detail=True, methods=['get'])
+    def bank_account_history(self, request, pk=None):
+        """Get bank account change history for a user"""
+        from .models import BankAccountHistory
+        
+        user = self.get_object()
+        history = BankAccountHistory.objects.filter(user=user).order_by('-created_at')
+        
+        history_data = []
+        for record in history:
+            history_data.append({
+                'id': str(record.id),
+                'action': record.action,
+                'old_values': record.old_values,
+                'new_values': record.new_values,
+                'changed_by': record.changed_by.get_full_name() if record.changed_by else 'System',
+                'changed_by_id': str(record.changed_by.id) if record.changed_by else None,
+                'changed_by_role': record.changed_by.role if record.changed_by else None,
+                'is_verified': record.is_verified,
+                'verified_by': record.verified_by.get_full_name() if record.verified_by else None,
+                'verified_at': record.verified_at.isoformat() if record.verified_at else None,
+                'created_at': record.created_at.isoformat(),
+                'changed_fields': record.get_changed_fields(),
+                'change_reason': record.change_reason,
+            })
+        
+        return Response({
+            'user_id': str(user.id),
+            'user_name': user.get_full_name(),
+            'employee_id': user.employee_id,
+            'history': history_data,
+            'count': len(history_data)
         })
 
 

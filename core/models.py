@@ -140,6 +140,9 @@ class CustomUser(AbstractUser):
     # Payments - UPI QR (image only)
     upi_qr = models.ImageField(upload_to='user_qr_codes/', null=True, blank=True, help_text="User uploaded UPI QR image (PNG/JPG/WebP)")
     
+    # Bank Account Tracking
+    bank_account_updated_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when bank account was last updated")
+    
     # System Fields
     is_active = models.BooleanField(default=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
@@ -236,6 +239,84 @@ class CustomUser(AbstractUser):
         else:
             return self.email or "Unknown User"
 
+
+
+
+
+
+
+class BankAccountHistory(models.Model):
+    """Track all bank account changes for audit purposes"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='bank_account_history')
+    action = models.CharField(max_length=50)  # 'created', 'updated', 'verified'
+    
+    # Store old and new values as JSON
+    old_values = models.JSONField(null=True, blank=True, help_text="Previous bank account values")
+    new_values = models.JSONField(null=True, blank=True, help_text="New bank account values")
+    
+    # Track who made the change
+    changed_by = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='bank_account_changes_made',
+        help_text="User who made this change"
+    )
+    
+    # Additional metadata
+    change_reason = models.TextField(blank=True, help_text="Optional reason for the change")
+    is_verified = models.BooleanField(default=False, help_text="Whether accountant has verified this change")
+    verified_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bank_account_verifications',
+        limit_choices_to={'role': 'accountant'},
+        help_text="Accountant who verified this change"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Bank Account History"
+        verbose_name_plural = "Bank Account Histories"
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['is_verified', '-created_at']),
+        ]
+
+    def __str__(self):
+        try:
+            return "Bank Account {} - {} ({})".format(
+                self.action, 
+                self.user.get_full_name(), 
+                self.created_at.date()
+            )
+        except Exception:
+            return "Bank Account {} - Unknown User".format(self.action)
+
+    def get_changed_fields(self):
+        """Return list of field names that changed"""
+        if not self.old_values or not self.new_values:
+            return []
+        
+        changed = []
+        for field in ['account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name']:
+            old_val = self.old_values.get(field)
+            new_val = self.new_values.get(field)
+            if old_val != new_val:
+                changed.append(field)
+        
+        # Check UPI QR separately (it's a file path)
+        if self.old_values.get('upi_qr') != self.new_values.get('upi_qr'):
+            changed.append('upi_qr')
+        
+        return changed
 
 class Device(models.Model):
     """Biometric device model for attendance tracking"""

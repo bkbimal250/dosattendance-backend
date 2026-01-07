@@ -130,7 +130,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'department', 'department_name', 'designation', 'designation_name', 'salary', 'pay_bank_name', 'emergency_contact_name',
             'emergency_contact_phone', 'emergency_contact_relationship',
             'account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name',
-            'upi_qr',
+            'upi_qr', 'bank_account_updated_at',
             'is_active', 'last_login', 'created_at', 'updated_at', 'password'
         ]
         read_only_fields = ('id', 'last_login', 'created_at', 'updated_at')

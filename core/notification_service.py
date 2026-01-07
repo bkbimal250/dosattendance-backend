@@ -467,6 +467,7 @@ def notify_system_alert(message, priority='high'):
 def notify_bank_account_updated(updated_user, updated_by, changed_fields):
     """
     Notify accountants, admins, and managers when a user's bank account is updated.
+    Also creates a history record.
     
     Args:
         updated_user: The CustomUser whose bank account was updated
@@ -475,6 +476,7 @@ def notify_bank_account_updated(updated_user, updated_by, changed_fields):
     """
     from django.utils import timezone
     from datetime import timedelta
+    from .models import BankAccountHistory
     
     # Bank account fields to track
     bank_fields = [
@@ -482,7 +484,40 @@ def notify_bank_account_updated(updated_user, updated_by, changed_fields):
         'ifsc_code', 'bank_branch_name', 'upi_qr'
     ]
     
-    # Build change message
+    # Build old and new values dictionaries for history
+    old_values = {}
+    new_values = {}
+    
+    for field, (old_value, new_value) in changed_fields.items():
+        if field in bank_fields:
+            old_values[field] = old_value or ''
+            new_values[field] = new_value or ''
+    
+    if not old_values and not new_values:
+        return []  # No bank account changes detected
+    
+    # Create history record
+    try:
+        history_record = BankAccountHistory.objects.create(
+            user=updated_user,
+            action='updated',
+            old_values=old_values,
+            new_values=new_values,
+            changed_by=updated_by
+        )
+        logger.info(f"Created bank account history record: {history_record.id} for user {updated_user.get_full_name()}")
+    except Exception as e:
+        logger.error(f"Failed to create bank account history: {str(e)}")
+    
+    # Update the timestamp on the user
+    try:
+        updated_user.bank_account_updated_at = timezone.now()
+        updated_user.save(update_fields=['bank_account_updated_at'])
+        logger.info(f"Updated bank_account_updated_at for user {updated_user.get_full_name()}")
+    except Exception as e:
+        logger.error(f"Failed to update bank_account_updated_at: {str(e)}")
+    
+    # Build change message for notifications
     changes_list = []
     for field, (old_value, new_value) in changed_fields.items():
         if field in bank_fields:
@@ -491,9 +526,6 @@ def notify_bank_account_updated(updated_user, updated_by, changed_fields):
             old_display = str(old_value) if old_value else 'Not set'
             new_display = str(new_value) if new_value else 'Not set'
             changes_list.append(f"{field_display}: {old_display} → {new_display}")
-    
-    if not changes_list:
-        return []  # No bank account changes detected
     
     change_message = "\n".join(changes_list)
     employee_name = updated_user.get_full_name()

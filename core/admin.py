@@ -15,7 +15,7 @@ from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
     WorkingHoursSettings, Resignation, DocumentTemplate, GeneratedDocument,
-    Department, Designation, Shift, EmployeeShiftAssignment
+    Department, Designation, Shift, EmployeeShiftAssignment, BankAccountHistory
 )
 
 
@@ -817,6 +817,35 @@ class ESSLAttendanceLogAdmin(admin.ModelAdmin):
     ordering = ['-punch_time']
     readonly_fields = ['id', 'created_at']
     list_editable = ['is_processed']
+
+
+@admin.register(BankAccountHistory)
+class BankAccountHistoryAdmin(admin.ModelAdmin):
+    list_display = ['user', 'action', 'changed_by', 'is_verified', 'created_at']
+    list_filter = ['action', 'is_verified', 'created_at']
+    search_fields = ['user__first_name', 'user__last_name', 'user__employee_id', 'changed_by__username']
+    ordering = ['-created_at']
+    readonly_fields = ['id', 'created_at', 'old_values', 'new_values']
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user', 'action', 'changed_by')
+        }),
+        ('Change Details', {
+            'fields': ('old_values', 'new_values', 'change_reason')
+        }),
+        ('Verification', {
+            'fields': ('is_verified', 'verified_by', 'verified_at')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        """Optimize queryset with select_related"""
+        qs = super().get_queryset(request)
+        return qs.select_related('user', 'changed_by', 'verified_by')
 
 
 @admin.register(WorkingHoursSettings)
