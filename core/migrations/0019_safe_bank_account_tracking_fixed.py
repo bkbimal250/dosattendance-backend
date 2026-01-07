@@ -51,7 +51,7 @@ def safe_reverse_bank_account_updated_at(apps, schema_editor):
 
 
 def safe_create_bank_account_history_model(apps, schema_editor):
-    """Safely create BankAccountHistory model if table doesn't exist"""
+    """Safely drop and recreate BankAccountHistory table"""
     db_alias = schema_editor.connection.alias
     with schema_editor.connection.cursor() as cursor:
         # Check if table exists
@@ -64,33 +64,13 @@ def safe_create_bank_account_history_model(apps, schema_editor):
         exists = cursor.fetchone()[0] > 0
         
         if exists:
-            # Table already exists, skip creation
-            return
+            # Drop the table if it exists (to recreate it)
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+            cursor.execute("DROP TABLE IF EXISTS core_bankaccounthistory")
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
         
-        # Create the table using raw SQL
-        cursor.execute("""
-            CREATE TABLE core_bankaccounthistory (
-                id CHAR(36) NOT NULL PRIMARY KEY,
-                action VARCHAR(50) NOT NULL,
-                old_values JSON NULL,
-                new_values JSON NULL,
-                change_reason LONGTEXT NOT NULL,
-                is_verified TINYINT(1) NOT NULL,
-                verified_at DATETIME(6) NULL,
-                created_at DATETIME(6) NOT NULL,
-                changed_by_id CHAR(36) NULL,
-                user_id CHAR(36) NOT NULL,
-                verified_by_id CHAR(36) NULL,
-                CONSTRAINT core_bankaccounthistory_user_id_fk 
-                    FOREIGN KEY (user_id) REFERENCES core_customuser(id) ON DELETE CASCADE,
-                CONSTRAINT core_bankaccounthistory_changed_by_id_fk 
-                    FOREIGN KEY (changed_by_id) REFERENCES core_customuser(id) ON DELETE SET NULL,
-                CONSTRAINT core_bankaccounthistory_verified_by_id_fk 
-                    FOREIGN KEY (verified_by_id) REFERENCES core_customuser(id) ON DELETE SET NULL,
-                INDEX core_bankac_user_id_idx (user_id, created_at DESC),
-                INDEX core_bankac_is_veri_idx (is_verified, created_at DESC)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        """)
+        # Table will be created by Django's CreateModel operation
+        # We just ensure it doesn't exist first
 
 
 def safe_drop_bank_account_history_model(apps, schema_editor):
@@ -122,48 +102,41 @@ class Migration(migrations.Migration):
             safe_reverse_bank_account_updated_at
         ),
         
-        # Conditionally create BankAccountHistory model (only if table doesn't exist)
-        # Use SeparateDatabaseAndState to handle existing tables
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                # Only create table if it doesn't exist (handled by RunPython)
-                migrations.RunPython(
-                    safe_create_bank_account_history_model,
-                    safe_drop_bank_account_history_model
-                ),
+        # Drop existing table if it exists (to recreate it)
+        migrations.RunPython(
+            safe_create_bank_account_history_model,
+            safe_drop_bank_account_history_model
+        ),
+        
+        # Create BankAccountHistory model (Django will create table with correct foreign keys)
+        migrations.CreateModel(
+            name='BankAccountHistory',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('action', models.CharField(max_length=50)),
+                ('old_values', models.JSONField(blank=True, help_text='Previous bank account values', null=True)),
+                ('new_values', models.JSONField(blank=True, help_text='New bank account values', null=True)),
+                ('change_reason', models.TextField(blank=True, help_text='Optional reason for the change')),
+                ('is_verified', models.BooleanField(default=False, help_text='Whether accountant has verified this change')),
+                ('verified_at', models.DateTimeField(blank=True, null=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('changed_by', models.ForeignKey(blank=True, help_text='User who made this change', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='bank_account_changes_made', to='core.customuser')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='bank_account_history', to='core.customuser')),
+                ('verified_by', models.ForeignKey(blank=True, help_text='Accountant who verified this change', limit_choices_to={'role': 'accountant'}, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='bank_account_verifications', to='core.customuser')),
             ],
-            state_operations=[
-                # Always register the model in Django's state
-                migrations.CreateModel(
-                    name='BankAccountHistory',
-                    fields=[
-                        ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                        ('action', models.CharField(max_length=50)),
-                        ('old_values', models.JSONField(blank=True, help_text='Previous bank account values', null=True)),
-                        ('new_values', models.JSONField(blank=True, help_text='New bank account values', null=True)),
-                        ('change_reason', models.TextField(blank=True, help_text='Optional reason for the change')),
-                        ('is_verified', models.BooleanField(default=False, help_text='Whether accountant has verified this change')),
-                        ('verified_at', models.DateTimeField(blank=True, null=True)),
-                        ('created_at', models.DateTimeField(auto_now_add=True)),
-                        ('changed_by', models.ForeignKey(blank=True, help_text='User who made this change', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='bank_account_changes_made', to='core.customuser')),
-                        ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='bank_account_history', to='core.customuser')),
-                        ('verified_by', models.ForeignKey(blank=True, help_text='Accountant who verified this change', limit_choices_to={'role': 'accountant'}, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='bank_account_verifications', to='core.customuser')),
-                    ],
-                    options={
-                        'verbose_name': 'Bank Account History',
-                        'verbose_name_plural': 'Bank Account Histories',
-                        'ordering': ['-created_at'],
-                    },
-                ),
-                migrations.AddIndex(
-                    model_name='bankaccounthistory',
-                    index=models.Index(fields=['user', '-created_at'], name='core_bankac_user_id_idx'),
-                ),
-                migrations.AddIndex(
-                    model_name='bankaccounthistory',
-                    index=models.Index(fields=['is_verified', '-created_at'], name='core_bankac_is_veri_idx'),
-                ),
-            ],
+            options={
+                'verbose_name': 'Bank Account History',
+                'verbose_name_plural': 'Bank Account Histories',
+                'ordering': ['-created_at'],
+            },
+        ),
+        migrations.AddIndex(
+            model_name='bankaccounthistory',
+            index=models.Index(fields=['user', '-created_at'], name='core_bankac_user_id_idx'),
+        ),
+        migrations.AddIndex(
+            model_name='bankaccounthistory',
+            index=models.Index(fields=['is_verified', '-created_at'], name='core_bankac_is_veri_idx'),
         ),
     ]
 
