@@ -1,6 +1,6 @@
 from django.db import models
-import uuid
 from django.conf import settings
+import uuid
 from decimal import Decimal
 
 
@@ -21,67 +21,33 @@ class SalaryIncrement(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    # Make sure the FK matches UUIDField type
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='increments'
+        related_name='increments',
+        db_column='employee_id'
     )
 
     increment_type = models.CharField(max_length=20, choices=INCREMENT_TYPE_CHOICES)
-
-    old_salary = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    increment_percentage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Increment percentage (e.g. 10 for 10%)"
-    )
-
-    increment_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    new_salary = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    effective_from = models.DateField(help_text="Increment effective date")
-
+    old_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    increment_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    increment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    new_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    effective_from = models.DateField()
     reason = models.TextField(blank=True)
-
-    status = models.CharField(
-        max_length=10,
-        choices=STATUS_CHOICES,
-        default='pending'
-    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
 
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='approved_salary_increments'
+        related_name='approved_salary_increments',
+        db_column='approved_by_id'
     )
 
-    applied_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When this increment was applied to base salary"
-    )
-
+    applied_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -94,25 +60,15 @@ class SalaryIncrement(models.Model):
         return f"{self.employee.get_full_name()} | +{self.increment_amount or 0}"
 
     def clean(self):
-        """
-        Auto-calculate increment amount and new salary
-        """
         if not self.old_salary:
-            self.old_salary = self.employee.salary or Decimal('0.00')
+            self.old_salary = getattr(self.employee, 'salary', Decimal('0.00'))
 
-        # If percentage is given → calculate amount
         if self.increment_percentage and not self.increment_amount:
-            self.increment_amount = (
-                self.old_salary * self.increment_percentage / Decimal('100')
-            ).quantize(Decimal('0.01'))
+            self.increment_amount = (self.old_salary * self.increment_percentage / Decimal('100')).quantize(Decimal('0.01'))
 
-        # If amount is given → calculate percentage (optional)
         if self.increment_amount and not self.increment_percentage and self.old_salary:
-            self.increment_percentage = (
-                self.increment_amount * Decimal('100') / self.old_salary
-            ).quantize(Decimal('0.01'))
+            self.increment_percentage = (self.increment_amount * Decimal('100') / self.old_salary).quantize(Decimal('0.01'))
 
-        # Calculate new salary
         if self.old_salary is not None and self.increment_amount is not None:
             self.new_salary = self.old_salary + self.increment_amount
 
@@ -127,7 +83,8 @@ class SalaryIncrementHistory(models.Model):
     employee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='increment_history'
+        related_name='increment_history',
+        db_column='employee_id'
     )
 
     increment = models.ForeignKey(
@@ -135,33 +92,23 @@ class SalaryIncrementHistory(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='history_records'
+        related_name='history_records',
+        db_column='increment_id'
     )
 
-    old_salary = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    new_salary = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
+    old_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    new_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='salary_changes_made'
+        related_name='salary_changes_made',
+        db_column='changed_by_id'
     )
 
     changed_at = models.DateTimeField(auto_now_add=True)
-
     remarks = models.TextField(blank=True)
 
     class Meta:

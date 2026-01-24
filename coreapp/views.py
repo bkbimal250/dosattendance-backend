@@ -6,20 +6,65 @@ from rest_framework.response import Response
 from .models import SalaryIncrement, SalaryIncrementHistory
 from .serializers import (
     SalaryIncrementSerializer,
-    SalaryIncrementHistorySerializer
+    SalaryIncrementHistorySerializer,
 )
 from .permissions import IsAdminManagerOrSuperuser
 
 
 class SalaryIncrementViewSet(viewsets.ModelViewSet):
     """
-    Create / Update / Approve Salary Increments
+    Create / Update / Approve Salary Increments.
+
+    Supports filtering by:
+    - office_id: UUID of employee.office
+    - department_id: UUID of employee.department
+    - employee_id: UUID of employee
+    - status: pending / approved / rejected
+    - increment_type: annual / promotion / performance / adjustment / other
+    - effective_from (exact), from_date, to_date (date range on effective_from)
     """
+
     queryset = SalaryIncrement.objects.select_related(
-        'employee', 'approved_by'
+        'employee',
+        'approved_by',
+        'employee__office',
+        'employee__department',
+        'employee__designation',
     )
     serializer_class = SalaryIncrementSerializer
     permission_classes = [IsAuthenticated, IsAdminManagerOrSuperuser]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = self.request.query_params
+
+        office_id = params.get('office_id')
+        department_id = params.get('department_id')
+        employee_id = params.get('employee_id')
+        status_param = params.get('status')
+        increment_type = params.get('increment_type')
+        effective_from = params.get('effective_from')
+        from_date = params.get('from_date')
+        to_date = params.get('to_date')
+
+        if office_id:
+            qs = qs.filter(employee__office_id=office_id)
+        if department_id:
+            qs = qs.filter(employee__department_id=department_id)
+        if employee_id:
+            qs = qs.filter(employee_id=employee_id)
+        if status_param and status_param != 'all':
+            qs = qs.filter(status=status_param)
+        if increment_type and increment_type != 'all':
+            qs = qs.filter(increment_type=increment_type)
+        if effective_from:
+            qs = qs.filter(effective_from=effective_from)
+        if from_date:
+            qs = qs.filter(effective_from__gte=from_date)
+        if to_date:
+            qs = qs.filter(effective_from__lte=to_date)
+
+        return qs
 
     def perform_create(self, serializer):
         """
@@ -52,7 +97,7 @@ class SalaryIncrementViewSet(viewsets.ModelViewSet):
         if increment.status == 'approved':
             return Response(
                 {"detail": "Increment already approved."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         increment.status = 'approved'
@@ -61,20 +106,20 @@ class SalaryIncrementViewSet(viewsets.ModelViewSet):
 
         return Response(
             {"detail": "Increment approved successfully."},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         """
-        Reject increment
+        Reject increment.
         """
         increment = self.get_object()
 
         if increment.status == 'approved':
             return Response(
                 {"detail": "Approved increment cannot be rejected."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         increment.status = 'rejected'
@@ -82,16 +127,49 @@ class SalaryIncrementViewSet(viewsets.ModelViewSet):
 
         return Response(
             {"detail": "Increment rejected."},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
 class SalaryIncrementHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Read-only salary increment history
+    Read-only salary increment history.
+
+    Supports filtering by:
+    - office_id: UUID of employee.office
+    - department_id: UUID of employee.department
+    - employee_id: UUID of employee
+    - from_date / to_date: date range on changed_at
     """
+
     queryset = SalaryIncrementHistory.objects.select_related(
-        'employee', 'increment'
+        'employee',
+        'increment',
+        'employee__office',
+        'employee__department',
     )
     serializer_class = SalaryIncrementHistorySerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = self.request.query_params
+
+        office_id = params.get('office_id')
+        department_id = params.get('department_id')
+        employee_id = params.get('employee_id')
+        from_date = params.get('from_date')
+        to_date = params.get('to_date')
+
+        if office_id:
+            qs = qs.filter(employee__office_id=office_id)
+        if department_id:
+            qs = qs.filter(employee__department_id=department_id)
+        if employee_id:
+            qs = qs.filter(employee_id=employee_id)
+        if from_date:
+            qs = qs.filter(changed_at__date__gte=from_date)
+        if to_date:
+            qs = qs.filter(changed_at__date__lte=to_date)
+
+        return qs

@@ -6,21 +6,48 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 from .views import (
-    OfficeViewSet, CustomUserViewSet, DeviceViewSet, DeviceUserViewSet, AttendanceViewSet,
-    LeaveViewSet, DocumentViewSet, NotificationViewSet, SystemSettingsViewSet,
-    AttendanceLogViewSet, DashboardViewSet, ZKTecoAttendanceViewSet, ReportsViewSet,
-    ResignationViewSet, DepartmentViewSet, DesignationViewSet, debug_user_permissions,
-    ShiftViewSet, EmployeeShiftAssignmentViewSet
+    OfficeViewSet,
+    CustomUserViewSet,
+    DeviceViewSet,
+    DeviceUserViewSet,
+    AttendanceViewSet,
+    LeaveViewSet,
+    DocumentViewSet,
+    NotificationViewSet,
+    SystemSettingsViewSet,
+    AttendanceLogViewSet,
+    DashboardViewSet,
+    ZKTecoAttendanceViewSet,
+    ReportsViewSet,
+    ResignationViewSet,
+    DepartmentViewSet,
+    DesignationViewSet,
+    debug_user_permissions,
+    ShiftViewSet,
+    EmployeeShiftAssignmentViewSet,
 )
 from .salary_views import (
-    SalaryListView, SalaryDetailView, SalaryApprovalView, SalaryPaymentView,
-    SalaryBulkCreateView, SalaryAutoCalculateView, SalaryTemplateListView,
-    SalaryTemplateDetailView, SalaryReportView, SalarySummaryView,
-    employee_salary_history, recalculate_salary, salary_statistics, salary_creation_status
+    SalaryListView,
+    SalaryDetailView,
+    SalaryApprovalView,
+    SalaryPaymentView,
+    SalaryBulkCreateView,
+    SalaryAutoCalculateView,
+    SalaryTemplateListView,
+    SalaryTemplateDetailView,
+    SalaryReportView,
+    SalarySummaryView,
+    employee_salary_history,
+    recalculate_salary,
+    salary_statistics,
+    salary_creation_status,
 )
 from .document_views import (
-    DocumentTemplateViewSet, GeneratedDocumentViewSet, DocumentGenerationViewSet
+    DocumentTemplateViewSet,
+    GeneratedDocumentViewSet,
+    DocumentGenerationViewSet,
 )
+from coreapp.views import SalaryIncrementViewSet, SalaryIncrementHistoryViewSet
 # ESSL views disabled - ZKTeco devices only
 # from .essl_views import (
 #     ESSLDeviceViewSet, ESSLAttendanceLogViewSet, WorkingHoursSettingsViewSet,
@@ -56,6 +83,14 @@ router.register(r'employee-shift-assignments', EmployeeShiftAssignmentViewSet)
 router.register(r'document-templates', DocumentTemplateViewSet, basename='document-template')
 router.register(r'generated-documents', GeneratedDocumentViewSet, basename='generated-document')
 router.register(r'document-generation', DocumentGenerationViewSet, basename='document-generation')
+
+# Salary increment endpoints (from coreapp)
+router.register(r'salary-increments', SalaryIncrementViewSet, basename='salary-increment')
+router.register(
+    r'salary-increment-history',
+    SalaryIncrementHistoryViewSet,
+    basename='salary-increment-history',
+)
 
 # ESSL Device Management - DISABLED (ZKTeco devices only)
 # router.register(r'essl-devices', ESSLDeviceViewSet, basename='essl-device')
