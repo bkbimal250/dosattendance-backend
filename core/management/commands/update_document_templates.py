@@ -288,7 +288,7 @@ class Command(BaseCommand):
             offer_template.template_content = offer_letter_template
             offer_template.save()
             updated_count += 1
-            self.stdout.write(f'✅ Updated: {offer_template.name}')
+            self.stdout.write(f'Updated: {offer_template.name}')
         else:
             # Create new template if doesn't exist
             DocumentTemplate.objects.create(
@@ -299,7 +299,7 @@ class Command(BaseCommand):
                 created_by=admin_user
             )
             updated_count += 1
-            self.stdout.write('✅ Created: Default Offer Letter')
+            self.stdout.write('Created: Default Offer Letter')
         
         # Update Salary Increment template
         increment_template = DocumentTemplate.objects.filter(
@@ -311,7 +311,7 @@ class Command(BaseCommand):
             increment_template.template_content = salary_increment_template
             increment_template.save()
             updated_count += 1
-            self.stdout.write(f'✅ Updated: {increment_template.name}')
+            self.stdout.write(f'Updated: {increment_template.name}')
         else:
             # Create new template if doesn't exist
             DocumentTemplate.objects.create(
@@ -322,7 +322,7 @@ class Command(BaseCommand):
                 created_by=admin_user
             )
             updated_count += 1
-            self.stdout.write('✅ Created: Default Salary Increment Letter')
+            self.stdout.write('Created: Default Salary Increment Letter')
         
         # Add Salary Slip template
         salary_slip_template = """
@@ -609,7 +609,7 @@ class Command(BaseCommand):
             slip_template.template_content = salary_slip_template
             slip_template.save()
             updated_count += 1
-            self.stdout.write(f'✅ Updated: {slip_template.name}')
+            self.stdout.write(f'Updated: {slip_template.name}')
         else:
             # Create new template if doesn't exist
             DocumentTemplate.objects.create(
@@ -620,7 +620,7 @@ class Command(BaseCommand):
                 created_by=admin_user
             )
             updated_count += 1
-            self.stdout.write('✅ Created: Default Salary Slip')
+            self.stdout.write('Created: Default Salary Slip')
         
         self.stdout.write(
             self.style.SUCCESS(f'Successfully updated {updated_count} document templates with logo integration!')

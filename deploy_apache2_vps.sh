@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Starting Employee Attendance System Deployment on Apache2 VPS..."
+echo " Starting Employee Attendance System Deployment on Apache2 VPS..."
 
 # Colors for output
 RED='\033[0;31m'

@@ -33,13 +33,13 @@ class ProductionDBManager:
                 cursor.execute("SELECT 1 as test")
                 result = cursor.fetchone()
                 if result and result[0] == 1:
-                    logger.info("✅ Database connection test successful")
+                    logger.info(" Database connection test successful")
                     return True
                 else:
-                    logger.error("❌ Database connection test failed")
+                    logger.error(" Database connection test failed")
                     return False
         except Exception as e:
-            logger.error(f"❌ Database connection test error: {e}")
+            logger.error(f" Database connection test error: {e}")
             return False
     
     def get_connection_status(self):
@@ -67,14 +67,14 @@ class ProductionDBManager:
         
         for minute in range(max_wait_minutes):
             if self.safe_connection_test():
-                logger.info(f"✅ Connection available after {minute} minutes")
+                logger.info(f" Connection available after {minute} minutes")
                 return True
             
             if minute < max_wait_minutes - 1:
                 logger.info(f"⏳ Still waiting... ({minute + 1}/{max_wait_minutes} minutes)")
                 time.sleep(60)  # Wait 1 minute
         
-        logger.error("❌ Connection limit not reset within timeout period")
+        logger.error(" Connection limit not reset within timeout period")
         return False
 
 # Global instance

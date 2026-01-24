@@ -1,4 +1,4 @@
-# 🚀 Django Attendance Service - Auto-Start Deployment Guide
+#  Django Attendance Service - Auto-Start Deployment Guide
 
 ## 📋 Overview
 
@@ -6,7 +6,7 @@ This guide explains how to configure the Django Attendance System to automatical
 
 ## 🎯 What's Configured
 
-### ✅ Auto-Start Features
+###  Auto-Start Features
 - **Automatic Service Startup**: Service starts when Django server starts
 - **Real-time Data Fetching**: Fetches attendance data every 30 seconds
 - **Production Ready**: Includes systemd service and startup scripts
@@ -18,7 +18,7 @@ This guide explains how to configure the Django Attendance System to automatical
 - **Unicode Encoding**: Removed emojis from logs for Windows compatibility
 - **Service Management**: Added proper start/stop/status commands
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Development Mode
 ```bash
@@ -278,7 +278,7 @@ The service is configured to automatically restart on failure:
 - **NSSM**: Auto-restart enabled
 - **Manual scripts**: Include restart logic
 
-## ✅ Verification
+##  Verification
 
 ### Test Checklist
 - [ ] Service starts automatically on server boot
@@ -301,12 +301,12 @@ INFO Processed 15 new records, prevented 0 duplicates from Ace Track
 
 The Django Attendance System is now configured for automatic real-time attendance data fetching:
 
-1. **✅ Auto-Start**: Service starts when Django server starts
-2. **✅ Real-Time**: Fetches data every 30 seconds
-3. **✅ Production Ready**: Includes systemd service and startup scripts
-4. **✅ Error Handling**: Automatic restart and comprehensive logging
-5. **✅ Monitoring**: Full logging and status monitoring
+1. ** Auto-Start**: Service starts when Django server starts
+2. ** Real-Time**: Fetches data every 30 seconds
+3. ** Production Ready**: Includes systemd service and startup scripts
+4. ** Error Handling**: Automatic restart and comprehensive logging
+5. ** Monitoring**: Full logging and status monitoring
 
 The system will now automatically collect attendance data from all ZKTeco devices in real-time, ensuring your attendance records are always up-to-date.
 
-**Status**: ✅ **FULLY CONFIGURED FOR AUTO-START**
+**Status**:  **FULLY CONFIGURED FOR AUTO-START**

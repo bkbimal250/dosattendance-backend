@@ -135,29 +135,29 @@ def verify_database_records():
     print("-" * 30)
     
     if users_with_biometric_count == 0:
-        print("   ❌ CRITICAL: No users have biometric IDs set")
+        print("    CRITICAL: No users have biometric IDs set")
         print("      - Push attendance won't work without biometric IDs")
         print("      - Update user records with biometric_id field")
     elif users_with_biometric_count < total_users * 0.5:
         print("   ⚠️  WARNING: Less than 50% of users have biometric IDs")
         print("      - Consider updating more users with biometric IDs")
     else:
-        print("   ✅ Good: Most users have biometric IDs set")
+        print("    Good: Most users have biometric IDs set")
     
     if total_devices == 0:
-        print("   ❌ CRITICAL: No devices configured")
+        print("    CRITICAL: No devices configured")
         print("      - Push data will create devices automatically")
     elif active_devices == 0:
         print("   ⚠️  WARNING: No active devices")
         print("      - Check device configurations")
     else:
-        print("   ✅ Good: Active devices configured")
+        print("    Good: Active devices configured")
     
     if today_attendance_count == 0:
         print("   ℹ️  INFO: No attendance records for today")
         print("      - This is normal if no one has checked in yet")
     else:
-        print(f"   ✅ Good: {today_attendance_count} attendance records for today")
+        print(f"    Good: {today_attendance_count} attendance records for today")
     
     print()
     print("=" * 60)
@@ -170,19 +170,19 @@ def test_database_connection():
     try:
         # Test basic query
         user_count = CustomUser.objects.count()
-        print(f"✅ Database connection successful - {user_count} users found")
+        print(f" Database connection successful - {user_count} users found")
         
         # Test device query
         device_count = Device.objects.count()
-        print(f"✅ Device query successful - {device_count} devices found")
+        print(f" Device query successful - {device_count} devices found")
         
         # Test attendance query
         attendance_count = Attendance.objects.count()
-        print(f"✅ Attendance query successful - {attendance_count} attendance records found")
+        print(f" Attendance query successful - {attendance_count} attendance records found")
         
         return True
     except Exception as e:
-        print(f"❌ Database connection failed: {str(e)}")
+        print(f" Database connection failed: {str(e)}")
         return False
 
 if __name__ == "__main__":

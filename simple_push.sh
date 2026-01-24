@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simple script to push only salary system changes
-echo "🚀 Pushing salary system changes to GitHub..."
+echo " Pushing salary system changes to GitHub..."
 
 # Add only the files we modified/created
 git add core/models.py core/serializers.py core/urls.py
@@ -16,12 +16,12 @@ git commit -m "Add salary management system with auto-calculation and role-based
 # Push to GitHub
 git push origin main
 
-echo "✅ Salary system changes pushed to GitHub!"
+echo " Salary system changes pushed to GitHub!"
 echo "📋 Files pushed:"
 git show --name-only --pretty=format: HEAD
 
 echo ""
-echo "🚀 On VPS server, run:"
+echo " On VPS server, run:"
 echo "git pull origin main"
 echo "python manage.py migrate core"
 echo "sudo systemctl restart apache2"

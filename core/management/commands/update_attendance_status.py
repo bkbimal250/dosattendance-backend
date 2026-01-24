@@ -38,7 +38,7 @@ class Command(BaseCommand):
         force = options['force']
         
         self.stdout.write(
-            self.style.SUCCESS('🚀 Starting attendance status update...')
+            self.style.SUCCESS(' Starting attendance status update...')
         )
         
         # Check if new fields exist
@@ -47,7 +47,7 @@ class Command(BaseCommand):
             if hasattr(attendance, 'day_status') and not force:
                 self.stdout.write(
                     self.style.WARNING(
-                        '⚠️  New fields already exist. Use --force to update anyway.'
+                        'New fields already exist. Use --force to update anyway.'
                     )
                 )
                 return
@@ -60,11 +60,11 @@ class Command(BaseCommand):
         
         if total_count == 0:
             self.stdout.write(
-                self.style.WARNING('⚠️  No attendance records found.')
+                self.style.WARNING('No attendance records found.')
             )
             return
         
-        self.stdout.write(f'📊 Found {total_count} attendance records to update')
+        self.stdout.write(f'Found {total_count} attendance records to update')
         
         updated_count = 0
         errors = []
@@ -98,32 +98,32 @@ class Command(BaseCommand):
                         updated_count += 1
                         
                         if updated_count % 100 == 0:
-                            self.stdout.write(f'✅ Updated {updated_count}/{total_count} records...')
+                            self.stdout.write(f'Updated {updated_count}/{total_count} records...')
                             
             except Exception as e:
                 error_msg = f'Error updating {attendance.id}: {str(e)}'
                 errors.append(error_msg)
                 self.stdout.write(
-                    self.style.ERROR(f'❌ {error_msg}')
+                    self.style.ERROR(f'{error_msg}')
                 )
         
         # Summary
         if dry_run:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'🔍 Dry run completed. Would update {total_count} records.'
+                    f'Dry run completed. Would update {total_count} records.'
                 )
             )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Successfully updated {updated_count}/{total_count} attendance records!'
+                    f'Successfully updated {updated_count}/{total_count} attendance records!'
                 )
             )
         
         if errors:
             self.stdout.write(
-                self.style.WARNING(f'⚠️  {len(errors)} errors occurred during update.')
+                self.style.WARNING(f'{len(errors)} errors occurred during update.')
             )
             for error in errors[:5]:  # Show first 5 errors
                 self.stdout.write(f'   • {error}')
@@ -152,5 +152,5 @@ class Command(BaseCommand):
         
         if created_count > 0:
             self.stdout.write(
-                self.style.SUCCESS(f'📋 Created {created_count} default working hours settings')
+                self.style.SUCCESS(f'Created {created_count} default working hours settings')
             )

@@ -18,7 +18,7 @@ def test_endpoint(method, endpoint, data=None, headers=None):
         elif method == 'POST':
             response = requests.post(url, json=data, headers=headers, timeout=10)
         else:
-            print(f"❌ Unsupported method: {method}")
+            print(f" Unsupported method: {method}")
             return None
             
         print(f"📊 Status: {response.status_code}")
@@ -33,17 +33,17 @@ def test_endpoint(method, endpoint, data=None, headers=None):
         return response
         
     except requests.exceptions.ConnectionError:
-        print("❌ Connection Error: Is Django server running on port 8000?")
+        print(" Connection Error: Is Django server running on port 8000?")
         return None
     except requests.exceptions.Timeout:
-        print("❌ Timeout Error: Request took too long")
+        print(" Timeout Error: Request took too long")
         return None
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         return None
 
 def main():
-    print("🚀 Starting API Tests")
+    print(" Starting API Tests")
     print("=" * 50)
     
     # Test 1: Check if server is running
@@ -64,7 +64,7 @@ def main():
             login_response = response.json()
             if 'access' in login_response:
                 token = login_response['access']
-                print(f"✅ Login successful! Token: {token[:20]}...")
+                print(f" Login successful! Token: {token[:20]}...")
                 
                 # Test 3: Test dashboard stats with token
                 print("\n3️⃣ Testing dashboard stats with token...")
@@ -80,11 +80,11 @@ def main():
                 test_endpoint('GET', '/offices/', headers=headers)
                 
             else:
-                print("❌ No access token in login response")
+                print(" No access token in login response")
         except Exception as e:
-            print(f"❌ Error parsing login response: {e}")
+            print(f" Error parsing login response: {e}")
     else:
-        print("❌ Login failed - cannot test authenticated endpoints")
+        print(" Login failed - cannot test authenticated endpoints")
     
     print("\n" + "=" * 50)
     print("🏁 API Tests Complete")

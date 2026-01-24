@@ -46,7 +46,7 @@ class Command(BaseCommand):
             
     def stop_attendance_service(self):
         """Stop any running attendance service processes"""
-        self.stdout.write("🛑 Stopping attendance service...")
+        self.stdout.write(" Stopping attendance service...")
         
         # Look for Python processes running attendance service
         stopped_count = 0
@@ -62,13 +62,13 @@ class Command(BaseCommand):
                 pass
                 
         if stopped_count > 0:
-            self.stdout.write(f"✅ Stopped {stopped_count} attendance service process(es)")
+            self.stdout.write(f"Stopped {stopped_count} attendance service process(es)")
         else:
-            self.stdout.write("ℹ️  No running attendance service found")
+            self.stdout.write("No running attendance service found")
             
     def check_service_status(self):
         """Check if attendance service is running"""
-        self.stdout.write("🔍 Checking attendance service status...")
+        self.stdout.write("Checking attendance service status...")
         
         running_processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
@@ -88,7 +88,7 @@ class Command(BaseCommand):
             for proc in running_processes:
                 self.stdout.write(f"  PID {proc['pid']}: {proc['cmdline']}")
         else:
-            self.stdout.write("✅ No attendance service is currently running")
+            self.stdout.write("No attendance service is currently running")
             
     def show_alternatives(self):
         """Show alternative commands for working with attendance data"""

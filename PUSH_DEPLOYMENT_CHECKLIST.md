@@ -5,14 +5,14 @@ This checklist ensures your Django attendance system is properly configured to r
 
 ## Pre-Deployment Checklist
 
-### 1. Server Requirements ✅
+### 1. Server Requirements 
 - [x] Ubuntu server with Apache2 installed
 - [x] Python 3.8+ with Django 5.2.4
 - [x] MySQL database configured
 - [x] SSL certificates installed
 - [x] Domain: `company.d0s369.co.in`
 
-### 2. Device Configuration ✅
+### 2. Device Configuration 
 - [x] Server Mode: ADMS
 - [x] Enable Domain Name: NO
 - [x] Server Address: 82.25.109.137

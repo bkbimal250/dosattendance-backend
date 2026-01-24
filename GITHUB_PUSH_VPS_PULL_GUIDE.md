@@ -1,6 +1,6 @@
 # GitHub Push & VPS Pull Guide
 
-## 🚀 Complete Guide for GitHub Push and VPS Deployment
+##  Complete Guide for GitHub Push and VPS Deployment
 
 This guide will help you push your project to GitHub and then pull it on your VPS for deployment.
 
@@ -8,7 +8,7 @@ This guide will help you push your project to GitHub and then pull it on your VP
 
 ## 📋 Pre-Push Checklist
 
-### ✅ Files to Keep in Repository
+###  Files to Keep in Repository
 - [x] **Core Django Application**: All Django code and models
 - [x] **Backend API**: Django REST API endpoints
 - [x] **Requirements**: `requirements.txt` with WeasyPrint
@@ -17,7 +17,7 @@ This guide will help you push your project to GitHub and then pull it on your VP
 - [x] **Documentation**: All `.md` files
 - [x] **Static Files**: Django static files (not collected)
 
-### ✅ Files Excluded (in .gitignore)
+###  Files Excluded (in .gitignore)
 - [x] **Frontend**: `frontend/` (deployed separately)
 - [x] **Environment Files**: `.env` (contains sensitive data)
 - [x] **Virtual Environment**: `venv/` (will be created on VPS)
@@ -326,7 +326,7 @@ sudo certbot --apache -d your-domain.com -d www.your-domain.com
 
 ---
 
-## ✅ Step 9: Final Verification
+##  Step 9: Final Verification
 
 ### 9.1 Test Django Application
 ```bash
@@ -341,8 +341,8 @@ sudo -u www-data /var/www/EmployeeAttandance/venv/bin/python manage.py check --d
 # Test WeasyPrint functionality
 sudo -u www-data /var/www/EmployeeAttandance/venv/bin/python -c "
 import weasyprint
-print('✅ WeasyPrint version:', weasyprint.__version__)
-print('✅ WeasyPrint is working correctly!')
+print(' WeasyPrint version:', weasyprint.__version__)
+print(' WeasyPrint is working correctly!')
 "
 ```
 
@@ -428,21 +428,21 @@ sudo systemctl restart attendance-service
 ## 🚨 Important Notes
 
 ### Security
-- ✅ **Never commit `.env` files** - they contain sensitive data
-- ✅ **Use strong SECRET_KEY** in production
-- ✅ **Enable HTTPS** with SSL certificates
-- ✅ **Set proper file permissions** (600 for .env, 755 for directories)
+-  **Never commit `.env` files** - they contain sensitive data
+-  **Use strong SECRET_KEY** in production
+-  **Enable HTTPS** with SSL certificates
+-  **Set proper file permissions** (600 for .env, 755 for directories)
 
 ### Performance
-- ✅ **WeasyPrint works only on Linux/Ubuntu** - perfect for VPS
-- ✅ **Redis required** for WebSocket functionality
-- ✅ **MySQL database** configured for production
-- ✅ **Static files** collected and served efficiently
+-  **WeasyPrint works only on Linux/Ubuntu** - perfect for VPS
+-  **Redis required** for WebSocket functionality
+-  **MySQL database** configured for production
+-  **Static files** collected and served efficiently
 
 ### Monitoring
-- ✅ **Check logs regularly**: `/var/log/apache2/employee_attendance_error.log`
-- ✅ **Monitor services**: `systemctl status attendance-service`
-- ✅ **Test WeasyPrint**: Regular PDF generation tests
+-  **Check logs regularly**: `/var/log/apache2/employee_attendance_error.log`
+-  **Monitor services**: `systemctl status attendance-service`
+-  **Test WeasyPrint**: Regular PDF generation tests
 
 ---
 
@@ -450,12 +450,12 @@ sudo systemctl restart attendance-service
 
 Your Employee Attendance System is now deployed with:
 
-✅ **GitHub Repository**: Code safely stored and version controlled  
-✅ **VPS Deployment**: Production-ready Ubuntu server  
-✅ **WeasyPrint PDF Generation**: Professional document generation  
-✅ **Auto-Services**: Background attendance fetching  
-✅ **SSL Security**: HTTPS enabled  
-✅ **Real-time Features**: WebSocket support  
-✅ **Device Integration**: ZKTeco biometric support  
+ **GitHub Repository**: Code safely stored and version controlled  
+ **VPS Deployment**: Production-ready Ubuntu server  
+ **WeasyPrint PDF Generation**: Professional document generation  
+ **Auto-Services**: Background attendance fetching  
+ **SSL Security**: HTTPS enabled  
+ **Real-time Features**: WebSocket support  
+ **Device Integration**: ZKTeco biometric support  
 
-**Access your application at: `https://your-domain.com`** 🚀
+**Access your application at: `https://your-domain.com`** 

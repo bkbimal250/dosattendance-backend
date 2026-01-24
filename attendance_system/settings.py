@@ -92,6 +92,7 @@ ADMIN_THEME_APPS = [
 # Local Apps
 LOCAL_APPS = [
     'core.apps.CoreConfig',
+    'coreapp.apps.CoreappConfig',
 ]
 
 # Combine all apps

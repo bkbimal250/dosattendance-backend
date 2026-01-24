@@ -14,9 +14,9 @@ git pull origin main
 
 # Check if pull was successful
 if [ $? -eq 0 ]; then
-    echo "✅ Successfully pulled latest changes"
+    echo " Successfully pulled latest changes"
 else
-    echo "❌ Failed to pull changes. Check your internet connection and GitHub access."
+    echo " Failed to pull changes. Check your internet connection and GitHub access."
     exit 1
 fi
 
@@ -25,7 +25,7 @@ if [ -d "venv" ]; then
     echo "🐍 Activating virtual environment..."
     source venv/bin/activate
 else
-    echo "❌ Virtual environment not found. Please create it first."
+    echo " Virtual environment not found. Please create it first."
     exit 1
 fi
 
@@ -47,11 +47,11 @@ sleep 5
 
 # Check if server started without errors
 if ps -p $SERVER_PID > /dev/null; then
-    echo "✅ Server started successfully without reentrant errors!"
-    echo "🛑 Stopping test server..."
+    echo " Server started successfully without reentrant errors!"
+    echo " Stopping test server..."
     kill $SERVER_PID
 else
-    echo "❌ Server failed to start. Check the logs above."
+    echo " Server failed to start. Check the logs above."
 fi
 
 echo "🎉 VPS update completed!"

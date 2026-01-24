@@ -104,7 +104,7 @@ class Command(BaseCommand):
                 configured_count += 1
         
         self.stdout.write(
-            self.style.SUCCESS(f'✅ Configured {configured_count}/{devices.count()} ZKTeco devices')
+            self.style.SUCCESS(f'Configured {configured_count}/{devices.count()} ZKTeco devices')
         )
     
     def configure_device_by_id(self, device_id, server_url):
@@ -113,15 +113,15 @@ class Command(BaseCommand):
             device = Device.objects.get(id=device_id, device_type='zkteco')
             if self.configure_single_device(device, server_url):
                 self.stdout.write(
-                    self.style.SUCCESS(f'✅ Configured device {device.name}')
+                    self.style.SUCCESS(f'Configured device {device.name}')
                 )
             else:
                 self.stdout.write(
-                    self.style.ERROR(f'❌ Failed to configure device {device.name}')
+                    self.style.ERROR(f'Failed to configure device {device.name}')
                 )
         except Device.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR(f'❌ ZKTeco device with ID {device_id} not found')
+                self.style.ERROR(f'ZKTeco device with ID {device_id} not found')
             )
     
     def configure_device_by_ip(self, device_ip, server_url):
@@ -130,19 +130,19 @@ class Command(BaseCommand):
             device = Device.objects.get(ip_address=device_ip, device_type='zkteco')
             if self.configure_single_device(device, server_url):
                 self.stdout.write(
-                    self.style.SUCCESS(f'✅ Configured device {device.name}')
+                    self.style.SUCCESS(f'Configured device {device.name}')
                 )
             else:
                 self.stdout.write(
-                    self.style.ERROR(f'❌ Failed to configure device {device.name}')
+                    self.style.ERROR(f'Failed to configure device {device.name}')
                 )
         except Device.DoesNotExist:
             self.stdout.write(
-                self.style.ERROR(f'❌ ZKTeco device with IP {device_ip} not found')
+                self.style.ERROR(f'ZKTeco device with IP {device_ip} not found')
             )
         except Device.MultipleObjectsReturned:
             self.stdout.write(
-                self.style.ERROR(f'❌ Multiple ZKTeco devices found with IP {device_ip}')
+                self.style.ERROR(f'Multiple ZKTeco devices found with IP {device_ip}')
             )
     
     def configure_single_device(self, device, server_url):
@@ -154,7 +154,7 @@ class Command(BaseCommand):
             success = zkteco_push_service.register_device_for_push(device, push_url)
             
             if success:
-                self.stdout.write(f"📱 Device: {device.name}")
+                self.stdout.write(f"Device: {device.name}")
                 self.stdout.write(f"   IP: {device.ip_address}:{device.port}")
                 self.stdout.write(f"   Office: {device.office.name if device.office else 'No Office'}")
                 self.stdout.write(f"   Push URL: {push_url}")
@@ -175,7 +175,7 @@ class Command(BaseCommand):
     
     def show_status(self):
         """Show current push configuration status"""
-        self.stdout.write("📊 ZKTeco Push Configuration Status")
+        self.stdout.write("ZKTeco Push Configuration Status")
         self.stdout.write("=" * 50)
         
         # Get all ZKTeco devices
@@ -195,10 +195,10 @@ class Command(BaseCommand):
         self.stdout.write("")
         
         for device in devices:
-            status_icon = "✅" if device.is_active else "❌"
-            push_icon = "📡" if str(device.id) in push_status['devices'] else "📴"
+            status_icon = "Active" if device.is_active else "Inactive"
+            push_status_text = "Push Enabled" if str(device.id) in push_status['devices'] else "Push Disabled"
             
-            self.stdout.write(f"{status_icon} {push_icon} {device.name}")
+            self.stdout.write(f"{status_icon} {push_status_text} {device.name}")
             self.stdout.write(f"   IP: {device.ip_address}:{device.port}")
             self.stdout.write(f"   Office: {device.office.name if device.office else 'No Office'}")
             self.stdout.write(f"   Status: {device.device_status}")
@@ -214,7 +214,7 @@ class Command(BaseCommand):
     
     def test_push_functionality(self):
         """Test push functionality with sample data"""
-        self.stdout.write("🧪 Testing ZKTeco push functionality...")
+        self.stdout.write("Testing ZKTeco push functionality...")
         
         # Get first active ZKTeco device
         device = Device.objects.filter(device_type='zkteco', is_active=True).first()
@@ -240,12 +240,12 @@ class Command(BaseCommand):
         
         if result['success']:
             self.stdout.write(
-                self.style.SUCCESS(f"✅ Push test successful for {device.name}")
+                self.style.SUCCESS(f"Push test successful for {device.name}")
             )
             self.stdout.write(f"   Processed: {result['processed_count']} records")
             self.stdout.write(f"   Errors: {result['error_count']} records")
         else:
             self.stdout.write(
-                self.style.ERROR(f"❌ Push test failed for {device.name}")
+                self.style.ERROR(f"Push test failed for {device.name}")
             )
             self.stdout.write(f"   Error: {result.get('error', 'Unknown error')}")

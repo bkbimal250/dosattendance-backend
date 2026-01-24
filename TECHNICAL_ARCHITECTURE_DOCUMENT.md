@@ -417,7 +417,7 @@ def health_check(request):
 
 ---
 
-## 🚀 **DEPLOYMENT ARCHITECTURE**
+##  **DEPLOYMENT ARCHITECTURE**
 
 ### **Production Environment**
 ```bash

@@ -230,10 +230,10 @@ wscat -c wss://company.d0s369.co.in/ws/attendance/
 
 After implementing the fix:
 
-✅ **WebSocket connections should succeed**  
-✅ **Real-time attendance updates should work**  
-✅ **No more connection failures in browser console**  
-✅ **Frontend should receive live data updates**  
+ **WebSocket connections should succeed**  
+ **Real-time attendance updates should work**  
+ **No more connection failures in browser console**  
+ **Frontend should receive live data updates**  
 
 ## Support
 

@@ -28,7 +28,7 @@ echo "Copying push_views.py..."
 echo "Updating urls.py..."
 # cp core/urls.py $PROJECT_DIR/core/
 
-echo -e "${GREEN}✅ Django files updated${NC}"
+echo -e "${GREEN} Django files updated${NC}"
 
 echo -e "${YELLOW}Step 2: Installing Apache2 configuration...${NC}"
 
@@ -46,7 +46,7 @@ sudo a2enmod rewrite
 sudo a2enmod headers
 sudo a2enmod wsgi
 
-echo -e "${GREEN}✅ Apache2 configuration installed${NC}"
+echo -e "${GREEN} Apache2 configuration installed${NC}"
 
 echo -e "${YELLOW}Step 3: Configuring firewall for port 8081...${NC}"
 
@@ -54,7 +54,7 @@ echo -e "${YELLOW}Step 3: Configuring firewall for port 8081...${NC}"
 sudo ufw allow 8081/tcp
 echo "Port 8081 opened in firewall"
 
-echo -e "${GREEN}✅ Firewall configured${NC}"
+echo -e "${GREEN} Firewall configured${NC}"
 
 echo -e "${YELLOW}Step 4: Updating Django settings for production...${NC}"
 
@@ -118,7 +118,7 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 EOF
 
-echo -e "${GREEN}✅ Production settings created${NC}"
+echo -e "${GREEN} Production settings created${NC}"
 
 echo -e "${YELLOW}Step 5: Creating log directory...${NC}"
 
@@ -127,7 +127,7 @@ sudo mkdir -p /var/log/django
 sudo chown www-data:www-data /var/log/django
 sudo chmod 755 /var/log/django
 
-echo -e "${GREEN}✅ Log directory created${NC}"
+echo -e "${GREEN} Log directory created${NC}"
 
 echo -e "${YELLOW}Step 6: Installing Python dependencies...${NC}"
 
@@ -138,21 +138,21 @@ source venv/bin/activate
 # Install any new dependencies
 pip install django-cors-headers
 
-echo -e "${GREEN}✅ Dependencies installed${NC}"
+echo -e "${GREEN} Dependencies installed${NC}"
 
 echo -e "${YELLOW}Step 7: Running Django migrations...${NC}"
 
 # Run migrations
 python manage.py migrate
 
-echo -e "${GREEN}✅ Migrations completed${NC}"
+echo -e "${GREEN} Migrations completed${NC}"
 
 echo -e "${YELLOW}Step 8: Collecting static files...${NC}"
 
 # Collect static files
 python manage.py collectstatic --noinput
 
-echo -e "${GREEN}✅ Static files collected${NC}"
+echo -e "${GREEN} Static files collected${NC}"
 
 echo -e "${YELLOW}Step 9: Testing Apache2 configuration...${NC}"
 
@@ -160,9 +160,9 @@ echo -e "${YELLOW}Step 9: Testing Apache2 configuration...${NC}"
 sudo apache2ctl configtest
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✅ Apache2 configuration is valid${NC}"
+    echo -e "${GREEN} Apache2 configuration is valid${NC}"
 else
-    echo -e "${RED}❌ Apache2 configuration has errors${NC}"
+    echo -e "${RED} Apache2 configuration has errors${NC}"
     exit 1
 fi
 
@@ -174,7 +174,7 @@ sudo systemctl restart apache2
 # Enable Apache2 to start on boot
 sudo systemctl enable apache2
 
-echo -e "${GREEN}✅ Apache2 restarted${NC}"
+echo -e "${GREEN} Apache2 restarted${NC}"
 
 echo "============================================================"
 echo "DEPLOYMENT COMPLETED SUCCESSFULLY!"

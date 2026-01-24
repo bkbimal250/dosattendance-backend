@@ -76,7 +76,7 @@ class Command(BaseCommand):
         for record in attendance_records:
             check_in = record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else 'N/A'
             check_out = record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'
-            status = "✅ Present" if record.status == 'present' else f"❌ {record.status}"
+            status = "Present" if record.status == 'present' else f"{record.status}"
             
             self.stdout.write(f"{record.user.get_full_name():<25} | {check_in} - {check_out} | {status}")
             
@@ -85,7 +85,7 @@ class Command(BaseCommand):
         try:
             target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         except ValueError:
-            self.stdout.write("❌ Invalid date format. Use YYYY-MM-DD")
+            self.stdout.write("Invalid date format. Use YYYY-MM-DD")
             return
             
         attendance_records = Attendance.objects.filter(date=target_date).order_by('-check_in_time')
@@ -100,7 +100,7 @@ class Command(BaseCommand):
         for record in attendance_records:
             check_in = record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else 'N/A'
             check_out = record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'
-            status = "✅ Present" if record.status == 'present' else f"❌ {record.status}"
+            status = "Present" if record.status == 'present' else f"{record.status}"
             
             self.stdout.write(f"{record.user.get_full_name():<25} | {check_in} - {check_out} | {status}")
             
@@ -112,7 +112,7 @@ class Command(BaseCommand):
         ).first()
         
         if not user:
-            self.stdout.write(f"❌ User '{user_identifier}' not found.")
+            self.stdout.write(f"User '{user_identifier}' not found.")
             return
             
         # Get recent attendance records for this user
@@ -130,7 +130,7 @@ class Command(BaseCommand):
         for record in attendance_records:
             check_in = record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else 'N/A'
             check_out = record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'
-            status = "✅ Present" if record.status == 'present' else f"❌ {record.status}"
+            status = "Present" if record.status == 'present' else f"{record.status}"
             
             self.stdout.write(f"{record.date} | {check_in} - {check_out} | {status}")
             
@@ -175,7 +175,7 @@ class Command(BaseCommand):
         for record in recent_records:
             check_in = record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else 'N/A'
             check_out = record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'
-            status = "✅ Present" if record.status == 'present' else f"❌ {record.status}"
+            status = "Present" if record.status == 'present' else f"{record.status}"
             device = record.device.name if record.device else 'N/A'
             
             self.stdout.write(f"{record.date} | {record.user.get_full_name():<25} | {check_in} - {check_out} | {status} | {device}")

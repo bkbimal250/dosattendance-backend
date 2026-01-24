@@ -126,7 +126,7 @@ Can you please:
 My domain: dosmanagers.dishaonlinesolution.in
 ```
 
-## ✅ Quick Checklist
+##  Quick Checklist
 
 - [ ] Files uploaded to correct directory
 - [ ] `.htaccess` file exists and has correct content
@@ -137,7 +137,7 @@ My domain: dosmanagers.dishaonlinesolution.in
 ## 🎯 Expected Result
 
 After fixes, your console should show:
-- ✅ No MIME type errors
-- ✅ No 403 errors
-- ✅ CSS and JS files loading correctly
-- ✅ React application working properly
+-  No MIME type errors
+-  No 403 errors
+-  CSS and JS files loading correctly
+-  React application working properly

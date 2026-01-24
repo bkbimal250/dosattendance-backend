@@ -136,7 +136,7 @@ chmod +x test_accountant_apis.sh
 }
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### **Common Issues:**
 
@@ -193,18 +193,18 @@ The scripts also help verify:
 ## 📝 Test Results Interpretation
 
 ### **Success Indicators:**
-- ✅ HTTP 200/201 status codes
-- ✅ Valid JSON responses
-- ✅ Expected data structure
-- ✅ Proper authentication
+-  HTTP 200/201 status codes
+-  Valid JSON responses
+-  Expected data structure
+-  Proper authentication
 
 ### **Failure Indicators:**
-- ❌ HTTP 4xx/5xx status codes
-- ❌ Authentication errors
-- ❌ Permission denied errors
-- ❌ Invalid JSON responses
+-  HTTP 4xx/5xx status codes
+-  Authentication errors
+-  Permission denied errors
+-  Invalid JSON responses
 
-## 🚀 Next Steps
+##  Next Steps
 
 After successful API testing:
 

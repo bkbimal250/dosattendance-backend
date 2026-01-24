@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Setting up WebSocket support for Employee Attendance System"
+echo " Setting up WebSocket support for Employee Attendance System"
 echo "=============================================================="
 
 # Colors for output
@@ -182,21 +182,21 @@ sleep 5  # Wait for services to start
 
 # Check if services are running
 if systemctl is-active --quiet django-asgi.service; then
-    print_status "✅ Django ASGI service is running"
+    print_status " Django ASGI service is running"
 else
-    print_error "❌ Django ASGI service is not running"
+    print_error " Django ASGI service is not running"
 fi
 
 if systemctl is-active --quiet apache2; then
-    print_status "✅ Apache2 service is running"
+    print_status " Apache2 service is running"
 else
-    print_error "❌ Apache2 service is not running"
+    print_error " Apache2 service is not running"
 fi
 
 if systemctl is-active --quiet redis-server; then
-    print_status "✅ Redis service is running"
+    print_status " Redis service is running"
 else
-    print_error "❌ Redis service is not running"
+    print_error " Redis service is not running"
 fi
 
 echo ""

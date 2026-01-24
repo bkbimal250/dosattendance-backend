@@ -59,7 +59,7 @@ class Command(BaseCommand):
         show_summary = options['show_summary']
         
         self.stdout.write(
-            self.style.SUCCESS(f"🔄 Starting daily attendance fetch (last {days} days)")
+            self.style.SUCCESS(f" Starting daily attendance fetch from all devices (last {days} days)")
         )
         
         # Get devices to process
@@ -74,7 +74,7 @@ class Command(BaseCommand):
         end_date = timezone.now()
         start_date = end_date - timedelta(days=days)
         
-        self.stdout.write(f"📅 Date range: {start_date.date()} to {end_date.date()}")
+        self.stdout.write(f" Date range: {start_date.date()} to {end_date.date()}")
         self.stdout.write(f"📱 Processing {len(devices)} devices...\n")
         
         total_processed = 0
@@ -84,7 +84,7 @@ class Command(BaseCommand):
         # Process each device one by one
         for i, device in enumerate(devices, 1):
             self.stdout.write(
-                self.style.SUCCESS(f"📱 [{i}/{len(devices)}] Processing: {device.name}")
+                self.style.SUCCESS(f" [{i}/{len(devices)}] Processing: {device.name}")
             )
             
             try:
@@ -100,12 +100,12 @@ class Command(BaseCommand):
                 total_duplicates += duplicates
                 
                 self.stdout.write(
-                    f"   ✅ {device.name}: {processed} processed, {new_records} new, {duplicates} duplicates"
+                    f"   {device.name}: {processed} processed, {new_records} new, {duplicates} duplicates"
                 )
                 
             except Exception as e:
                 self.stdout.write(
-                    self.style.ERROR(f"   ❌ {device.name}: Error - {str(e)}")
+                    self.style.ERROR(f"   {device.name}: Error - {str(e)}")
                 )
                 # Close connection on error
                 connection.close()
@@ -114,7 +114,7 @@ class Command(BaseCommand):
         
         # Final summary
         self.stdout.write(
-            self.style.SUCCESS("📊 Daily Fetch Summary:")
+            self.style.SUCCESS(" Daily Fetch Summary:")
         )
         self.stdout.write(f"   Devices processed: {len(devices)}")
         self.stdout.write(f"   Total records processed: {total_processed}")
@@ -152,11 +152,11 @@ class Command(BaseCommand):
             if not conn:
                 raise Exception(f"Failed to connect to {device.ip_address}:{device.port}")
             
-            self.stdout.write(f"   🔗 Connected to {device.name}")
+                self.stdout.write(f"   Connected to {device.name}")
             
             # Get all attendance data
             attendance_logs = conn.get_attendance()
-            self.stdout.write(f"   📊 Found {len(attendance_logs)} total logs")
+            self.stdout.write(f"    Found {len(attendance_logs)} total logs")
             
             # Filter to date range
             recent_logs = []
@@ -169,7 +169,7 @@ class Command(BaseCommand):
                 if start_date <= log_timestamp <= end_date:
                     recent_logs.append(log)
             
-            self.stdout.write(f"   📅 Found {len(recent_logs)} logs in date range")
+            self.stdout.write(f"    Found {len(recent_logs)} logs in date range")
             
             # Process logs
             for log in recent_logs:
@@ -207,15 +207,15 @@ class Command(BaseCommand):
                 except Exception as e:
                     # Handle database connection errors
                     if "MySQL server has gone away" in str(e) or "ConnectionResetError" in str(e):
-                        self.stdout.write(f"   🔄 Database connection lost, reconnecting...")
+                        self.stdout.write(f"   Database connection lost, reconnecting...")
                         connection.close()
                         connection.ensure_connection()
                         continue
                     elif str(e) != "(0, '')":
-                        self.stdout.write(f"   ⚠️  Error processing log: {str(e)}")
+                        self.stdout.write(f"   Error processing log: {str(e)}")
             
             conn.disconnect()
-            self.stdout.write(f"   🔌 Disconnected from {device.name}")
+            self.stdout.write(f"   Disconnected from {device.name}")
             
         except Exception as e:
             raise Exception(f"Device error: {str(e)}")
@@ -283,12 +283,12 @@ class Command(BaseCommand):
                     return True
                     
         except Exception as e:
-            self.stdout.write(f"   ⚠️  Error saving record: {str(e)}")
+            self.stdout.write(f"   Error saving record: {str(e)}")
             return False
     
     def show_recent_attendance(self, days):
         """Show summary of recent attendance records"""
-        self.stdout.write(f"\n📋 Recent Attendance Records (Last {days} Days):")
+        self.stdout.write(f"\n Recent Attendance Records (Last {days} Days):")
         
         try:
             end_date = timezone.now()

@@ -1,6 +1,6 @@
 # Hostinger Upload Guide - Complete File List
 
-## 🚀 Ready-to-Upload Packages
+##  Ready-to-Upload Packages
 
 ### **1. Manager Dashboard** 
 **Upload to:** `dosmanagers.dishaonlinesolution.in` (domain root)
@@ -97,7 +97,7 @@
 3. Right-click on `assets/` folder → Properties → Set to **755**
 4. Right-click on CSS/JS files → Properties → Set to **644**
 
-## ✅ What Each File Does
+##  What Each File Does
 
 ### **Essential Files:**
 - **`index.html`** - Main application entry point
@@ -124,11 +124,11 @@
 ## 🎯 Expected Result
 
 After uploading, your applications should:
-- ✅ Load without console errors
-- ✅ CSS files load with correct MIME type
-- ✅ JavaScript files load without 403 errors
-- ✅ API calls work properly
-- ✅ React Router navigation works
+-  Load without console errors
+-  CSS files load with correct MIME type
+-  JavaScript files load without 403 errors
+-  API calls work properly
+-  React Router navigation works
 
 ## 📞 Support
 
@@ -137,4 +137,4 @@ If you encounter issues:
 2. Verify all files are uploaded
 3. Contact Hostinger support if needed
 
-**All files are ready for upload!** 🚀
+**All files are ready for upload!** 

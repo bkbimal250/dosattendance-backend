@@ -33,10 +33,10 @@ class Command(BaseCommand):
                 duplicate_groups = cursor.fetchall()
                 
                 if not duplicate_groups:
-                    self.stdout.write(self.style.SUCCESS('✅ No duplicate records found'))
+                    self.stdout.write(self.style.SUCCESS('No duplicate records found'))
                     return
                 
-                self.stdout.write(f'⚠️  Found {len(duplicate_groups)} duplicate attendance groups:')
+                self.stdout.write(f'Found {len(duplicate_groups)} duplicate attendance groups:')
                 
                 total_to_delete = 0
                 for user_id, date, count in duplicate_groups:
@@ -65,16 +65,16 @@ class Command(BaseCommand):
                             
                             cleaned_count += delete_count
                             self.stdout.write(
-                                f'   ✅ Kept record {keep_record.id}, would delete {delete_count} duplicates'
+                                f'   Kept record {keep_record.id}, would delete {delete_count} duplicates'
                             )
                     
-                    self.stdout.write(self.style.SUCCESS(f'🎉 Cleaned up {cleaned_count} duplicate records'))
+                    self.stdout.write(self.style.SUCCESS(f'Cleaned up {cleaned_count} duplicate records'))
                 else:
-                    self.stdout.write(f'\n📊 Would delete {total_to_delete} duplicate records')
+                    self.stdout.write(f'\nWould delete {total_to_delete} duplicate records')
                     self.stdout.write(self.style.WARNING('Run without --dry-run to actually delete duplicates'))
                     
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Error: {e}'))
+            self.stdout.write(self.style.ERROR(f'Error: {e}'))
             return False
         
         return True

@@ -16,13 +16,13 @@ The Salary Management System is a comprehensive module integrated into the Emplo
 
 ### Key Features
 
-- ✅ **Auto-calculation from attendance data**
-- ✅ **Role-based permissions (Admin/Manager/Accountant/Employee)**
-- ✅ **Salary templates for different designations**
-- ✅ **Approval workflow (Draft → Approved → Paid)**
-- ✅ **Bulk salary creation and processing**
-- ✅ **Comprehensive reporting and statistics**
-- ✅ **REST API endpoints for all operations**
+-  **Auto-calculation from attendance data**
+-  **Role-based permissions (Admin/Manager/Accountant/Employee)**
+-  **Salary templates for different designations**
+-  **Approval workflow (Draft → Approved → Paid)**
+-  **Bulk salary creation and processing**
+-  **Comprehensive reporting and statistics**
+-  **REST API endpoints for all operations**
 
 ## 📊 Database Models
 
@@ -108,7 +108,7 @@ class SalaryTemplate(models.Model):
 - `IsAdminOrManagerOrEmployee` - Admin, Manager, and Employee
 - `IsAdminOnly` - Admin only
 
-## 🚀 API Endpoints
+##  API Endpoints
 
 ### Salary Management
 
@@ -346,7 +346,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'core.CustomUser'
 ```
 
-## 🚀 Deployment
+##  Deployment
 
 ### 1. Database Migration
 

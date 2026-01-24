@@ -38,11 +38,11 @@ def test_connection():
     """Test database connection"""
     try:
         connection = pymysql.connect(**DB_CONFIG)
-        print("✅ Database connection successful!")
+        print(" Database connection successful!")
         connection.close()
         return True
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f" Database connection failed: {e}")
         return False
 
 def drop_database():
@@ -55,12 +55,12 @@ def drop_database():
         
         with connection.cursor() as cursor:
             cursor.execute(f"DROP DATABASE IF EXISTS {DB_CONFIG['database']}")
-            print(f"✅ Database '{DB_CONFIG['database']}' dropped successfully!")
+            print(f" Database '{DB_CONFIG['database']}' dropped successfully!")
         
         connection.close()
         return True
     except Exception as e:
-        print(f"❌ Failed to drop database: {e}")
+        print(f" Failed to drop database: {e}")
         return False
 
 def create_database():
@@ -77,18 +77,18 @@ def create_database():
                 CHARACTER SET utf8mb4 
                 COLLATE utf8mb4_unicode_ci
             """)
-            print(f"✅ Database '{DB_CONFIG['database']}' created successfully!")
+            print(f" Database '{DB_CONFIG['database']}' created successfully!")
         
         connection.close()
         return True
     except Exception as e:
-        print(f"❌ Failed to create database: {e}")
+        print(f" Failed to create database: {e}")
         return False
 
 def restore_database(dump_file_path):
     """Restore database from dump file"""
     if not os.path.exists(dump_file_path):
-        print(f"❌ Dump file not found: {dump_file_path}")
+        print(f" Dump file not found: {dump_file_path}")
         return False
     
     try:
@@ -108,15 +108,15 @@ def restore_database(dump_file_path):
             result = subprocess.run(cmd, stdin=dump_file, capture_output=True, text=True)
         
         if result.returncode == 0:
-            print("✅ Database restored successfully!")
+            print(" Database restored successfully!")
             return True
         else:
-            print(f"❌ Database restoration failed:")
+            print(f" Database restoration failed:")
             print(f"Error: {result.stderr}")
             return False
             
     except Exception as e:
-        print(f"❌ Failed to restore database: {e}")
+        print(f" Failed to restore database: {e}")
         return False
 
 def backup_database(backup_file_path):
@@ -142,14 +142,14 @@ def backup_database(backup_file_path):
             result = subprocess.run(cmd, stdout=backup_file, stderr=subprocess.PIPE, text=True)
         
         if result.returncode == 0:
-            print("✅ Database backup created successfully!")
+            print(" Database backup created successfully!")
             return True
         else:
-            print(f"❌ Database backup failed: {result.stderr}")
+            print(f" Database backup failed: {result.stderr}")
             return False
             
     except Exception as e:
-        print(f"❌ Failed to create backup: {e}")
+        print(f" Failed to create backup: {e}")
         return False
 
 def list_tables():
@@ -171,7 +171,7 @@ def list_tables():
         connection.close()
         return True
     except Exception as e:
-        print(f"❌ Failed to list tables: {e}")
+        print(f" Failed to list tables: {e}")
         return False
 
 def main():
@@ -217,12 +217,12 @@ def main():
             if dump_path:
                 restore_database(dump_path)
             else:
-                print("❌ No file path provided.")
+                print(" No file path provided.")
                 
         elif choice == '5':
             dump_path = input("Enter dump file path: ").strip()
             if not dump_path:
-                print("❌ No file path provided.")
+                print(" No file path provided.")
                 continue
                 
             confirm = input("⚠️  This will DELETE ALL DATA and restore from dump! Are you sure? (yes/no): ").strip().lower()
@@ -239,7 +239,7 @@ def main():
             break
             
         else:
-            print("❌ Invalid choice. Please try again.")
+            print(" Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     main()

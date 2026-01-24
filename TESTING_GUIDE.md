@@ -20,13 +20,13 @@ python test_push_functionality.py --url https://your-server.com:8081
 ```
 
 #### What the automated tests check:
-- ✅ Health check endpoint functionality
-- ✅ Basic push endpoint connectivity
-- ✅ Real user data processing
-- ✅ Database record creation
-- ✅ Automatic device creation
-- ✅ Check-in/check-out flow
-- ✅ Error handling with invalid data
+-  Health check endpoint functionality
+-  Basic push endpoint connectivity
+-  Real user data processing
+-  Database record creation
+-  Automatic device creation
+-  Check-in/check-out flow
+-  Error handling with invalid data
 
 ### 2. Manual Testing with curl
 

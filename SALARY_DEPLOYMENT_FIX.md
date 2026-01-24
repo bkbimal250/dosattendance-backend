@@ -64,8 +64,8 @@ EXIT;
 # Test the salary models
 python -c "
 from core.models import Salary, SalaryTemplate
-print('✅ Salary models imported successfully')
-print('✅ Salary system is working!')
+print(' Salary models imported successfully')
+print(' Salary system is working!')
 "
 ```
 
@@ -75,7 +75,7 @@ print('✅ Salary system is working!')
 sudo systemctl restart apache2
 ```
 
-## 🚀 Alternative: Automated Fix Script
+##  Alternative: Automated Fix Script
 
 If you prefer an automated approach, use the provided script:
 
@@ -87,7 +87,7 @@ chmod +x deploy_salary_fix.sh
 ./deploy_salary_fix.sh
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### If Migration Still Fails:
 

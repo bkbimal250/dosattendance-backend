@@ -2,7 +2,7 @@
 
 Since you're already in the virtual environment, here's the manual setup process:
 
-## 🚀 **Quick Manual Setup**
+##  **Quick Manual Setup**
 
 ### **Step 1: Install Daphne in Virtual Environment**
 ```bash
@@ -96,10 +96,10 @@ wscat -c wss://company.d0s369.co.in/ws/attendance/
 ## 📊 **Expected Results**
 
 After setup:
-- ✅ Django ASGI service running on port 8001
-- ✅ Apache2 proxying WebSocket requests to Daphne
-- ✅ WebSocket connections working
-- ✅ Real-time updates functional
+-  Django ASGI service running on port 8001
+-  Apache2 proxying WebSocket requests to Daphne
+-  WebSocket connections working
+-  Real-time updates functional
 
 ## 🆘 **Troubleshooting**
 

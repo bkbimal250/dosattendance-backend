@@ -1,6 +1,6 @@
 # Hostinger Deployment Guide
 
-## 🚀 Quick Deployment Steps for Hostinger
+##  Quick Deployment Steps for Hostinger
 
 ### **1. Upload Files to Hostinger**
 
@@ -31,20 +31,20 @@ public_html/
 
 ### **3. What the .htaccess File Does**
 
-✅ **Fixes MIME Type Issues:**
+ **Fixes MIME Type Issues:**
 - Sets correct MIME types for CSS (`text/css`) and JS (`application/javascript`)
 - Prevents the "text/html" MIME type error
 
-✅ **Handles Static Assets:**
+ **Handles Static Assets:**
 - Serves CSS and JS files with proper headers
 - Enables compression for faster loading
 - Sets cache headers for better performance
 
-✅ **API Proxy:**
+ **API Proxy:**
 - Routes `/api/` requests to `https://company.d0s369.co.in/api/`
 - Handles CORS properly
 
-✅ **SPA Routing:**
+ **SPA Routing:**
 - Redirects all non-asset requests to `index.html`
 - Enables client-side routing for React Router
 
@@ -86,10 +86,10 @@ public_html/
 ### **6. Performance Optimizations**
 
 The `.htaccess` file includes:
-- ✅ Gzip compression
-- ✅ Browser caching (1 year for static assets)
-- ✅ Security headers
-- ✅ Proper MIME types
+-  Gzip compression
+-  Browser caching (1 year for static assets)
+-  Security headers
+-  Proper MIME types
 
 ### **7. Troubleshooting**
 
@@ -111,6 +111,6 @@ If you encounter issues:
 2. Verify all files are uploaded correctly
 3. Contact Hostinger support for server configuration issues
 
-## ✅ Ready for Deployment!
+##  Ready for Deployment!
 
 Your applications are now ready to be deployed on Hostinger with proper configuration!

@@ -2,7 +2,7 @@
 
 A comprehensive Django-based web application for managing employee attendance, document generation, and real-time device integration with ZKTeco biometric devices.
 
-## 🚀 Features
+##  Features
 
 ### Core Functionality
 - **User Authentication & Authorization**: JWT-based authentication with role-based access control (Admin, Manager, Employee)
@@ -60,7 +60,7 @@ A comprehensive Django-based web application for managing employee attendance, d
 - Apache2 web server
 - Domain name with SSL certificate
 
-## 🚀 Quick Deployment
+##  Quick Deployment
 
 ### 1. Clone Repository
 ```bash
@@ -261,12 +261,12 @@ This project is proprietary software. All rights reserved.
 ## 🎯 Production Ready
 
 This system is production-ready with:
-- ✅ Ubuntu-optimized WeasyPrint PDF generation
-- ✅ Auto-attendance fetching service
-- ✅ Push data reception from devices
-- ✅ WebSocket support for real-time updates
-- ✅ Role-based authentication system
-- ✅ Production security configurations
-- ✅ Comprehensive deployment guides
+-  Ubuntu-optimized WeasyPrint PDF generation
+-  Auto-attendance fetching service
+-  Push data reception from devices
+-  WebSocket support for real-time updates
+-  Role-based authentication system
+-  Production security configurations
+-  Comprehensive deployment guides
 
-**Deploy with confidence on your Apache2 VPS!** 🚀
+**Deploy with confidence on your Apache2 VPS!** 

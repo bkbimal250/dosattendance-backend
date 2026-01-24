@@ -115,12 +115,12 @@ class Command(BaseCommand):
                 total_duplicates += duplicates
                 
                 self.stdout.write(
-                    f"   ✅ {device.name}: {processed} processed, {new_records} new, {duplicates} duplicates"
+                    f"   {device.name}: {processed} processed, {new_records} new, {duplicates} duplicates"
                 )
                 
             except Exception as e:
                 self.stdout.write(
-                    self.style.ERROR(f"   ❌ {device.name}: Error - {str(e)}")
+                    self.style.ERROR(f"   {device.name}: Error - {str(e)}")
                 )
                 # Close connection on error
                 connection.close()

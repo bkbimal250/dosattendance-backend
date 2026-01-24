@@ -87,13 +87,13 @@ class Command(BaseCommand):
         # Step 1: Map device users (unless fetch-only)
         if not fetch_only:
             self.stdout.write(
-                self.style.SUCCESS('\n🔄 Step 1: Mapping device users...')
+                self.style.SUCCESS('\nStep 1: Mapping device users...')
             )
             
             mapping_result = self.map_device_users(device_ip, create_users, dry_run)
             
             self.stdout.write(
-                self.style.SUCCESS(f"✅ Mapping completed:")
+                self.style.SUCCESS(f"Mapping completed:")
             )
             self.stdout.write(f"   Devices processed: {mapping_result['devices_processed']}")
             self.stdout.write(f"   Users created: {mapping_result['users_created']}")
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         # Step 2: Fetch attendance (unless map-only)
         if not map_only:
             self.stdout.write(
-                self.style.SUCCESS('\n🔄 Step 2: Fetching attendance data...')
+                self.style.SUCCESS('\nStep 2: Fetching attendance data...')
             )
             
             end_date = timezone.now()
@@ -112,7 +112,7 @@ class Command(BaseCommand):
             attendance_result = self.fetch_attendance_data(device_ip, start_date, end_date, dry_run)
             
             self.stdout.write(
-                self.style.SUCCESS(f"✅ Attendance fetching completed:")
+                self.style.SUCCESS(f"Attendance fetching completed:")
             )
             self.stdout.write(f"   Devices processed: {attendance_result['devices_processed']}")
             self.stdout.write(f"   Records processed: {attendance_result['total_processed']}")
@@ -120,7 +120,7 @@ class Command(BaseCommand):
         
         # Final summary
         self.stdout.write(
-            self.style.SUCCESS('\n📊 Final Summary:')
+            self.style.SUCCESS('\nFinal Summary:')
         )
         
         # Show mapping summary
@@ -138,7 +138,7 @@ class Command(BaseCommand):
             self.stdout.write(f"   Attendance percentage: {attendance_summary['attendance_percentage']:.1f}%")
         
         self.stdout.write(
-            self.style.SUCCESS('\n✅ Process completed successfully!')
+            self.style.SUCCESS('\nProcess completed successfully!')
         )
     
     def get_devices(self, device_ip: str = None) -> List[Device]:

@@ -1,6 +1,6 @@
 # VPS Setup Steps - Complete Configuration Guide
 
-## 🚀 **Step-by-Step VPS Configuration**
+##  **Step-by-Step VPS Configuration**
 
 ### **Step 1: Pull Latest Code**
 ```bash
@@ -202,17 +202,17 @@ sudo systemctl status redis-server
 
 ---
 
-## ✅ **Expected Results**
+##  **Expected Results**
 
 After completing all steps:
 
-✅ **Main Website**: `https://company.d0s369.co.in/` - Working  
-✅ **Push Endpoint**: `http://company.d0s369.co.in:8081/api/device/push-attendance/` - Working  
-✅ **ZKTeco Devices**: Can push data to port 8081  
-✅ **API Endpoints**: All working via HTTPS  
-✅ **PDF Generation**: WeasyPrint working  
-✅ **Database**: Connected and migrations applied  
-✅ **SSL**: Let's Encrypt certificates working  
+ **Main Website**: `https://company.d0s369.co.in/` - Working  
+ **Push Endpoint**: `http://company.d0s369.co.in:8081/api/device/push-attendance/` - Working  
+ **ZKTeco Devices**: Can push data to port 8081  
+ **API Endpoints**: All working via HTTPS  
+ **PDF Generation**: WeasyPrint working  
+ **Database**: Connected and migrations applied  
+ **SSL**: Let's Encrypt certificates working  
 
 ---
 
@@ -245,4 +245,4 @@ python manage.py check
 
 ---
 
-**Follow these steps in order, and your VPS will be fully configured for production!** 🚀
+**Follow these steps in order, and your VPS will be fully configured for production!** 

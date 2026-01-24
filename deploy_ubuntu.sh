@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Starting deployment of Employee Attendance System..."
+echo " Starting deployment of Employee Attendance System..."
 
 # Update system
 echo "📦 Updating system packages..."
@@ -171,7 +171,7 @@ WantedBy=multi-user.target
 EOF
 
 # Enable and start services
-echo "🚀 Starting services..."
+echo " Starting services..."
 systemctl daemon-reload
 systemctl enable attendance-fetcher
 systemctl start attendance-fetcher
@@ -184,7 +184,7 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
-echo "✅ Deployment completed successfully!"
+echo " Deployment completed successfully!"
 echo ""
 echo "🌐 Your application should be accessible at: http://your-server-ip"
 echo "👤 Default admin credentials: admin / admin123"

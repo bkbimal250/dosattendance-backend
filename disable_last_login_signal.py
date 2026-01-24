@@ -20,7 +20,7 @@ from django.contrib.auth.signals import user_logged_in
 # Disconnect the signal
 user_logged_in.disconnect(update_last_login)
 
-print("✅ Disconnected last_login update signal")
+print(" Disconnected last_login update signal")
 
 # Test login now
 from django.test import Client
@@ -34,9 +34,9 @@ response = client.post('/admin/login/', {
 
 print(f'Login response status: {response.status_code}')
 if response.status_code == 302:
-    print('✅ Login successful - redirecting to admin')
+    print(' Login successful - redirecting to admin')
     print(f'Redirect URL: {response.url}')
 else:
-    print('❌ Login still failing')
+    print(' Login still failing')
     if hasattr(response, 'content'):
         print(f'Response content: {response.content.decode()[:200]}...')

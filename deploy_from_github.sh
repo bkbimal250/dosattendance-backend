@@ -5,7 +5,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Deploying Employee Attendance System from GitHub..."
+echo " Deploying Employee Attendance System from GitHub..."
 
 # Colors for output
 RED='\033[0;31m'

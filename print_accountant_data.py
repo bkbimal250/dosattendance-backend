@@ -48,12 +48,12 @@ def main():
     try:
         accountant = authenticate(username='sejalmisal', password='Dos@2026')
         if accountant:
-            print("✅ Login successful!")
+            print(" Login successful!")
             print_user_info(accountant)
         else:
-            print("❌ Login failed!")
+            print(" Login failed!")
     except Exception as e:
-        print(f"❌ Login error: {e}")
+        print(f" Login error: {e}")
     
     # Print all offices
     print_separator("ALL OFFICES")
@@ -101,7 +101,7 @@ def main():
         print(f"   ⏰ Check-out: {record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'}")
         print(f"   ⏱️  Total Hours: {record.total_hours or 'N/A'}")
         print(f"   📊 Status: {record.status} ({record.day_status})")
-        print(f"   🕐 Late: {record.late_minutes} minutes" if record.is_late else "   ✅ On time")
+        print(f"   🕐 Late: {record.late_minutes} minutes" if record.is_late else "    On time")
     
     # Print departments and designations
     print_separator("DEPARTMENTS AND DESIGNATIONS")
@@ -119,12 +119,12 @@ def main():
     try:
         accountant_user = CustomUser.objects.get(username='sejalmisal')
         print(f"Accountant: {accountant_user.get_full_name()}")
-        print(f"Can access all offices: ✅")
-        print(f"Can view all users: ✅")
-        print(f"Can view all attendance: ✅")
-        print(f"Can update own profile: ✅")
-        print(f"Can create/edit users: ❌ (Read-only)")
-        print(f"Can create/edit attendance: ❌ (Read-only)")
+        print(f"Can access all offices: ")
+        print(f"Can view all users: ")
+        print(f"Can view all attendance: ")
+        print(f"Can update own profile: ")
+        print(f"Can create/edit users:  (Read-only)")
+        print(f"Can create/edit attendance:  (Read-only)")
         
         # Show accountant's own attendance
         accountant_attendance = Attendance.objects.filter(user=accountant_user).order_by('-date')[:5]
@@ -133,7 +133,7 @@ def main():
             print(f"   📅 {record.date}: {record.status} ({record.total_hours or 0} hours)")
             
     except CustomUser.DoesNotExist:
-        print("❌ Accountant user not found!")
+        print(" Accountant user not found!")
     
     print_separator("SYSTEM INFORMATION")
     print(f"Django Version: {django.get_version()}")

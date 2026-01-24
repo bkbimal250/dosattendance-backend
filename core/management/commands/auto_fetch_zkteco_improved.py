@@ -59,7 +59,7 @@ class ImprovedAutoFetchService:
             logger.warning("Service is already running")
             return
             
-        logger.info("🚀 Starting improved automatic ZKTeco data fetching service...")
+        logger.info(" Starting improved automatic ZKTeco data fetching service...")
         self.running = True
         
         # Get all active ZKTeco devices

@@ -6,18 +6,18 @@ This guide helps you deploy the push data reception functionality to your Ubuntu
 ## Step 1: Prepare Files for GitHub
 
 ### Files to Commit to GitHub:
-1. ✅ `core/push_views.py` - Push data reception views
-2. ✅ `core/urls.py` - Updated with push endpoints
-3. ✅ `apache2_push_virtualhost.conf` - Apache2 configuration
-4. ✅ `deploy_from_github.sh` - Deployment script
-5. ✅ `requirements.txt` - Updated dependencies
-6. ✅ `PUSH_DEPLOYMENT_CHECKLIST.md` - Deployment checklist
+1.  `core/push_views.py` - Push data reception views
+2.  `core/urls.py` - Updated with push endpoints
+3.  `apache2_push_virtualhost.conf` - Apache2 configuration
+4.  `deploy_from_github.sh` - Deployment script
+5.  `requirements.txt` - Updated dependencies
+6.  `PUSH_DEPLOYMENT_CHECKLIST.md` - Deployment checklist
 
 ### Files Already in Your Project:
-- ✅ `attendance_system/settings.py`
-- ✅ `core/models.py`
-- ✅ `core/views.py`
-- ✅ All other existing files
+-  `attendance_system/settings.py`
+-  `core/models.py`
+-  `core/views.py`
+-  All other existing files
 
 ## Step 2: Push to GitHub
 

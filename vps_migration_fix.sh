@@ -23,5 +23,5 @@ python manage.py migrate core 0008
 echo "4️⃣ Checking final migration status..."
 python manage.py showmigrations core
 
-echo "✅ Migration fix completed!"
+echo " Migration fix completed!"
 echo "You can now run: python manage.py runserver 8002"

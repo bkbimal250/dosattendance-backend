@@ -1,4 +1,4 @@
-go"""
+"""
 Email Service for sending notification emails
 """
 from django.core.mail import send_mail, EmailMultiAlternatives

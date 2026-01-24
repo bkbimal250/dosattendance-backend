@@ -7,7 +7,7 @@ echo "🔧 Setting up Apache2 Push Server for ZKTeco devices..."
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
-    echo "❌ Please run as root (use sudo)"
+    echo " Please run as root (use sudo)"
     exit 1
 fi
 
@@ -37,9 +37,9 @@ a2dissite 000-default.conf
 # Test configuration
 echo "🧪 Testing Apache2 configuration..."
 if apache2ctl configtest; then
-    echo "✅ Apache2 configuration is valid"
+    echo " Apache2 configuration is valid"
 else
-    echo "❌ Apache2 configuration has errors"
+    echo " Apache2 configuration has errors"
     exit 1
 fi
 
@@ -52,20 +52,20 @@ echo "📊 Checking Apache2 status..."
 systemctl status apache2 --no-pager
 
 # Check if ports are listening
-echo "🔍 Checking if ports are listening..."
+echo "Checking if ports are listening..."
 echo "Port 80 (HTTP):"
-netstat -tlnp | grep :80 || echo "❌ Port 80 not listening"
+netstat -tlnp | grep :80 || echo " Port 80 not listening"
 
 echo "Port 8081 (Push):"
-netstat -tlnp | grep :8081 || echo "❌ Port 8081 not listening"
+netstat -tlnp | grep :8081 || echo " Port 8081 not listening"
 
 # Test endpoints
 echo "🧪 Testing endpoints..."
 echo "Testing main website (port 80):"
-curl -s -o /dev/null -w "%{http_code}" http://localhost/ && echo " ✅" || echo " ❌"
+curl -s -o /dev/null -w "%{http_code}" http://localhost/ && echo " " || echo " "
 
 echo "Testing push endpoint (port 8081):"
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/api/device/push-attendance/ && echo " ✅" || echo " ❌"
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/api/device/push-attendance/ && echo " " || echo " "
 
 echo ""
 echo "🎉 Apache2 Push Server setup completed!"

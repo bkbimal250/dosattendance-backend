@@ -109,7 +109,7 @@ class AutoAttendanceService:
                 try:
                     if hasattr(conn, 'disconnect'):
                         conn.disconnect()
-                    logger.info(f"✅ Disconnected from device {device_id}")
+                    logger.info(f"Disconnected from device {device_id}")
                 except Exception as e:
                     logger.warning(f"Error disconnecting from device {device_id}: {str(e)}")
                 finally:
@@ -407,7 +407,7 @@ class AutoAttendanceService:
                 logger.error(f"Error processing ESSL attendance record: {str(e)}")
                 
         self.stats['total_records'] += new_records
-        logger.info(f"✅ Processed {new_records} new ESSL records from {device.name}")
+        logger.info(f"Processed {new_records} new ESSL records from {device.name}")
         
     def _save_essl_attendance(self, device, record):
         """Save ESSL attendance record to database with proper check-in/check-out logic"""
@@ -447,7 +447,7 @@ class AutoAttendanceService:
             
             if created:
                 # First scan of the day - this is the check-in
-                logger.info(f"✅ FIRST SCAN (ESSL): Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                logger.info(f"FIRST SCAN (ESSL): Check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
             else:
                 # Subsequent scans - determine if this should update check-in or check-out
                 # FIXED LOGIC: Only process if we have a valid check-in time
@@ -472,7 +472,7 @@ class AutoAttendanceService:
                         if not attendance.check_out_time:
                             attendance.check_out_time = timestamp
                             attendance.save()
-                            logger.info(f"✅ LAST SCAN (ESSL): Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
+                            logger.info(f"LAST SCAN (ESSL): Check-out for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')}")
                         else:
                             # Make existing checkout time timezone-aware for comparison
                             existing_checkout = attendance.check_out_time
@@ -492,7 +492,7 @@ class AutoAttendanceService:
                     attendance.check_in_time = timestamp
                     attendance.status = 'present'
                     attendance.save()
-                    logger.info(f"✅ FIXED (ESSL): Set check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')} (was missing check-in)")
+                    logger.info(f"FIXED (ESSL): Set check-in for {user.get_full_name()} at {timestamp.strftime('%H:%M:%S')} (was missing check-in)")
                         
             return True
                 
@@ -585,7 +585,7 @@ class Command(BaseCommand):
         try:
             auto_attendance_service.stop()
             self.stdout.write(
-                self.style.SUCCESS('✅ Automatic attendance fetching service stopped')
+                self.style.SUCCESS('Automatic attendance fetching service stopped')
             )
         except Exception as e:
             logger.error(f"Error stopping service: {str(e)}")
@@ -597,7 +597,7 @@ class Command(BaseCommand):
         
         self.stdout.write("📊 Automatic Attendance Fetching Service Status")
         self.stdout.write("=" * 50)
-        self.stdout.write(f"Running: {'✅ Yes' if auto_attendance_service.running else '❌ No'}")
+        self.stdout.write(f"Running: {'Yes' if auto_attendance_service.running else 'No'}")
         self.stdout.write(f"Interval: {auto_attendance_service.interval} seconds")
         self.stdout.write(f"Total Fetches: {stats['total_fetches']}")
         self.stdout.write(f"Total Records: {stats['total_records']}")

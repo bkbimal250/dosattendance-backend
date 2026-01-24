@@ -3,7 +3,7 @@
 # Complete Ubuntu Server Setup for PostgreSQL
 # Run this script on your Ubuntu server (82.25.109.137)
 
-echo "🚀 Complete Ubuntu Server Setup for PostgreSQL"
+echo " Complete Ubuntu Server Setup for PostgreSQL"
 echo "=============================================="
 echo "⚠️  This script will configure PostgreSQL for remote access"
 echo ""
@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN} $1${NC}"
 }
 
 print_warning() {
@@ -25,7 +25,7 @@ print_warning() {
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED} $1${NC}"
 }
 
 print_info() {

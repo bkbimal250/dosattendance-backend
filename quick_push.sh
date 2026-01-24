@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Quick script to push salary changes to GitHub
-echo "🚀 Pushing salary changes to GitHub..."
+echo " Pushing salary changes to GitHub..."
 
 # Add only the modified/new files
 git add core/models.py core/serializers.py core/urls.py
@@ -15,12 +15,12 @@ git commit -m "Add salary management system with auto-calculation"
 # Push
 git push origin main
 
-echo "✅ Pushed to GitHub!"
+echo " Pushed to GitHub!"
 echo "📋 Files:"
 git show --name-only --pretty=format: HEAD
 
 echo ""
-echo "🚀 On VPS:"
+echo " On VPS:"
 echo "git pull origin main"
 echo "python manage.py migrate core"
 echo "sudo systemctl restart apache2"

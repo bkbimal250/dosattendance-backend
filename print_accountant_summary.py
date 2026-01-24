@@ -33,7 +33,7 @@ def main():
         print(f"   Email: {accountant.email}")
         print(f"   Active: {accountant.is_active}")
     except CustomUser.DoesNotExist:
-        print("❌ Accountant not found!")
+        print(" Accountant not found!")
         return
     
     # Show all offices the accountant can access
@@ -98,7 +98,7 @@ def main():
     
     print(f"Accountant's attendance (last 7 days): {accountant_attendance.count()} records")
     for record in accountant_attendance:
-        status_emoji = "✅" if record.status == 'present' else "❌"
+        status_emoji = "" if record.status == 'present' else ""
         hours = f"({record.total_hours}h)" if record.total_hours else ""
         print(f"   {status_emoji} {record.date}: {record.status} {hours}")
     
@@ -113,13 +113,13 @@ def main():
     
     # Show permissions summary
     print_separator("ACCOUNTANT PERMISSIONS")
-    print("✅ Can view all users from all offices")
-    print("✅ Can view all attendance records")
-    print("✅ Can view all offices")
-    print("✅ Can update own profile")
-    print("❌ Cannot create/edit users (Read-only)")
-    print("❌ Cannot create/edit attendance (Read-only)")
-    print("❌ Cannot create/edit offices (Read-only)")
+    print(" Can view all users from all offices")
+    print(" Can view all attendance records")
+    print(" Can view all offices")
+    print(" Can update own profile")
+    print(" Cannot create/edit users (Read-only)")
+    print(" Cannot create/edit attendance (Read-only)")
+    print(" Cannot create/edit offices (Read-only)")
     
     print_separator("END OF SUMMARY")
 

@@ -1,6 +1,6 @@
 # Employee Attendance System - Apache2 VPS Deployment Guide
 
-## 🚀 Complete VPS Deployment Guide for Ubuntu Server
+##  Complete VPS Deployment Guide for Ubuntu Server
 
 ### Prerequisites
 - Ubuntu 20.04+ VPS with root/sudo access
@@ -12,7 +12,7 @@
 
 ## 📋 Pre-Deployment Checklist
 
-### ✅ Project Status
+###  Project Status
 - [x] **WeasyPrint Only**: PDF generation configured for Ubuntu
 - [x] **ReportLab Removed**: Clean WeasyPrint-only implementation
 - [x] **Auto Attendance Service**: Background service for device fetching
@@ -22,7 +22,7 @@
 - [x] **Role-based Access**: Admin, Manager, Employee roles
 - [x] **Multi-office Support**: Office-based data filtering
 
-### ✅ Security Features
+###  Security Features
 - [x] JWT Authentication
 - [x] CORS Configuration
 - [x] Security Headers
@@ -394,7 +394,7 @@ sudo nano /etc/logrotate.d/attendance
 
 ---
 
-## ✅ Step 11: Final Verification
+##  Step 11: Final Verification
 
 ### 11.1 Test Django Application
 ```bash
@@ -406,8 +406,8 @@ sudo -u www-data /var/www/EmployeeAttandance/venv/bin/python manage.py check --d
 ```bash
 sudo -u www-data /var/www/EmployeeAttandance/venv/bin/python -c "
 import weasyprint
-print('✅ WeasyPrint version:', weasyprint.__version__)
-print('✅ WeasyPrint is working correctly!')
+print(' WeasyPrint version:', weasyprint.__version__)
+print(' WeasyPrint is working correctly!')
 "
 ```
 
@@ -429,7 +429,7 @@ sudo tail -f /var/log/attendance/django.log
 
 ---
 
-## 🚀 Step 12: Frontend Deployment
+##  Step 12: Frontend Deployment
 
 ### 12.1 Build Frontend
 ```bash
@@ -449,7 +449,7 @@ const API_BASE_URL = 'https://your-domain.com/api';
 
 ## 📋 Post-Deployment Checklist
 
-### ✅ Application Tests
+###  Application Tests
 - [ ] Django admin accessible
 - [ ] API endpoints responding
 - [ ] User authentication working
@@ -460,14 +460,14 @@ const API_BASE_URL = 'https://your-domain.com/api';
 - [ ] Static files serving correctly
 - [ ] Media files accessible
 
-### ✅ Security Tests
+###  Security Tests
 - [ ] HTTPS redirect working
 - [ ] Security headers present
 - [ ] CORS configured correctly
 - [ ] Environment variables secure
 - [ ] Database connections encrypted
 
-### ✅ Performance Tests
+###  Performance Tests
 - [ ] Page load times acceptable
 - [ ] Database queries optimized
 - [ ] Static files cached
@@ -528,11 +528,11 @@ If you encounter any issues during deployment:
 ## 🎉 Deployment Complete!
 
 Your Employee Attendance System is now deployed on Apache2 VPS with:
-- ✅ WeasyPrint PDF generation
-- ✅ Auto attendance fetching
-- ✅ Push data reception
-- ✅ WebSocket support
-- ✅ SSL security
-- ✅ Production optimizations
+-  WeasyPrint PDF generation
+-  Auto attendance fetching
+-  Push data reception
+-  WebSocket support
+-  SSL security
+-  Production optimizations
 
 Access your application at: `https://your-domain.com`

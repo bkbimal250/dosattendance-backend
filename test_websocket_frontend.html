@@ -89,7 +89,7 @@
 
         <h3>Test Results:</h3>
         <div id="results">
-            <p>✅ <strong>WebSocket URL:</strong> wss://company.d0s369.co.in/ws/attendance/</p>
+            <p> <strong>WebSocket URL:</strong> wss://company.d0s369.co.in/ws/attendance/</p>
             <p>⏳ <strong>Connection Status:</strong> <span id="connectionStatus">Not tested</span></p>
             <p>⏳ <strong>Message Exchange:</strong> <span id="messageStatus">Not tested</span></p>
             <p>⏳ <strong>Server Response:</strong> <span id="serverStatus">Not tested</span></p>
@@ -140,10 +140,10 @@
                 
                 socket.onopen = function(event) {
                     isConnected = true;
-                    updateStatus('✅ Connected Successfully!', 'connected');
+                    updateStatus(' Connected Successfully!', 'connected');
                     updateButtons();
-                    log('✅ WebSocket connection established!', 'success');
-                    document.getElementById('connectionStatus').textContent = '✅ Connected';
+                    log(' WebSocket connection established!', 'success');
+                    document.getElementById('connectionStatus').textContent = ' Connected';
                     
                     // Send initial ping to test communication
                     setTimeout(() => {
@@ -160,10 +160,10 @@
                         log(`📋 Parsed data: ${JSON.stringify(data, null, 2)}`);
                         
                         if (data.type === 'connection_established') {
-                            document.getElementById('serverStatus').textContent = '✅ Server responding';
+                            document.getElementById('serverStatus').textContent = ' Server responding';
                             log('🎉 Server confirmed connection!', 'success');
                         } else if (data.type === 'pong') {
-                            document.getElementById('messageStatus').textContent = '✅ Ping-Pong working';
+                            document.getElementById('messageStatus').textContent = ' Ping-Pong working';
                             log('🏓 Ping-Pong successful!', 'success');
                         } else if (data.type === 'latest_attendance') {
                             log(`📊 Latest attendance data: ${data.data ? data.data.length : 0} records`);
@@ -175,24 +175,24 @@
 
                 socket.onclose = function(event) {
                     isConnected = false;
-                    updateStatus(`❌ Connection closed (Code: ${event.code})`, 'disconnected');
+                    updateStatus(` Connection closed (Code: ${event.code})`, 'disconnected');
                     updateButtons();
-                    log(`❌ WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`, 'error');
-                    document.getElementById('connectionStatus').textContent = '❌ Disconnected';
+                    log(` WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason || 'No reason provided'}`, 'error');
+                    document.getElementById('connectionStatus').textContent = ' Disconnected';
                 };
 
                 socket.onerror = function(error) {
                     isConnected = false;
-                    updateStatus('❌ Connection Error', 'error');
+                    updateStatus(' Connection Error', 'error');
                     updateButtons();
-                    log('❌ WebSocket connection error!', 'error');
-                    document.getElementById('connectionStatus').textContent = '❌ Error';
+                    log(' WebSocket connection error!', 'error');
+                    document.getElementById('connectionStatus').textContent = ' Error';
                     console.error('WebSocket error:', error);
                 };
 
             } catch (error) {
-                log(`❌ Failed to create WebSocket: ${error.message}`, 'error');
-                updateStatus('❌ Connection Failed', 'error');
+                log(` Failed to create WebSocket: ${error.message}`, 'error');
+                updateStatus(' Connection Failed', 'error');
                 updateButtons();
             }
         }
@@ -214,7 +214,7 @@
                 socket.send(JSON.stringify(pingMessage));
                 log(`🏓 Ping sent: ${JSON.stringify(pingMessage)}`);
             } else {
-                log('❌ Cannot send ping - not connected', 'error');
+                log(' Cannot send ping - not connected', 'error');
             }
         }
 
@@ -226,7 +226,7 @@
                 socket.send(JSON.stringify(latestMessage));
                 log(`📊 Latest data request sent: ${JSON.stringify(latestMessage)}`);
             } else {
-                log('❌ Cannot request latest data - not connected', 'error');
+                log(' Cannot request latest data - not connected', 'error');
             }
         }
 
@@ -237,7 +237,7 @@
 
         // Auto-connect on page load
         window.onload = function() {
-            log('🚀 WebSocket test page loaded');
+            log(' WebSocket test page loaded');
             log('💡 Click "Connect" to test the WebSocket connection');
         };
 

@@ -3,7 +3,7 @@
 # Script to add only recent salary system changes and push to GitHub
 # This will only commit the files we modified/created for the salary system
 
-echo "🚀 Adding and pushing only recent salary system changes..."
+echo " Adding and pushing only recent salary system changes..."
 echo "========================================================"
 
 # Step 1: Add only the specific files we created/modified for salary system
@@ -21,7 +21,7 @@ git add core/permissions.py
 # Migration files (if they exist)
 if [ -f "core/migrations/0004_add_salary_models.py" ]; then
     git add core/migrations/0004_add_salary_models.py
-    echo "   ✅ Added migration file"
+    echo "    Added migration file"
 fi
 
 # Deployment scripts
@@ -72,19 +72,19 @@ echo "4. Pushing to GitHub..."
 git push origin main
 
 echo ""
-echo "✅ SUCCESS! Salary system changes pushed to GitHub!"
+echo " SUCCESS! Salary system changes pushed to GitHub!"
 echo ""
 echo "📋 What was pushed:"
-echo "✅ core/models.py (updated with Salary models)"
-echo "✅ core/serializers.py (updated with Salary serializers)"
-echo "✅ core/salary_views.py (new salary views)"
-echo "✅ core/permissions.py (new permissions)"
-echo "✅ core/urls.py (updated with Salary URLs)"
-echo "✅ Migration files (new)"
-echo "✅ Deployment scripts"
-echo "✅ Documentation"
+echo " core/models.py (updated with Salary models)"
+echo " core/serializers.py (updated with Salary serializers)"
+echo " core/salary_views.py (new salary views)"
+echo " core/permissions.py (new permissions)"
+echo " core/urls.py (updated with Salary URLs)"
+echo " Migration files (new)"
+echo " Deployment scripts"
+echo " Documentation"
 echo ""
-echo "🚀 Next step: Pull changes on VPS server"
+echo " Next step: Pull changes on VPS server"
 echo "   git pull origin main"
 echo "   python manage.py migrate core"
 echo "   sudo systemctl restart apache2"

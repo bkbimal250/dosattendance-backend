@@ -27,9 +27,9 @@ files=(
 
 for file in "${files[@]}"; do
     if [ -f "$file" ]; then
-        echo "✅ $file exists"
+        echo " $file exists"
     else
-        echo "❌ $file not found"
+        echo " $file not found"
         exit 1
     fi
 done

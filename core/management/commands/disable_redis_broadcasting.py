@@ -45,13 +45,13 @@ class Command(BaseCommand):
         try:
             post_save.disconnect(attendance_saved, sender=Attendance)
             self.stdout.write(
-                self.style.SUCCESS("✅ Redis broadcasting disabled"
+                self.style.SUCCESS("Redis broadcasting disabled")
             )
             self.stdout.write("   Attendance updates will not be broadcast via WebSocket")
             self.stdout.write("   This prevents Redis connection errors during bulk operations")
         except Exception as e:
             self.stdout.write(
-                self.style.WARNING(f"⚠️  Broadcasting may already be disabled: {str(e)}")
+                self.style.WARNING(f" Broadcasting may already be disabled: {str(e)}")
             )
     
     def enable_broadcasting(self):
@@ -59,12 +59,12 @@ class Command(BaseCommand):
         try:
             post_save.connect(attendance_saved, sender=Attendance)
             self.stdout.write(
-                self.style.SUCCESS("✅ Redis broadcasting enabled"
+                self.style.SUCCESS("Redis broadcasting enabled")
             )
             self.stdout.write("   Attendance updates will be broadcast via WebSocket")
         except Exception as e:
             self.stdout.write(
-                self.style.WARNING(f"⚠️  Broadcasting may already be enabled: {str(e)}")
+                self.style.WARNING(f"  Broadcasting may already be enabled: {str(e)}")
             )
     
     def show_status(self):
@@ -76,10 +76,10 @@ class Command(BaseCommand):
         )
         
         if is_connected:
-            self.stdout.write("📡 Redis broadcasting: ENABLED")
+            self.stdout.write("Redis broadcasting: ENABLED")
             self.stdout.write("   Attendance updates will be broadcast via WebSocket")
         else:
-            self.stdout.write("📡 Redis broadcasting: DISABLED")
+            self.stdout.write("Redis broadcasting: DISABLED")
             self.stdout.write("   Attendance updates will NOT be broadcast via WebSocket")
         
         self.stdout.write("\nCommands:")

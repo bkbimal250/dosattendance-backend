@@ -3,7 +3,7 @@
 # Quick deployment script for salary system
 # Only handles the salary-related changes
 
-echo "🚀 Quick Salary System Deployment"
+echo " Quick Salary System Deployment"
 echo "================================="
 
 # Step 1: Deploy salary system
@@ -20,7 +20,7 @@ echo "3. Files ready for commit:"
 git status --porcelain
 
 echo ""
-echo "✅ Ready to commit and push!"
+echo " Ready to commit and push!"
 echo ""
 echo "Next commands:"
 echo "git commit -m 'Add salary management system with auto-calculation'"

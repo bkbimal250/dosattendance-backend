@@ -34,7 +34,7 @@ fi
 echo "📋 Files staged for commit:"
 git status --porcelain
 
-echo "✅ Only salary system files added to git!"
+echo " Only salary system files added to git!"
 echo ""
 echo "Next steps:"
 echo "1. git commit -m 'Add comprehensive salary management system'"

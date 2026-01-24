@@ -195,7 +195,7 @@ curl -X GET http://localhost:8000/api/users/
 redis-cli ping
 ```
 
-### **🔍 Monitoring & Maintenance**
+### **Monitoring & Maintenance**
 ```bash
 # Check Apache logs
 sudo tail -f /var/log/apache2/error.log
@@ -244,7 +244,7 @@ sudo chmod -R 755 /var/www/EmployeeAttendance
 
 ---
 
-## ✅ **Final Verification**
+##  **Final Verification**
 
 After completing all configurations:
 
@@ -257,4 +257,4 @@ After completing all configurations:
 7. **PDF Generation:** Test document generation
 8. **Database:** All migrations applied
 
-**Your VPS should be fully configured and ready for production!** 🚀
+**Your VPS should be fully configured and ready for production!** 

@@ -178,6 +178,8 @@ logs/
 
 # Media files (user uploads)
 media/
+core/migrations/
+core/migrations/*
 
 # Database files
 db.sqlite3

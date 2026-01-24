@@ -39,12 +39,12 @@ python manage.py showmigrations core
 echo "6. Testing salary system..."
 python -c "
 from core.models import Salary, SalaryTemplate
-print('✅ Salary models imported successfully')
+print(' Salary models imported successfully')
 print(f'Salary model fields: {[f.name for f in Salary._meta.fields]}')
 print(f'SalaryTemplate model fields: {[f.name for f in SalaryTemplate._meta.fields]}')
 "
 
-echo "✅ Salary system deployment fix completed!"
+echo " Salary system deployment fix completed!"
 
 # Restart Apache
 echo "7. Restarting Apache..."
