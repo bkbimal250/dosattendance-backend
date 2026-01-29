@@ -999,7 +999,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_offer_letter_template(self):
-        """Professional offer letter template"""
+        """Professional offer letter template with signature and stamp"""
         return """
         <!DOCTYPE html>
         <html>
@@ -1120,11 +1120,38 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     margin-top: 25px; 
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-end;
+                    align-items: flex-start;
+                    position: relative;
                 }
                 
                 .signature-left {
                     flex: 1;
+                    position: relative;
+                }
+                
+                .signature-container {
+                    position: relative;
+                    margin-top: 10px;
+                }
+                
+                .signature-image {
+                    max-width: 180px;
+                    height: auto;
+                    display: block;
+                }
+                
+                .stamp-image {
+                    position: absolute;
+                    max-width: 120px;
+                    height: auto;
+                    opacity: 0.9;
+                    left: 140px;
+                    top: -20px;
+                }
+                
+                .manager-name {
+                    margin-top: 5px;
+                    font-weight: bold;
                 }
                 
                 .signature-right {
@@ -1200,8 +1227,17 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 <div class="signature">
                     <div class="signature-left">
                     <p>Sincerely,</p>
-                        <br><br>
-                    <p>Manager<br>Disha Online Solutions</p>
+                        
+                        <div class="signature-container">
+                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" 
+                                alt="Signature" class="signature-image">
+                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" 
+                                alt="Company Stamp" class="stamp-image">
+                        </div>
+                        
+                        <div class="manager-name">
+                            <p>Manager<br>Disha Online Solutions</p>
+                        </div>
                 </div>
                     <div class="signature-right">
                         <p class="employee-name">{{ employee_name }}</p>
@@ -1218,9 +1254,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </html>
         """
     
-    
     def get_salary_increment_template(self):
-        """Professional salary increment template"""
+        """Professional salary increment template with signature and stamp"""
         return """
         <!DOCTYPE html>
         <html>
@@ -1372,11 +1407,38 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     margin-top: 25px; 
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-end;
+                    align-items: flex-start;
+                    position: relative;
                 }
                 
                 .signature-left {
                     flex: 1;
+                    position: relative;
+                }
+                
+                .signature-container {
+                    position: relative;
+                    margin-top: 10px;
+                }
+                
+                .signature-image {
+                    max-width: 180px;
+                    height: auto;
+                    display: block;
+                }
+                
+                .stamp-image {
+                    position: absolute;
+                    max-width: 120px;
+                    height: auto;
+                    opacity: 0.9;
+                    left: 140px;
+                    top: -20px;
+                }
+                
+                .manager-name {
+                    margin-top: 5px;
+                    font-weight: bold;
                 }
                 
                 .signature-right {
@@ -1444,15 +1506,15 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     <div class="salary-details">
                         <h3>Salary Increment Details</h3>
                         <div class="salary-row">
-                            <span class="salary-label">Previous Annual Salary:</span>
+                            <span class="salary-label">Previous Monthly Salary:</span>
                             <span class="salary-value">{{ previous_salary }}</span>
                         </div>
                         <div class="salary-row">
-                            <span class="salary-label">Increment Percentage:</span>
-                            <span class="salary-value">{{ increment_percentage }}</span>
+                            <span class="salary-label">Increment Amount:</span>
+                            <span class="salary-value">{{ increment_amount }}</span>
                         </div>
                         <div class="salary-row">
-                            <span class="salary-label">New Annual Salary:</span>
+                            <span class="salary-label">New Monthly Salary:</span>
                             <span class="salary-value">{{ new_salary }}</span>
                         </div>
                         <div class="salary-row">
@@ -1475,8 +1537,17 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 <div class="signature">
                     <div class="signature-left">
                     <p>Best regards,</p>
-                        <br><br>
-                    <p>Manager<br>Disha Online Solutions</p>
+                        
+                        <div class="signature-container">
+                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" 
+                                alt="Signature" class="signature-image">
+                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" 
+                                alt="Company Stamp" class="stamp-image">
+                        </div>
+                        
+                        <div class="manager-name">
+                            <p>Manager<br>Disha Online Solutions</p>
+                        </div>
                 </div>
                     <div class="signature-right">
                         <p class="employee-name">{{ employee_name }}</p>
@@ -1492,7 +1563,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </body>
         </html>
         """
-    
+
+
+
     def get_salary_slip_template(self):
         """Professional salary slip template with comprehensive fields"""
         return """
@@ -2056,22 +2129,63 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         elif document_type == 'salary_increment':
             template_content = self.get_salary_increment_template()
             
-            # Calculate increment percentage
-            previous_salary = float(data.get('previous_salary', 0))
-            new_salary = float(data.get('new_salary', 0))
-            increment_percentage = ((new_salary - previous_salary) / previous_salary * 100) if previous_salary > 0 else 0
+            # Try to get increment record for auto-fetching data
+            increment_record = None
+            
+            # Option 1: Use provided increment_id
+            if 'increment_id' in data and data['increment_id']:
+                from coreapp.models import SalaryIncrement
+                try:
+                    increment_record = SalaryIncrement.objects.get(
+                        id=data['increment_id'],
+                        employee=employee
+                    )
+                    logger.info(f"Found increment record by ID: {increment_record.id}")
+                except SalaryIncrement.DoesNotExist:
+                    logger.warning(f"Increment record not found for ID: {data['increment_id']}")
+            
+            # Option 2: Get latest approved increment if no increment_id provided
+            if not increment_record:
+                from coreapp.models import SalaryIncrement
+                increment_record = SalaryIncrement.objects.filter(
+                    employee=employee,
+                    status='approved'
+                ).order_by('-effective_from').first()
+                if increment_record:
+                    logger.info(f"Using latest approved increment record: {increment_record.id}")
+            
+            # Use increment record data if available, otherwise fall back to manual data
+            # Use increment record data if available, otherwise fall back to manual data
+            if increment_record:
+                previous_salary = float(increment_record.old_salary or 0)
+                new_salary = float(increment_record.new_salary or 0)
+                increment_amount = float(increment_record.increment_amount or 0)
+                increment_percentage = float(increment_record.increment_percentage or 0)
+                effective_date = increment_record.effective_from
+                logger.info(f"Auto-fetched increment data: old={previous_salary}, new={new_salary}, amount={increment_amount}")
+            else:
+                # Fall back to manual data from request
+                previous_salary = float(data.get('previous_salary', 0))
+                new_salary = float(data.get('new_salary', 0))
+                increment_amount = new_salary - previous_salary
+                increment_percentage = ((new_salary - previous_salary) / previous_salary * 100) if previous_salary > 0 else 0
+                effective_date = data.get('effective_date', '')
+                logger.info(f"Using manual increment data: old={previous_salary}, new={new_salary}, amount={increment_amount}")
             
             # Format effective date
-            effective_date_str = data.get('effective_date', '')
-            if effective_date_str:
+            if effective_date:
                 try:
-                    effective_date_obj = parse_date(effective_date_str)
+                    if isinstance(effective_date, str):
+                        effective_date_obj = parse_date(effective_date)
+                    else:
+                        effective_date_obj = effective_date
+                    
                     if effective_date_obj:
                         effective_date_formatted = effective_date_obj.strftime('%d-%m-%Y')
                     else:
-                        effective_date_formatted = effective_date_str
+                        effective_date_formatted = str(effective_date)
                 except:
-                    effective_date_formatted = effective_date_str
+                    effective_date_formatted = str(effective_date)
             else:
                 effective_date_formatted = ''
             
@@ -2079,8 +2193,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 'employee_name': employee.get_full_name(),
                 'employee_id': employee.employee_id if employee.employee_id else str(employee.id)[:8].upper(),
                 'employee_designation': employee.designation or 'Employee',
-                'previous_salary': self.format_currency(data.get('previous_salary')),
-                'new_salary': self.format_currency(data.get('new_salary')),
+                'previous_salary': self.format_currency(previous_salary),
+                'new_salary': self.format_currency(new_salary),
+                'increment_amount': self.format_currency(increment_amount),
                 'increment_percentage': f"{increment_percentage:.0f}%",
                 'effective_date': effective_date_formatted,
                 'logo_url': self.get_logo_url(),
