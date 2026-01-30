@@ -1255,12 +1255,13 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def get_salary_increment_template(self):
-        """Professional salary increment template with fixed signature & stamp"""
+        """Professional salary increment template with absolute signature & stamp"""
         return """
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
+
         <style>
             @page {
                 size: A4;
@@ -1272,22 +1273,28 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             }
 
             body {
-                font-family: Arial, Helvetica, sans-serif;
                 margin: 0;
                 padding: 0;
+                background: #eaeaea;
+                font-family: Arial, Helvetica, sans-serif;
                 font-size: 10pt;
                 line-height: 1.3;
                 color: #000;
-                background: #fff;
             }
 
             img {
+                max-width: 100%;
                 page-break-inside: avoid;
-                break-inside: avoid;
             }
 
+            /* ---------- A4 PAGE ---------- */
             .page {
-                width: 100%;
+                width: 794px;
+                min-height: 1123px;
+                margin: 20px auto;
+                padding: 72px;
+                background: #ffffff;
+                box-shadow: 0 0 12px rgba(0,0,0,0.15);
             }
 
             /* ---------- HEADER ---------- */
@@ -1311,7 +1318,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
             .company-address {
                 font-size: 8pt;
-                margin-top: 2px;
             }
 
             /* ---------- TITLE ---------- */
@@ -1386,42 +1392,51 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 background: #f8f8f8;
                 padding: 8px;
                 margin: 10px 0;
+                font-size: 9pt;
             }
 
-            /* ---------- SIGNATURE (FIXED) ---------- */
+            /* ---------- SIGNATURE ---------- */
             .no-page-break {
                 page-break-inside: avoid;
-                break-inside: avoid;
             }
 
             .signature {
-                margin-top: 15px;
+                margin-top: 5px;
                 display: flex;
                 justify-content: space-between;
-                align-items: flex-start;
             }
 
             .signature-left {
-                position: relative;
                 width: 60%;
                 font-size: 9pt;
             }
 
-            .signature-image {
-                max-width: 140px;
-                display: block;
+            /* RELATIVE HOLDER */
+            .signature-box {
+                position: relative;
+                height: 120px;
+                margin-top: 4px;
             }
 
+            /* SIGNATURE IMAGE */
+            .signature-image {
+                position: absolute;
+                top: -25px;
+                left: 0;
+                max-width: 140px;
+            }
+
+            /* STAMP IMAGE BELOW SIGNATURE */
             .stamp-image {
                 position: absolute;
-                max-width: 114px;
-                opacity: 0.85;
-                left: 14px;
-                top: -77px;
+                top: 70px;
+                left: 20px;
+                max-width: 120px;
+                
             }
 
             .manager-name {
-                margin-top: 4px;
+                margin-top: 6px;
                 font-weight: bold;
             }
 
@@ -1443,7 +1458,6 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 border-top: 1px solid #000;
                 padding-top: 6px;
             }
-
         </style>
     </head>
 
@@ -1452,7 +1466,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
         <div class="header">
             <img src="{{ logo_url }}" class="company-logo">
-            <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+            <div class="company-name">DISHA ONLINE SOLUTION</div>
             <div class="company-address">
                 Bhumiraj Costarica, 9th Floor Office No-907, Plot No-1 & 2,<br>
                 Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
@@ -1500,32 +1514,29 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             </div>
 
             <div class="appreciation">
-                This increment reflects our appreciation for your dedication and
-                continued commitment to excellence.
+                This increment reflects our appreciation for your dedication and continued
+                commitment to excellence.
             </div>
 
             <p>
-                We look forward to your continued success and contribution to the
-                organization.
+                We look forward to your continued success and contribution to the organization.
             </p>
         </div>
 
-        <!-- FIXED SIGNATURE + FOOTER -->
+        <!-- SIGNATURE + STAMP -->
         <div class="no-page-break">
             <div class="signature">
                 <div class="signature-left">
                     <p>Best regards,</p>
 
-                    <div style="position: relative; margin-top: 6px;">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png"
-                            class="signature-image">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png"
-                            class="stamp-image">
+                    <div class="signature-block">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" class="signature-image">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" class="stamp-image">
                     </div>
 
                     <div class="manager-name">
-                        Manager<br>
-                        Disha Online Solutions
+                    Manager<br>
+                        <strong>Disha Online Solution</strong>
                     </div>
                 </div>
 
@@ -1535,7 +1546,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             </div>
 
             <div class="footer">
-                This is a computer-generated document and does not require a signature.
+                This is a computer-generated document and does not require a physical signature.
             </div>
         </div>
 
@@ -1543,6 +1554,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     </body>
     </html>
     """
+
 
 
 
