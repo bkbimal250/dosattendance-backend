@@ -1468,7 +1468,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
         <div class="letter-info">
             <p><strong>To:</strong> {{ employee_name }} ({{ employee_designation }})</p>
-            <p><strong>Subject:</strong> Salary Increment Notification</p>
+            <p><strong>Subject:</strong> Salary Increment</p>
         </div>
 
         <div class="content">
