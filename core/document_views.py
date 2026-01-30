@@ -1256,10 +1256,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     
     
 
-
     def get_salary_increment_template(self):
-        """Professional salary increment template with absolute signature & stamp"""
-        return """
+            """Professional salary increment template with absolute signature & stamp"""
+            return """
         <!DOCTYPE html>
         <html>
         <head>
@@ -1377,21 +1376,20 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
         .signature-image {
             position: absolute;
-            top: 0px;
+            top: -30px;
             left: 0px;
-            max-width: 140px;
+            max-width: 120px;
         }
 
         .stamp-image {
             position: absolute;
-            top: 95px;  /* Below signature */
-            left: 18px;
+            top: -22px;  /* Below signature */
+            left: -7px;
             max-width: 115px;
-            opacity: 0.85;
         }
 
         .manager-name {
-            margin-top: 115px;
+            margin-top: 5px;
             font-weight: bold;
         }
 
@@ -1405,7 +1403,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
         /* FOOTER */
         .footer {
-            margin-top: 40px;
+            margin-top: 30px;
             text-align: center;
             font-size: 7.5pt;
             border-top: 1px solid #000;
@@ -1485,13 +1483,14 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <div class="signature">
                 <div class="signature-left">
                     <p>Best regards,</p>
-                    <div class="signature-block">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" class="signature-image">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" class="stamp-image">
-                    </div>
+            
                     <div class="manager-name">
                         Manager<br>
                         <strong>Disha Online Solution</strong>
+                    </div>
+                        <div class="signature-block">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" class="signature-image">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" class="stamp-image">
                     </div>
                 </div>
 
@@ -1509,6 +1508,9 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </body>
         </html>
         """
+
+
+
 
     def format_currency(self, amount):
         """Format currency in Indian format with proper word representation"""
