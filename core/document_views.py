@@ -1255,314 +1255,294 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         """
     
     def get_salary_increment_template(self):
-        """Professional salary increment template with signature and stamp"""
+        """Professional salary increment template with fixed signature & stamp"""
         return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                @page {
-                    margin: 0.75in;
-                    size: A4;
-                }
-                
-                * {
-                    box-sizing: border-box;
-                }
-                
-                body { 
-                    font-family: 'Arial', 'Helvetica', sans-serif; 
-                    margin: 0; 
-                    padding: 0; 
-                    line-height: 1.2; 
-                    color: #000000;
-                    background-color: #ffffff;
-                    font-size: 10pt;
-                }
-                
-                .page { 
-                    max-width: 100%; 
-                    margin: 0 auto; 
-                    padding: 0; 
-                    background: white;
-                }
-                
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 15px; 
-                    padding-bottom: 10px; 
-                    border-bottom: 1px solid #000; 
-                }
-                
-                .company-logo { 
-                    max-height: 50px; 
-                    max-width: 150px; 
-                    margin-bottom: 8px; 
-                }
-                
-                .company-name { 
-                    font-size: 14pt; 
-                    font-weight: bold; 
-                    color: #000000; 
-                    margin: 3px 0; 
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                
-                .company-address { 
-                    font-size: 8pt; 
-                    color: #000000; 
-                    line-height: 1.1; 
-                    margin: 2px 0;
-                }
-                .document-title { 
-                    text-align: center; 
-                    font-size: 12pt; 
-                    font-weight: bold; 
-                    margin: 15px 0 10px 0; 
-                    color: #000000; 
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                
-                .employee-header {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 10px 0;
-                    font-size: 9pt;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 8px;
-                }
-                
-                .employee-id {
-                    font-weight: bold;
-                    color: #000000;
-                }
-                
-                .document-date {
-                    color: #000000;
-                }
-                
-                .letter-info {
-                    margin-bottom: 15px;
-                    border: 1px solid #000;
-                    padding: 8px;
-                }
-                
-                .letter-info p {
-                    margin: 3px 0;
-                    font-size: 9pt;
-                }
-                
-                .content { 
-                    margin: 15px 0; 
-                    font-size: 9pt;
-                    line-height: 1.3;
-                }
-                
-                .content p {
-                    margin-bottom: 8px;
-                }
-                
-                .salary-details {
-                    background-color: #f0f0f0;
-                    padding: 10px;
-                    margin: 15px 0;
-                    border: 1px solid #000;
-                }
-                
-                .salary-details h3 {
-                    margin: 0 0 8px 0;
-                    color: #000000;
-                    font-size: 10pt;
-                    font-weight: bold;
-                }
-                
-                .salary-row {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 4px 0;
-                    padding: 2px 0;
-                }
-                
-                .salary-row:last-child {
-                    font-weight: bold;
-                    color: #000000;
-                    background-color: #e0e0e0;
-                    padding: 6px;
-                    margin-top: 8px;
-                }
-                
-                .salary-label {
-                    font-weight: bold;
-                    color: #000000;
-                }
-                
-                .salary-value {
-                    color: #000000;
-                }
-                
-                .signature { 
-                    margin-top: 25px; 
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    position: relative;
-                }
-                
-                .signature-left {
-                    flex: 1;
-                    position: relative;
-                }
-                
-                .signature-container {
-                    position: relative;
-                    margin-top: 10px;
-                }
-                
-                .signature-image {
-                    max-width: 180px;
-                    height: auto;
-                    display: block;
-                }
-                
-                .stamp-image {
-                    position: absolute;
-                    max-width: 120px;
-                    height: auto;
-                    opacity: 0.9;
-                    left: 140px;
-                    top: -20px;
-                }
-                
-                .manager-name {
-                    margin-top: 5px;
-                    font-weight: bold;
-                }
-                
-                .signature-right {
-                    text-align: right;
-                }
-                
-                .footer { 
-                    margin-top: 25px; 
-                    text-align: center; 
-                    font-size: 8pt; 
-                    color: #000000; 
-                    border-top: 1px solid #000; 
-                    padding-top: 8px; 
-                }
-                
-                .employee-name {
-                    font-weight: bold;
-                    color: #000000;
-                    font-size: 10pt;
-                }
-                
-                .appreciation {
-                    background-color: #f8f8f8;
-                    padding: 8px;
-                    margin: 10px 0;
-                    border: 1px solid #000;
-                }
-                
-                .signature-line {
-                    border-bottom: 1px solid #000;
-                    width: 150px;
-                    margin: 10px 0 3px 0;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="page">
-            <div class="header">
-                        <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
-                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
-                    <div class="company-address">
-                    Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page {
+                size: A4;
+                margin: 0.75in;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                margin: 0;
+                padding: 0;
+                font-size: 10pt;
+                line-height: 1.3;
+                color: #000;
+                background: #fff;
+            }
+
+            img {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .page {
+                width: 100%;
+            }
+
+            /* ---------- HEADER ---------- */
+            .header {
+                text-align: center;
+                border-bottom: 1px solid #000;
+                padding-bottom: 8px;
+                margin-bottom: 12px;
+            }
+
+            .company-logo {
+                max-height: 45px;
+                margin-bottom: 5px;
+            }
+
+            .company-name {
+                font-size: 14pt;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+
+            .company-address {
+                font-size: 8pt;
+                margin-top: 2px;
+            }
+
+            /* ---------- TITLE ---------- */
+            .document-title {
+                text-align: center;
+                font-size: 12pt;
+                font-weight: bold;
+                margin: 15px 0 10px;
+                text-transform: uppercase;
+            }
+
+            /* ---------- EMPLOYEE HEADER ---------- */
+            .employee-header {
+                display: flex;
+                justify-content: space-between;
+                font-size: 9pt;
+                border-bottom: 1px solid #000;
+                padding-bottom: 6px;
+                margin-bottom: 10px;
+            }
+
+            /* ---------- LETTER INFO ---------- */
+            .letter-info {
+                border: 1px solid #000;
+                padding: 8px;
+                font-size: 9pt;
+                margin-bottom: 12px;
+            }
+
+            .letter-info p {
+                margin: 3px 0;
+            }
+
+            /* ---------- CONTENT ---------- */
+            .content {
+                font-size: 9pt;
+            }
+
+            .content p {
+                margin-bottom: 8px;
+            }
+
+            /* ---------- SALARY DETAILS ---------- */
+            .salary-details {
+                border: 1px solid #000;
+                background: #f2f2f2;
+                padding: 8px;
+                margin: 12px 0;
+            }
+
+            .salary-details h3 {
+                margin: 0 0 6px;
+                font-size: 10pt;
+            }
+
+            .salary-row {
+                display: flex;
+                justify-content: space-between;
+                margin: 3px 0;
+            }
+
+            .salary-row:last-child {
+                font-weight: bold;
+                background: #e6e6e6;
+                padding: 5px;
+                margin-top: 6px;
+            }
+
+            /* ---------- APPRECIATION ---------- */
+            .appreciation {
+                border: 1px solid #000;
+                background: #f8f8f8;
+                padding: 8px;
+                margin: 10px 0;
+            }
+
+            /* ---------- SIGNATURE (FIXED) ---------- */
+            .no-page-break {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .signature {
+                margin-top: 15px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+
+            .signature-left {
+                position: relative;
+                width: 60%;
+                font-size: 9pt;
+            }
+
+            .signature-image {
+                max-width: 140px;
+                display: block;
+            }
+
+            .stamp-image {
+                position: absolute;
+                max-width: 114px;
+                opacity: 0.85;
+                left: 14px;
+                top: -77px;
+            }
+
+            .manager-name {
+                margin-top: 4px;
+                font-weight: bold;
+            }
+
+            .signature-right {
+                width: 40%;
+                text-align: right;
+                font-size: 9pt;
+            }
+
+            .employee-name {
+                font-weight: bold;
+            }
+
+            /* ---------- FOOTER ---------- */
+            .footer {
+                margin-top: 15px;
+                text-align: center;
+                font-size: 7.5pt;
+                border-top: 1px solid #000;
+                padding-top: 6px;
+            }
+
+        </style>
+    </head>
+
+    <body>
+    <div class="page">
+
+        <div class="header">
+            <img src="{{ logo_url }}" class="company-logo">
+            <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+            <div class="company-address">
+                Bhumiraj Costarica, 9th Floor Office No-907, Plot No-1 & 2,<br>
+                Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+            </div>
+        </div>
+
+        <div class="document-title">Salary Increment Letter</div>
+
+        <div class="employee-header">
+            <div><strong>Employee ID:</strong> {{ employee_id }}</div>
+            <div><strong>Date:</strong> {{ effective_date }}</div>
+        </div>
+
+        <div class="letter-info">
+            <p><strong>To:</strong> {{ employee_name }} ({{ employee_designation }})</p>
+            <p><strong>Subject:</strong> Salary Increment Notification</p>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong>{{ employee_name }}</strong>,</p>
+
+            <p>
+                We are pleased to inform you that in recognition of your performance and
+                valuable contribution, your salary has been revised as detailed below:
+            </p>
+
+            <div class="salary-details">
+                <h3>Salary Increment Details</h3>
+                <div class="salary-row">
+                    <span>Previous Monthly Salary</span>
+                    <span>{{ previous_salary }}</span>
+                </div>
+                <div class="salary-row">
+                    <span>Increment Amount</span>
+                    <span>{{ increment_amount }}</span>
+                </div>
+                <div class="salary-row">
+                    <span>New Monthly Salary</span>
+                    <span>{{ new_salary }}</span>
+                </div>
+                <div class="salary-row">
+                    <span>Effective Date</span>
+                    <span>{{ effective_date }}</span>
                 </div>
             </div>
-            
-                <div class="document-title">Salary Increment Letter</div>
-                
-                <div class="employee-header">
-                    <div class="employee-id">Employee ID: {{ employee_id }}</div>
-                    <div class="document-date">Date: {{ effective_date }}</div>
-                </div>
-                
-                <div class="letter-info">
-                    <p><strong>Date:</strong> {{ effective_date }}</p>
-                    <p><strong>To:</strong> {{ employee_name }} ({{ employee_designation }})</p>
-                    <p><strong>Subject:</strong> Salary Increment Notification</p>
-                </div>
-            
-            <div class="content">
-                <p>Dear <strong>{{ employee_name }}</strong>,</p>
-                
-                    <p>We are pleased to inform you that in recognition of your exceptional performance, dedication, and valuable contributions to our organization, your salary has been increased.</p>
-                    
-                    <div class="salary-details">
-                        <h3>Salary Increment Details</h3>
-                        <div class="salary-row">
-                            <span class="salary-label">Previous Monthly Salary:</span>
-                            <span class="salary-value">{{ previous_salary }}</span>
-                        </div>
-                        <div class="salary-row">
-                            <span class="salary-label">Increment Amount:</span>
-                            <span class="salary-value">{{ increment_amount }}</span>
-                        </div>
-                        <div class="salary-row">
-                            <span class="salary-label">New Monthly Salary:</span>
-                            <span class="salary-value">{{ new_salary }}</span>
-                        </div>
-                        <div class="salary-row">
-                            <span class="salary-label">Effective Date:</span>
-                            <span class="salary-value">{{ effective_date }}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="appreciation">
-                        <p><strong>Recognition:</strong> This increment reflects our appreciation for your hard work, commitment to excellence, and the positive impact you have made on our team and organization.</p>
-                    </div>
-                    
-                    <p>We sincerely appreciate your dedication and look forward to your continued contributions to our team's success. Your commitment to excellence has not gone unnoticed, and we are confident that you will continue to excel in your role.</p>
-                    
-                    <p>This salary increment is effective from <strong>{{ effective_date }}</strong> and will be reflected in your next payroll cycle.</p>
-                    
-                    <p>We value your contributions and look forward to a continued successful working relationship.</p>
-                </div>
-                
-                <div class="signature">
-                    <div class="signature-left">
+
+            <div class="appreciation">
+                This increment reflects our appreciation for your dedication and
+                continued commitment to excellence.
+            </div>
+
+            <p>
+                We look forward to your continued success and contribution to the
+                organization.
+            </p>
+        </div>
+
+        <!-- FIXED SIGNATURE + FOOTER -->
+        <div class="no-page-break">
+            <div class="signature">
+                <div class="signature-left">
                     <p>Best regards,</p>
-                        
-                        <div class="signature-container">
-                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" 
-                                alt="Signature" class="signature-image">
-                            <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" 
-                                alt="Company Stamp" class="stamp-image">
-                        </div>
-                        
-                        <div class="manager-name">
-                            <p>Manager<br>Disha Online Solutions</p>
-                        </div>
+
+                    <div style="position: relative; margin-top: 6px;">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png"
+                            class="signature-image">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png"
+                            class="stamp-image">
+                    </div>
+
+                    <div class="manager-name">
+                        Manager<br>
+                        Disha Online Solutions
+                    </div>
                 </div>
-                    <div class="signature-right">
-                        <p class="employee-name">{{ employee_name }}</p>
+
+                <div class="signature-right">
+                    <p class="employee-name">{{ employee_name }}</p>
                 </div>
             </div>
-            
+
             <div class="footer">
-                    <p>This is a computer-generated document and does not require a signature.</p>
-                </div>
-                
-                <div class="footer-strip"></div>
+                This is a computer-generated document and does not require a signature.
             </div>
-        </body>
-        </html>
-        """
+        </div>
+
+    </div>
+    </body>
+    </html>
+    """
 
 
 
