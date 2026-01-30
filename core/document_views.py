@@ -1184,7 +1184,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
             <div class="page">
             <div class="header">
                         <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
-                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
+                    <div class="company-name">DISHA ONLINE SOLUTION</div>
                     <div class="company-address">
                     Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
                     Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
@@ -1254,288 +1254,243 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
         </html>
         """
     
+    
+
+
     def get_salary_increment_template(self):
         """Professional salary increment template with absolute signature & stamp"""
         return """
-    <!DOCTYPE html>
-    <html>
-    <head>
+        <!DOCTYPE html>
+        <html>
+        <head>
         <meta charset="utf-8">
-
         <style>
-            @page {
-                size: A4;
-                margin: 0.75in;
-            }
+        @page { size: A4; margin: 1in; }
 
-            * {
-                box-sizing: border-box;
-            }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: #fff;
+        }
 
-            body {
-                margin: 0;
-                padding: 0;
-                background: #eaeaea;
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 10pt;
-                line-height: 1.3;
-                color: #000;
-            }
+        .page {
+            width: 100%;
+            padding: 0;
+        }
 
-            img {
-                max-width: 100%;
-                page-break-inside: avoid;
-            }
+        /* HEADER */
+        .header {
+            text-align: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
 
-            /* ---------- A4 PAGE ---------- */
-            .page {
-                width: 794px;
-                min-height: 1123px;
-                margin: 20px auto;
-                padding: 72px;
-                background: #ffffff;
-                box-shadow: 0 0 12px rgba(0,0,0,0.15);
-            }
+        .company-logo { max-height: 50px; }
+        .company-name { font-size: 14pt; font-weight: bold; margin-top: 5px; }
+        .company-address { font-size: 8pt; margin-top: 2px; }
 
-            /* ---------- HEADER ---------- */
-            .header {
-                text-align: center;
-                border-bottom: 1px solid #000;
-                padding-bottom: 8px;
-                margin-bottom: 12px;
-            }
+        /* TITLE */
+        .document-title {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 16px 0 12px;
+            text-transform: uppercase;
+        }
 
-            .company-logo {
-                max-height: 45px;
-                margin-bottom: 5px;
-            }
+        /* EMPLOYEE HEADER */
+        .employee-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            border-bottom: 1px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
 
-            .company-name {
-                font-size: 14pt;
-                font-weight: bold;
-                letter-spacing: 1px;
-            }
+        /* LETTER INFO */
+        .letter-info {
+            border: 1px solid #000;
+            padding: 8px;
+            font-size: 9pt;
+            margin-bottom: 12px;
+        }
 
-            .company-address {
-                font-size: 8pt;
-            }
+        /* CONTENT */
+        .content { font-size: 9pt; }
+        .content p { margin-bottom: 8px; }
 
-            /* ---------- TITLE ---------- */
-            .document-title {
-                text-align: center;
-                font-size: 12pt;
-                font-weight: bold;
-                margin: 15px 0 10px;
-                text-transform: uppercase;
-            }
+        /* SALARY DETAILS */
+        .salary-details {
+            border: 1px solid #000;
+            background: #f2f2f2;
+            padding: 10px;
+            margin: 12px 0;
+            font-size: 9pt;
+        }
 
-            /* ---------- EMPLOYEE HEADER ---------- */
-            .employee-header {
-                display: flex;
-                justify-content: space-between;
-                font-size: 9pt;
-                border-bottom: 1px solid #000;
-                padding-bottom: 6px;
-                margin-bottom: 10px;
-            }
+        .salary-details .salary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
 
-            /* ---------- LETTER INFO ---------- */
-            .letter-info {
-                border: 1px solid #000;
-                padding: 8px;
-                font-size: 9pt;
-                margin-bottom: 12px;
-            }
+        .salary-details .salary-row:last-child {
+            font-weight: bold;
+            background: #e6e6e6;
+            padding: 5px;
+            margin-top: 6px;
+        }
 
-            .letter-info p {
-                margin: 3px 0;
-            }
+        /* APPRECIATION */
+        .appreciation {
+            border: 1px solid #000;
+            background: #f8f8f8;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 9pt;
+        }
 
-            /* ---------- CONTENT ---------- */
-            .content {
-                font-size: 9pt;
-            }
+        /* SIGNATURE */
+        .signature {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
 
-            .content p {
-                margin-bottom: 8px;
-            }
+        .signature-left {
+            width: 60%;
+            position: relative;
+            min-height: 140px;
+            font-size: 9pt;
+        }
 
-            /* ---------- SALARY DETAILS ---------- */
-            .salary-details {
-                border: 1px solid #000;
-                background: #f2f2f2;
-                padding: 8px;
-                margin: 12px 0;
-            }
+        .signature-block {
+            position: relative;
+            height: 110px;
+        }
 
-            .salary-details h3 {
-                margin: 0 0 6px;
-                font-size: 10pt;
-            }
+        .signature-image {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            max-width: 140px;
+        }
 
-            .salary-row {
-                display: flex;
-                justify-content: space-between;
-                margin: 3px 0;
-            }
+        .stamp-image {
+            position: absolute;
+            top: 95px;  /* Below signature */
+            left: 18px;
+            max-width: 115px;
+            opacity: 0.85;
+        }
 
-            .salary-row:last-child {
-                font-weight: bold;
-                background: #e6e6e6;
-                padding: 5px;
-                margin-top: 6px;
-            }
+        .manager-name {
+            margin-top: 115px;
+            font-weight: bold;
+        }
 
-            /* ---------- APPRECIATION ---------- */
-            .appreciation {
-                border: 1px solid #000;
-                background: #f8f8f8;
-                padding: 8px;
-                margin: 10px 0;
-                font-size: 9pt;
-            }
+        .signature-right {
+            width: 40%;
+            text-align: right;
+            font-size: 9pt;
+        }
 
-            /* ---------- SIGNATURE ---------- */
-            .no-page-break {
-                page-break-inside: avoid;
-            }
+        .employee-name { font-weight: bold; }
 
-            .signature {
-                margin-top: 5px;
-                display: flex;
-                justify-content: space-between;
-            }
+        /* FOOTER */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 7.5pt;
+            border-top: 1px solid #000;
+            padding-top: 6px;
+        }
 
-            .signature-left {
-                width: 60%;
-                font-size: 9pt;
-            }
-
-            /* RELATIVE HOLDER */
-            .signature-box {
-                position: relative;
-                height: 120px;
-                margin-top: 4px;
-            }
-
-            /* SIGNATURE IMAGE */
-            .signature-image {
-                position: absolute;
-                top: -25px;
-                left: 0;
-                max-width: 140px;
-            }
-
-            /* STAMP IMAGE BELOW SIGNATURE */
-            .stamp-image {
-                position: absolute;
-                top: 70px;
-                left: 20px;
-                max-width: 120px;
-                
-            }
-
-            .manager-name {
-                margin-top: 6px;
-                font-weight: bold;
-            }
-
-            .signature-right {
-                width: 40%;
-                text-align: right;
-                font-size: 9pt;
-            }
-
-            .employee-name {
-                font-weight: bold;
-            }
-
-            /* ---------- FOOTER ---------- */
-            .footer {
-                margin-top: 15px;
-                text-align: center;
-                font-size: 7.5pt;
-                border-top: 1px solid #000;
-                padding-top: 6px;
-            }
         </style>
-    </head>
+        </head>
 
-    <body>
-    <div class="page">
+        <body>
+        <div class="page">
 
-        <div class="header">
-            <img src="{{ logo_url }}" class="company-logo">
-            <div class="company-name">DISHA ONLINE SOLUTION</div>
-            <div class="company-address">
-                Bhumiraj Costarica, 9th Floor Office No-907, Plot No-1 & 2,<br>
-                Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+            <!-- HEADER -->
+            <div class="header">
+                <img src="{{ logo_url }}" class="company-logo">
+                <div class="company-name">DISHA ONLINE SOLUTION</div>
+                <div class="company-address">
+                    Bhumiraj Costarica, 9th Floor Office No-907, Plot No-1 & 2,<br>
+                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+                </div>
             </div>
-        </div>
 
-        <div class="document-title">Salary Increment Letter</div>
+            <!-- TITLE -->
+            <div class="document-title">Salary Increment Letter</div>
 
-        <div class="employee-header">
-            <div><strong>Employee ID:</strong> {{ employee_id }}</div>
-            <div><strong>Date:</strong> {{ effective_date }}</div>
-        </div>
+            <!-- EMPLOYEE HEADER -->
+            <div class="employee-header">
+                <div><strong>Employee ID:</strong> {{ employee_id }}</div>
+                <div><strong>Date:</strong> {{ effective_date }}</div>
+            </div>
 
-        <div class="letter-info">
-            <p><strong>To:</strong> {{ employee_name }} ({{ employee_designation }})</p>
-            <p><strong>Subject:</strong> Salary Increment</p>
-        </div>
+            <!-- LETTER INFO -->
+            <div class="letter-info">
+                <p><strong>To:</strong> {{ employee_name }} ({{ employee_designation }})</p>
+                <p><strong>Subject:</strong> Salary Increment</p>
+            </div>
 
-        <div class="content">
-            <p>Dear <strong>{{ employee_name }}</strong>,</p>
+            <!-- CONTENT -->
+            <div class="content">
+                <p>Dear <strong>{{ employee_name }}</strong>,</p>
 
-            <p>
+                <p>
                 We are pleased to inform you that in recognition of your performance and
                 valuable contribution, your salary has been revised as detailed below:
-            </p>
+                </p>
 
-            <div class="salary-details">
-                <h3>Salary Increment Details</h3>
-                <div class="salary-row">
-                    <span>Previous Monthly Salary</span>
-                    <span>{{ previous_salary }}</span>
+                <div class="salary-details">
+                    <div class="salary-row">
+                        <span>Previous Monthly Salary</span>
+                        <span>{{ previous_salary }}</span>
+                    </div>
+                    <div class="salary-row">
+                        <span>Increment Amount</span>
+                        <span>{{ increment_amount }}</span>
+                    </div>
+                    <div class="salary-row">
+                        <span>New Monthly Salary</span>
+                        <span>{{ new_salary }}</span>
+                    </div>
+                    <div class="salary-row">
+                        <span>Effective Date</span>
+                        <span>{{ effective_date }}</span>
+                    </div>
                 </div>
-                <div class="salary-row">
-                    <span>Increment Amount</span>
-                    <span>{{ increment_amount }}</span>
-                </div>
-                <div class="salary-row">
-                    <span>New Monthly Salary</span>
-                    <span>{{ new_salary }}</span>
-                </div>
-                <div class="salary-row">
-                    <span>Effective Date</span>
-                    <span>{{ effective_date }}</span>
-                </div>
-            </div>
 
-            <div class="appreciation">
-                This increment reflects our appreciation for your dedication and continued
-                commitment to excellence.
-            </div>
+                <div class="appreciation">
+                    This increment reflects our appreciation for your dedication and continued
+                    commitment to excellence.
+                </div>
 
-            <p>
+                <p>
                 We look forward to your continued success and contribution to the organization.
-            </p>
-        </div>
+                </p>
+            </div>
 
-        <!-- SIGNATURE + STAMP -->
-        <div class="no-page-break">
+            <!-- SIGNATURE + STAMP -->
             <div class="signature">
                 <div class="signature-left">
                     <p>Best regards,</p>
-
                     <div class="signature-block">
                         <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" class="signature-image">
                         <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" class="stamp-image">
                     </div>
-
                     <div class="manager-name">
-                    Manager<br>
+                        Manager<br>
                         <strong>Disha Online Solution</strong>
                     </div>
                 </div>
@@ -1545,437 +1500,16 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                 </div>
             </div>
 
+            <!-- FOOTER -->
             <div class="footer">
                 This is a computer-generated document and does not require a physical signature.
             </div>
+
         </div>
-
-    </div>
-    </body>
-    </html>
-    """
-
-
-
-
-    def get_salary_slip_template(self):
-        """Professional salary slip template with comprehensive fields"""
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                @page {
-                    margin: 0.3in;
-                    size: A4;
-                }
-                
-                * {
-                    box-sizing: border-box;
-                }
-                
-                body { 
-                    font-family: 'Arial', 'Helvetica', sans-serif; 
-                    margin: 0; 
-                    padding: 0; 
-                    line-height: 1.2; 
-                    color: #000000;
-                    background-color: #ffffff;
-                    font-size: 8.5pt;
-                }
-                
-                .page { 
-                    max-width: 100%; 
-                    margin: 0 auto; 
-                    padding: 0; 
-                    background: white;
-                }
-                
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 6px; 
-                    padding-bottom: 4px; 
-                    border-bottom: 2px solid #000; 
-                }
-                
-                .company-logo { 
-                    max-height: 40px; 
-                    max-width: 120px; 
-                    margin-bottom: 4px; 
-                }
-                
-                .company-name { 
-                    font-size: 12pt; 
-                    font-weight: bold; 
-                    color: #000000; 
-                    margin: 1px 0; 
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                
-                .company-address { 
-                    font-size: 7pt; 
-                    color: #000000; 
-                    line-height: 1.1; 
-                    margin: 1px 0;
-                }
-                
-                .document-title { 
-                    text-align: center; 
-                    font-size: 10pt; 
-                    font-weight: bold; 
-                    margin: 8px 0 6px 0; 
-                    color: #000000; 
-                    text-transform: uppercase;
-                    letter-spacing: 1.5px;
-                    background-color: #f0f0f0;
-                    padding: 4px;
-                    border: 1px solid #000;
-                }
-                
-                .salary-month {
-                    text-align: center;
-                    font-size: 8.5pt;
-                    font-weight: bold;
-                    margin-bottom: 6px;
-                    color: #000000;
-                    background-color: #f8f8f8;
-                    padding: 3px;
-                    border: 1px solid #ccc;
-                }
-                
-                .employee-header {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 6px 0;
-                    font-size: 8pt;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 4px;
-                }
-                
-                .employee-id {
-                    font-weight: bold;
-                    color: #000000;
-                }
-                
-                .document-date {
-                    color: #000000;
-                }
-                
-                .two-column-section {
-                    display: flex;
-                    gap: 4px;
-                    margin-bottom: 4px;
-                }
-                
-                .column {
-                    flex: 1;
-                }
-                
-                .employee-section {
-                    margin-bottom: 8px;
-                }
-                
-                .info-box {
-                    border: 1px solid #000;
-                    padding: 4px;
-                    margin-bottom: 3px;
-                    background-color: #fafafa;
-                }
-                
-                .section-title {
-                    font-size: 8pt;
-                    font-weight: bold;
-                    color: #000000;
-                    margin-bottom: 4px;
-                    background-color: #e0e0e0;
-                    padding: 3px 4px;
-                    border-bottom: 2px solid #000;
-                }
-                
-                .info-row {
-                    display: flex;
-                    justify-content: space-between;
-                    margin: 1px 0;
-                    padding: 0.5px 0;
-                    font-size: 7.5pt;
-                }
-                
-                .info-label {
-                    font-weight: 600;
-                    color: #000000;
-                    width: 45%;
-                }
-                
-                .info-value {
-                    color: #000000;
-                    text-align: right;
-                    width: 55%;
-                }
-                
-                .salary-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 6px 0;
-                    font-size: 8pt;
-                    border: 2px solid #000;
-                }
-                
-                .salary-table th {
-                    background-color: #d0d0d0;
-                    color: #000000;
-                    padding: 4px 6px;
-                    text-align: left;
-                    font-weight: bold;
-                    font-size: 8pt;
-                    border: 1px solid #000;
-                }
-                
-                .salary-table td {
-                    padding: 3px 6px;
-                    border: 1px solid #000;
-                    font-size: 8pt;
-                }
-                
-                .salary-table tr:nth-child(even) {
-                    background-color: #f5f5f5;
-                }
-                
-                .section-row {
-                    background-color: #e8e8e8 !important;
-                    font-weight: bold;
-                }
-                
-                .total-row {
-                    background-color: #d8d8d8 !important;
-                    font-weight: bold;
-                }
-                
-                .net-salary-row {
-                    background-color: #c0c0c0 !important;
-                    font-weight: bold;
-                    font-size: 9pt !important;
-                }
-                
-                .amount {
-                    text-align: right;
-                    font-weight: 600;
-                    color: #000000;
-                }
-                
-                .footer { 
-                    margin-top: 6px; 
-                    text-align: center; 
-                    font-size: 6.5pt; 
-                    color: #000000; 
-                    border-top: 1px solid #000; 
-                    padding-top: 3px; 
-                }
-                
-                .generated-info {
-                    text-align: right;
-                    font-size: 6pt;
-                    color: #666;
-                    margin-top: 6px;
-                }
-                
-                .signature-section {
-                    margin-top: 20px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                
-                .signature-box {
-                    text-align: center;
-                    font-size: 7pt;
-                }
-                
-                .signature-line {
-                    border-top: 1px solid #000;
-                    margin-top: 25px;
-                    padding-top: 3px;
-                    font-weight: bold;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="page">
-                <!-- Header -->
-                <div class="header">
-                    <img src="{{ logo_url }}" alt="Company Logo" class="company-logo">
-                    <div class="company-name">DISHA ONLINE SOLUTIONS</div>
-                    <div class="company-address">
-                        Bhumiraj Costarica, 9th Floor Office No- 907, Plot No- 1 & 2,<br>
-                        Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
-                    </div>
-                </div>
-                
-                <!-- Document Title -->
-                <div class="document-title">Salary Slip</div>
-                <div class="salary-month">For the Month of {{ salary_month }} {{ salary_year }}</div>
-                
-                <!-- Employee Header -->
-                <div class="employee-header">
-                    <div class="employee-id">Employee ID: {{ employee_id }}</div>
-                    <div class="document-date">Generated: {{ current_date }}</div>
-                </div>
-                
-                <!-- Two Column Section for Employee and Bank Info -->
-                <div class="two-column-section">
-                    <!-- Employee Information Column -->
-                    <div class="column">
-                        <div class="info-box">
-                            <div class="section-title">EMPLOYEE INFORMATION</div>
-                            <div class="info-row">
-                                <span class="info-label">Name:</span>
-                                <span class="info-value">{{ employee_name }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Employee ID:</span>
-                                <span class="info-value">{{ employee_id }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Designation:</span>
-                                <span class="info-value">{{ employee_designation }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Department:</span>
-                                <span class="info-value">{{ employee_department }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Office:</span>
-                                <span class="info-value">{{ office_name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Bank & Statutory Information Column -->
-                    <div class="column">
-                        <div class="info-box">
-                            <div class="section-title">BANK DETAILS</div>
-                            <div class="info-row">
-                                <span class="info-label">Bank Name:</span>
-                                <span class="info-value">{{ bank_name }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Account Number:</span>
-                                <span class="info-value">{{ account_number }}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">IFSC Code:</span>
-                                <span class="info-value">{{ ifsc_code }}</span>
-                            </div>
-                        </div>
-                        
-                    </div>
-                </div>
-                
-                <!-- Salary Breakdown Table -->
-                <table class="salary-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60%;">PARTICULARS</th>
-                            <th style="width: 20%; text-align: center;">DETAILS</th>
-                            <th style="width: 20%; text-align: right;">AMOUNT (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Attendance Section -->
-                        <tr class="section-row">
-                            <td colspan="3" style="font-weight: bold;">ATTENDANCE DETAILS</td>
-                        </tr>
-                        <tr>
-                            <td>Total Days in Month</td>
-                            <td style="text-align: center;">{{ total_days }}</td>
-                            <td class="amount">-</td>
-                        </tr>
-                        <tr>
-                            <td>Days Worked</td>
-                            <td style="text-align: center;">{{ worked_days }}</td>
-                            <td class="amount">-</td>
-                        </tr>
-                        
-                        <!-- Earnings Section -->
-                        <tr class="section-row">
-                            <td colspan="3" style="font-weight: bold;">EARNINGS</td>
-                        </tr>
-                        <tr>
-                            <td>Basic Salary</td>
-                            <td style="text-align: center;">-</td>
-                            <td class="amount">{{ basic_salary }}</td>
-                        </tr>
-                        <tr>
-                            <td>Per Day Pay Rate</td>
-                            <td style="text-align: center;">-</td>
-                            <td class="amount">{{ per_day_pay }}</td>
-                        </tr>
-                        <tr>
-                            <td>Extra Days Pay (Overtime/Bonus)</td>
-                            <td style="text-align: center;">-</td>
-                            <td class="amount">{{ extra_days_pay }}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td><strong>TOTAL GROSS SALARY</strong></td>
-                            <td style="text-align: center;">-</td>
-                            <td class="amount"><strong>{{ total_gross_salary }}</strong></td>
-                        </tr>
-                        
-                        <!-- Deductions Section -->
-                        <tr class="section-row">
-                            <td colspan="3" style="font-weight: bold;">DEDUCTIONS</td>
-                        </tr>
-                        <tr>
-                            <td>Total Deductions</td>
-                            <td style="text-align: center;">-</td>
-                            <td class="amount">{{ total_deductions }}</td>
-                        </tr>
-                        
-                        <!-- Net Salary Section -->
-                        <tr class="net-salary-row">
-                            <td><strong>NET SALARY PAYABLE</strong></td>
-                            <td style="text-align: center;"><strong>-</strong></td>
-                            <td class="amount"><strong>{{ net_salary }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Salary Summary Box -->
-                <div style="border: 2px solid #000; padding: 10px; margin: 15px 0; background-color: #f0f0f0;">
-                    <div style="text-align: center; font-weight: bold; font-size: 9.5pt; margin-bottom: 8px;">
-                        SALARY SUMMARY
-                    </div>
-                    <div style="display: flex; justify-content: space-around; font-size: 8.5pt;">
-                        <div style="text-align: center;">
-                            <div style="font-weight: 600;">Total Gross</div>
-                            <div style="font-size: 10pt; font-weight: bold;">{{ gross_salary }}</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-weight: 600;">Deductions</div>
-                            <div style="font-size: 10pt; font-weight: bold; color: #cc0000;">{{ total_deductions }}</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-weight: 600;">Net Payable</div>
-                            <div style="font-size: 11pt; font-weight: bold; color: #006600;">{{ net_salary }}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="footer">
-                    <p style="margin: 5px 0; font-weight: bold;">This is a computer generated salary slip and does not require a signature.</p>
-                    <p style="margin: 5px 0; font-size: 7pt;">For any queries, please contact HR Department | Email: hr@dishaonlinesolutions.com</p>
-                </div>
-                
-                <!-- Generated Info -->
-                <div class="generated-info">
-                    Document Generated on: {{ current_date }} | Employee Attendance Management System
-                </div>
-            </div>
         </body>
         </html>
         """
-    
+
     def format_currency(self, amount):
         """Format currency in Indian format with proper word representation"""
         if amount is None:
