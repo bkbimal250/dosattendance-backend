@@ -24,7 +24,7 @@ The Salary Management System is a comprehensive module integrated into the Emplo
 -  **Comprehensive reporting and statistics**
 -  **REST API endpoints for all operations**
 
-## 📊 Database Models
+##  Database Models
 
 ### Salary Model
 
@@ -236,7 +236,7 @@ POST /api/salary-templates/
 }
 ```
 
-## 📈 Auto-calculation Logic
+##  Auto-calculation Logic
 
 ### Worked Days Calculation
 
@@ -273,7 +273,7 @@ Net Salary = Gross Salary + Total Allowances - Total Deductions
 Final Payable = Net Salary - Loan Balance
 ```
 
-## 📊 Reporting Features
+##  Reporting Features
 
 ### Salary Summary
 
@@ -378,7 +378,7 @@ curl -H "Authorization: Bearer your-jwt-token" \
      http://localhost:8000/api/salaries/
 ```
 
-## 📝 Best Practices
+##  Best Practices
 
 ### 1. Salary Creation
 
@@ -459,7 +459,7 @@ All API responses follow REST conventions:
 }
 ```
 
-## 🎯 Future Enhancements
+##  Future Enhancements
 
 ### Planned Features
 

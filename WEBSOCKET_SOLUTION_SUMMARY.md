@@ -137,7 +137,7 @@ sudo journalctl -u django-asgi.service -f
 sudo tail -f /var/log/apache2/employee_attendance_error.log
 ```
 
-## 📊 **Expected Results**
+##  **Expected Results**
 
 After implementing the fix:
 

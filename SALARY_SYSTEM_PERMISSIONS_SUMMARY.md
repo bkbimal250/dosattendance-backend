@@ -62,7 +62,7 @@
 
 ---
 
-## 🎯 **Key Security Features**
+##  **Key Security Features**
 
 ### ** Employee Restrictions**
 - **No Create Access**: Employees cannot create salaries

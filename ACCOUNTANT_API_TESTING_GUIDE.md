@@ -93,7 +93,7 @@ chmod +x test_accountant_apis.sh
 - `GET /api/attendance/my/` - Get current user's attendance
 - `GET /api/attendance/summary/` - Get attendance summary
 
-## 📊 Expected Test Results
+##  Expected Test Results
 
 ### **Successful Login Response:**
 ```json
@@ -175,7 +175,7 @@ chmod +x test_accountant_apis.sh
    - Look at Django console output for error messages
    - Check database connectivity
 
-## 📈 Performance Testing
+##  Performance Testing
 
 For load testing, you can modify the Python script to:
 - Run multiple concurrent requests
@@ -190,7 +190,7 @@ The scripts also help verify:
 - Role-based access control
 - Input validation
 
-## 📝 Test Results Interpretation
+##  Test Results Interpretation
 
 ### **Success Indicators:**
 -  HTTP 200/201 status codes

@@ -127,7 +127,7 @@ After running the fix, verify these components:
 - [ ] API endpoints are accessible
 - [ ] Apache is running without errors
 
-## 🎯 Expected Result
+##  Expected Result
 
 After successful deployment, you should be able to:
 

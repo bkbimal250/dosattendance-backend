@@ -364,7 +364,7 @@ sudo certbot --apache -d your-domain.com -d www.your-domain.com
 
 ---
 
-## 📊 Step 10: Monitoring and Logging
+##  Step 10: Monitoring and Logging
 
 ### 10.1 Create Log Directory
 ```bash

@@ -21,14 +21,14 @@ def test_endpoint(method, endpoint, data=None, headers=None):
             print(f" Unsupported method: {method}")
             return None
             
-        print(f"📊 Status: {response.status_code}")
-        print(f"📊 Headers: {dict(response.headers)}")
+        print(f" Status: {response.status_code}")
+        print(f" Headers: {dict(response.headers)}")
         
         try:
             response_data = response.json()
-            print(f"📊 Response: {json.dumps(response_data, indent=2)}")
+            print(f" Response: {json.dumps(response_data, indent=2)}")
         except:
-            print(f"📊 Response (text): {response.text}")
+            print(f" Response (text): {response.text}")
             
         return response
         

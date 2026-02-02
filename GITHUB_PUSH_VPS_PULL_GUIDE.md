@@ -365,7 +365,7 @@ curl -I https://your-domain.com
 
 ---
 
-## 🔄 Step 10: Future Updates
+##  Step 10: Future Updates
 
 ### 10.1 Update Code on VPS
 ```bash

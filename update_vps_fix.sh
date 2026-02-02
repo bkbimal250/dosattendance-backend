@@ -3,7 +3,7 @@
 # Script to update VPS with the latest fixes
 # Run this on your VPS server
 
-echo "🔄 Updating Employee Attendance System on VPS..."
+echo " Updating Employee Attendance System on VPS..."
 
 # Navigate to project directory
 cd /var/www/EmployeeAttendance

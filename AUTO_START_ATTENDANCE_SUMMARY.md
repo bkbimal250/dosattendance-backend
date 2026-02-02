@@ -23,7 +23,7 @@ Your Django Attendance System is now **fully configured** for automatic real-tim
 -  **Live Processing**: Real-time biometric scan processing
 -  **Database Updates**: Automatic attendance record creation/updates
 
-## 📊 **Current System Status**
+##  **Current System Status**
 
 ### **ZKTeco Devices (All Online)**
 - **Ace Track**: 192.168.200.150:4370 
@@ -35,7 +35,7 @@ Your Django Attendance System is now **fully configured** for automatic real-tim
 - **Django Server**:  Running on port 8000
 - **Real-Time Processing**:  Active
 
-## 🎯 **How to Use**
+##  **How to Use**
 
 ### **Development Mode**
 ```bash
@@ -88,7 +88,7 @@ nssm start AttendanceService
 - `core/management/commands/auto_fetch_attendance.py` - Fixed timezone and encoding issues
 - `core/push_views.py` - Enhanced ZKTeco support
 
-## 🔄 **How It Works**
+##  **How It Works**
 
 ### **Automatic Startup**
 1. **Django Starts** → `core/apps.py` detects production mode
@@ -105,7 +105,7 @@ Device Scan → Service Fetch → Process Record → Update Database
     Scan       Fetching       Logic          Record
 ```
 
-## 📈 **Live Data Flow**
+##  **Live Data Flow**
 
 Based on your logs, the system is already working:
 ```
@@ -115,7 +115,7 @@ INFO BIOMETRIC SCAN: MANISH (ID: 207) scanned at 14:58:33 on Ace Track
 INFO Processed 11721 new records, prevented 0 duplicates from Ace Track
 ```
 
-## 🎯 **Next Steps for Production**
+##  **Next Steps for Production**
 
 ### **1. Enable Auto-Start**
 Add to your Django settings:
@@ -159,7 +159,7 @@ Your system is now:
 
 ##  **FINAL STATUS**
 
-**🎯 MISSION COMPLETE: ZKTeco Auto-Start Attendance Service is FULLY CONFIGURED and OPERATIONAL!**
+** MISSION COMPLETE: ZKTeco Auto-Start Attendance Service is FULLY CONFIGURED and OPERATIONAL!**
 
 Your Django server will now automatically start the attendance fetching service and collect real-time data from all ZKTeco devices whenever the server starts. The system is production-ready with proper error handling, logging, and monitoring.
 

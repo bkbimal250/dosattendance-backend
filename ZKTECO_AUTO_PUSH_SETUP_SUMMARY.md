@@ -1,10 +1,10 @@
 # ZKTeco Auto Push Configuration - Setup Summary
 
-## 🎯 Project Overview
+##  Project Overview
 
 This document summarizes the configuration of ZKTeco devices for automatic attendance data pushing in the Django Employee Attendance System.
 
-## 📊 Current System Status
+##  Current System Status
 
 ###  ZKTeco Devices Found
 - **Ace Track**: 192.168.200.150:4370 (Office: Ace Track)
@@ -97,7 +97,7 @@ python manage.py setup_zkteco_push --test-connection
 }
 ```
 
-## 🔄 How It Works
+##  How It Works
 
 ### 1. Auto-Fetch Mode (Current Implementation)
 - Service runs continuously in background
@@ -124,7 +124,7 @@ python manage.py setup_zkteco_push --test-connection
 ### Modified Files
 - `core/push_views.py` - Enhanced for ZKTeco support
 
-## 🎯 Current Status
+##  Current Status
 
 ###  Completed
 1. **Device Discovery**: Found 3 active ZKTeco devices
@@ -133,7 +133,7 @@ python manage.py setup_zkteco_push --test-connection
 4. **Push Infrastructure**: Push service and endpoints configured
 5. **Database Integration**: Attendance records properly processed
 
-### 🔄 Running Services
+###  Running Services
 - **Auto-Fetch Service**: Running in background (30-second intervals)
 - **Django Server**: Running on port 8000
 - **Push Endpoints**: Active and configured
@@ -167,7 +167,7 @@ python test_zkteco_push.py
 python manage.py configure_zkteco_push --status
 ```
 
-## 📊 Monitoring
+##  Monitoring
 
 ### Service Status
 - **Auto-Fetch**:  Running
@@ -197,7 +197,7 @@ python manage.py setup_zkteco_push --test-connection
 python manage.py auto_fetch_zkteco_improved --status
 ```
 
-## 📈 Performance
+##  Performance
 
 ### Optimizations Implemented
 - Connection pooling for device connections

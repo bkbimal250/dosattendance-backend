@@ -177,7 +177,7 @@ curl https://company.d0s369.co.in/api/users/
 
 ---
 
-## 📊 **Monitor the Setup**
+##  **Monitor the Setup**
 
 ### **Check Logs**
 ```bash

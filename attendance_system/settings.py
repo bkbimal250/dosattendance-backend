@@ -260,8 +260,8 @@ if IS_PRODUCTION:
 else:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL =os.environ.get('MEDIA_URL','/media/')
+MEDIA_ROOT =os.environ.get('MEDIA_ROOT',BASE_DIR / 'media')
 
 # =============================================================================
 # AUTHENTICATION AND USER MODEL
@@ -559,38 +559,38 @@ LOGGING = {
 # =============================================================================
 # EMAIL CONFIGURATION
 # =============================================================================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'info.dishaonlinesoution@gmail.com'
-EMAIL_HOST_PASSWORD = 'ktrc uzzy upkr ftbv'
-DEFAULT_FROM_EMAIL = 'Disha Online Solution <info.dishaonlinesoution@gmail.com>'
-SERVER_EMAIL = 'info.dishaonlinesoution@gmail.com'
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND','django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST','smtp.gmail.com')
+EMAIL_PORT = os.environ.get('EMAIL_PORT',587)
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS',True)
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER','info.dishaonlinesoution@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD','ktrc uzzy upkr ftbv')
+DEFAULT_FROM_EMAIL =os.environ.get('DEFAULT_FROM_EMAIL','Disha Online Solution <info.dishaonlinesoution@gmail.com>')
+SERVER_EMAIL =os.environ.get('SERVER_EMAIL','info.dishaonlinesoution@gmail.com')
 
 # =============================================================================
 # CELERY CONFIGURATION
 # =============================================================================
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL =os.environ.get('CELERY_BROKER_URL','redis://localhost:6379/0')
+CELERY_RESULT_BACKEND =os.environ.get('CELERY_RESULT_BACKEND','redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
+CELERY_TIMEZONE =os.environ.get('CELERY_TIMEZONE',TIME_ZONE)
 
 # =============================================================================
 # SESSION AND CACHE CONFIGURATION
 # =============================================================================
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE =os.environ.get('SESSION_ENGINE','django.contrib.sessions.backends.db')
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND':os.environ.get('CACHES_BACKEND','django.core.cache.backends.locmem.LocMemCache'),
         'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,
+        'TIMEOUT':os.environ.get('CACHES_TIMEOUT',300),
         'OPTIONS': {
             'MAX_ENTRIES': 1000,
         }
@@ -600,9 +600,9 @@ CACHES = {
 # =============================================================================
 # FILE UPLOAD SETTINGS
 # =============================================================================
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
-FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_MAX_MEMORY_SIZE =os.environ.get('FILE_UPLOAD_MAX_MEMORY_SIZE',10485760)  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE =os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE',10485760)  # 10MB
+FILE_UPLOAD_PERMISSIONS =os.environ.get('FILE_UPLOAD_PERMISSIONS',0o644)
 
 # =============================================================================
 # ADDITIONAL SECURITY SETTINGS

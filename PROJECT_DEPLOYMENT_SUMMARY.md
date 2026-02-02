@@ -1,6 +1,6 @@
 # Employee Attendance System - Project Deployment Summary
 
-## 🎯 Project Overview
+##  Project Overview
 
 **Employee Attendance System** is a comprehensive Django-based web application designed for managing employee attendance, document generation, and real-time device integration with ZKTeco biometric devices.
 
@@ -217,7 +217,7 @@ EmployeeAttandance/
 
 ---
 
-## 📊 Performance Optimizations
+##  Performance Optimizations
 
 ### Database
 - Connection pooling enabled
@@ -243,7 +243,7 @@ EmployeeAttandance/
 
 ---
 
-## 🎯 Deployment Instructions
+##  Deployment Instructions
 
 ### Quick Deployment
 1. **Upload project files** to `/var/www/EmployeeAttandance/`

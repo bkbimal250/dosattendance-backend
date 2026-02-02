@@ -106,7 +106,7 @@ sudo apache2ctl configtest
 sudo systemctl restart apache2
 ```
 
-### **🔄 Systemd Service (for Attendance Service)**
+### ** Systemd Service (for Attendance Service)**
 ```bash
 # Copy service file
 sudo cp attendance_service.service /etc/systemd/system/
@@ -153,7 +153,7 @@ sudo crontab -e
 # Add: 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-### **📊 Redis Installation (for WebSocket)**
+### ** Redis Installation (for WebSocket)**
 ```bash
 # Install Redis
 sudo apt-get install redis-server
@@ -166,7 +166,7 @@ sudo systemctl enable redis-server
 redis-cli ping
 ```
 
-### **📝 Logging Configuration**
+### ** Logging Configuration**
 ```bash
 # Create logs directory
 mkdir -p /var/www/EmployeeAttendance/logs

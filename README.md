@@ -184,7 +184,7 @@ sudo systemctl start redis-server
 sudo systemctl status redis-server
 ```
 
-## 📊 Features Overview
+##  Features Overview
 
 ### Admin Dashboard
 - User management
@@ -214,7 +214,7 @@ sudo systemctl status redis-server
 - Database connection security
 - HTTPS enforcement
 
-## 📈 Performance Optimizations
+##  Performance Optimizations
 
 - Database connection pooling
 - Static file optimization
@@ -258,7 +258,7 @@ For issues and support:
 
 This project is proprietary software. All rights reserved.
 
-## 🎯 Production Ready
+##  Production Ready
 
 This system is production-ready with:
 -  Ubuntu-optimized WeasyPrint PDF generation

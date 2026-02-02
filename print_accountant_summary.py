@@ -107,7 +107,7 @@ def main():
     total_attendance = Attendance.objects.count()
     total_offices = Office.objects.count()
     
-    print(f"📊 Total Attendance Records: {total_attendance:,}")
+    print(f" Total Attendance Records: {total_attendance:,}")
     print(f"🏢 Total Offices: {total_offices}")
     print(f"👥 Total Users: {total_users}")
     

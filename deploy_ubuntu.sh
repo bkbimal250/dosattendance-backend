@@ -81,7 +81,7 @@ mysql -e "GRANT ALL PRIVILEGES ON attendance_db.* TO 'attendance_user'@'localhos
 mysql -e "FLUSH PRIVILEGES;"
 
 # Setup Redis
-echo "🔴 Configuring Redis..."
+echo " Configuring Redis..."
 systemctl enable redis-server
 systemctl start redis-server
 
@@ -99,7 +99,7 @@ chmod -R 755 /var/www/attendance
 chmod 660 .env
 
 # Run Django migrations
-echo "🔄 Running Django migrations..."
+echo " Running Django migrations..."
 source venv/bin/activate
 python manage.py collectstatic --noinput
 python manage.py makemigrations

@@ -137,7 +137,7 @@ After each step, test:
 3. `https://dosmanagers.dishaonlinesolution.in/assets/index-CBwUF6F2.css`
 4. `https://dosmanagers.dishaonlinesolution.in/assets/index-BbWYAjxf.js`
 
-## 🎯 Expected Results
+##  Expected Results
 
 After fixes:
 -  Test files load correctly

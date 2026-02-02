@@ -70,7 +70,7 @@ curl -H "Authorization: Bearer your-jwt-token" \
 sudo tail -f /var/log/apache2/error.log
 ```
 
-## 🎯 **EXPECTED RESULT**
+##  **EXPECTED RESULT**
 
 After successful deployment, you should have:
 

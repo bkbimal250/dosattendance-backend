@@ -364,7 +364,7 @@ PERMISSIONS = {
 
 ---
 
-## 📊 **MONITORING & LOGGING**
+##  **MONITORING & LOGGING**
 
 ### **Application Logging**
 ```python
@@ -478,7 +478,7 @@ WantedBy=multi-user.target
 
 ---
 
-## 🔄 **DATA FLOW ARCHITECTURE**
+##  **DATA FLOW ARCHITECTURE**
 
 ### **Attendance Data Flow**
 ```mermaid
@@ -503,7 +503,7 @@ graph TD
 
 ---
 
-## 📈 **SCALABILITY CONSIDERATIONS**
+##  **SCALABILITY CONSIDERATIONS**
 
 ### **Horizontal Scaling**
 - **Load Balancer**: Multiple Django instances

@@ -134,7 +134,7 @@ My domain: dosmanagers.dishaonlinesolution.in
 - [ ] Test files can be accessed directly
 - [ ] Contacted Hostinger support if needed
 
-## 🎯 Expected Result
+##  Expected Result
 
 After fixes, your console should show:
 -  No MIME type errors

@@ -56,7 +56,7 @@
 └── 🖼️ vite.svg
 ```
 
-## 🎯 Ready for Hostinger Upload
+##  Ready for Hostinger Upload
 
 ### **Upload Instructions:**
 
@@ -94,7 +94,7 @@ If you encounter 403 errors:
 3. Test with the provided test files
 4. Contact Hostinger support if mod_rewrite is disabled
 
-## 📊 Build Statistics
+##  Build Statistics
 
 - **Total Build Time:** ~115 seconds
 - **Total Assets:** 30+ optimized files

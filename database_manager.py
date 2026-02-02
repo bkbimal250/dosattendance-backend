@@ -101,7 +101,7 @@ def restore_database(dump_file_path):
             DB_CONFIG['database']
         ]
         
-        print(f"🔄 Restoring database from: {dump_file_path}")
+        print(f" Restoring database from: {dump_file_path}")
         print("This may take a few minutes...")
         
         with open(dump_file_path, 'r', encoding='utf-8') as dump_file:
@@ -136,7 +136,7 @@ def backup_database(backup_file_path):
             DB_CONFIG['database']
         ]
         
-        print(f"🔄 Creating backup: {backup_file_path}")
+        print(f" Creating backup: {backup_file_path}")
         
         with open(backup_file_path, 'w', encoding='utf-8') as backup_file:
             result = subprocess.run(cmd, stdout=backup_file, stderr=subprocess.PIPE, text=True)
@@ -227,7 +227,7 @@ def main():
                 
             confirm = input("⚠️  This will DELETE ALL DATA and restore from dump! Are you sure? (yes/no): ").strip().lower()
             if confirm == 'yes':
-                print("\n🔄 Starting full restore process...")
+                print("\n Starting full restore process...")
                 if drop_database():
                     if create_database():
                         restore_database(dump_path)

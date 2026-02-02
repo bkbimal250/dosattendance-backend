@@ -100,7 +100,7 @@ chmod -R 775 logs media
 
 ---
 
-## 📊 **DETAILED CHECK RESULTS**
+##  **DETAILED CHECK RESULTS**
 
 | Component | Status | Issues Found |
 |-----------|--------|--------------|
@@ -215,7 +215,7 @@ ls -la /var/backups/employee-attendance/
 
 ---
 
-## 🎯 **NEXT STEPS**
+##  **NEXT STEPS**
 
 1. **IMMEDIATE** (Before Deployment):
    - Fix security issues

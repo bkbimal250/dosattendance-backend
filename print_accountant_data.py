@@ -100,7 +100,7 @@ def main():
         print(f"   ⏰ Check-in: {record.check_in_time.strftime('%H:%M:%S') if record.check_in_time else 'N/A'}")
         print(f"   ⏰ Check-out: {record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A'}")
         print(f"   ⏱️  Total Hours: {record.total_hours or 'N/A'}")
-        print(f"   📊 Status: {record.status} ({record.day_status})")
+        print(f"    Status: {record.status} ({record.day_status})")
         print(f"   🕐 Late: {record.late_minutes} minutes" if record.is_late else "    On time")
     
     # Print departments and designations

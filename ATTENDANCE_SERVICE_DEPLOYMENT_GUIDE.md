@@ -4,7 +4,7 @@
 
 This guide explains how to configure the Django Attendance System to automatically start the ZKTeco attendance fetching service when the server starts, ensuring real-time attendance data collection.
 
-## 🎯 What's Configured
+##  What's Configured
 
 ###  Auto-Start Features
 - **Automatic Service Startup**: Service starts when Django server starts
@@ -160,7 +160,7 @@ nssm start AttendanceService
    - Arguments: `manage.py start_attendance_service --daemon`
    - Start in: `C:\path\to\your\django\project`
 
-## 📊 Monitoring and Logs
+##  Monitoring and Logs
 
 ### Log Files
 - **Service Logs**: `logs/attendance_service.out`
@@ -229,7 +229,7 @@ python manage.py setup_zkteco_push --test-connection
 tail -f logs/auto_fetch_attendance.log
 ```
 
-## 📈 Performance Tuning
+##  Performance Tuning
 
 ### Optimization Settings
 ```python
@@ -252,7 +252,7 @@ netstat -an | grep :4370
 df -h logs/
 ```
 
-## 🔄 Service Management
+##  Service Management
 
 ### Start/Stop Commands
 ```bash

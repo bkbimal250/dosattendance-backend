@@ -118,7 +118,7 @@ fi
 
 # 10. Show connection information
 echo ""
-echo "📊 PostgreSQL Configuration Summary:"
+echo " PostgreSQL Configuration Summary:"
 echo "=================================="
 echo "🌐 Server IP: $(hostname -I | awk '{print $1}')"
 echo "🔌 Port: 5432"

@@ -93,7 +93,7 @@ npm install -g wscat
 wscat -c wss://company.d0s369.co.in/ws/attendance/
 ```
 
-## 📊 **Expected Results**
+##  **Expected Results**
 
 After setup:
 -  Django ASGI service running on port 8001

@@ -44,11 +44,11 @@ else
 fi
 
 # Restart Apache2
-echo "🔄 Restarting Apache2..."
+echo " Restarting Apache2..."
 systemctl restart apache2
 
 # Check status
-echo "📊 Checking Apache2 status..."
+echo " Checking Apache2 status..."
 systemctl status apache2 --no-pager
 
 # Check if ports are listening
