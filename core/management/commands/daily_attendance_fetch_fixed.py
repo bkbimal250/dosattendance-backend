@@ -73,7 +73,7 @@ class Command(BaseCommand):
         limit = options['limit']
         
         self.stdout.write(
-            self.style.SUCCESS(f"🔄 Starting daily attendance fetch (last {days} days)")
+            self.style.SUCCESS(f" Starting daily attendance fetch (last {days} days)")
         )
         self.stdout.write("📡 Redis/WebSocket broadcasting disabled for faster processing")
         
@@ -90,7 +90,7 @@ class Command(BaseCommand):
         start_date = end_date - timedelta(days=days)
         
         self.stdout.write(f"📅 Date range: {start_date.date()} to {end_date.date()}")
-        self.stdout.write(f"📱 Processing {len(devices)} devices...\n")
+        self.stdout.write(f" Processing {len(devices)} devices...\n")
         
         total_processed = 0
         total_new_records = 0
@@ -99,7 +99,7 @@ class Command(BaseCommand):
         # Process each device one by one
         for i, device in enumerate(devices, 1):
             self.stdout.write(
-                self.style.SUCCESS(f"📱 [{i}/{len(devices)}] Processing: {device.name}")
+                self.style.SUCCESS(f" [{i}/{len(devices)}] Processing: {device.name}")
             )
             
             try:
@@ -129,7 +129,7 @@ class Command(BaseCommand):
         
         # Final summary
         self.stdout.write(
-            self.style.SUCCESS("📊 Daily Fetch Summary:")
+            self.style.SUCCESS(" Daily Fetch Summary:")
         )
         self.stdout.write(f"   Devices processed: {len(devices)}")
         self.stdout.write(f"   Total records processed: {total_processed}")
@@ -174,7 +174,7 @@ class Command(BaseCommand):
             
             # Get all attendance data
             attendance_logs = conn.get_attendance()
-            self.stdout.write(f"   📊 Found {len(attendance_logs)} total logs")
+            self.stdout.write(f"    Found {len(attendance_logs)} total logs")
             
             # Filter to date range and limit
             recent_logs = []
@@ -203,7 +203,7 @@ class Command(BaseCommand):
                 
                 # Show progress
                 if i % (batch_size * 2) == 0:
-                    self.stdout.write(f"   📈 Progress: {i}/{len(recent_logs)} records processed")
+                    self.stdout.write(f"    Progress: {i}/{len(recent_logs)} records processed")
             
             conn.disconnect()
             self.stdout.write(f"   🔌 Disconnected from {device.name}")

@@ -152,7 +152,7 @@ class Command(BaseCommand):
             date__lte=today
         ).count()
         
-        self.stdout.write("\n📊 Attendance Summary")
+        self.stdout.write("\n Attendance Summary")
         self.stdout.write("=" * 40)
         self.stdout.write(f"Total Users: {total_users}")
         self.stdout.write(f"Active Users: {active_users}")

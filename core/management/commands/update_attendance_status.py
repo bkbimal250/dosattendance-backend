@@ -84,7 +84,7 @@ class Command(BaseCommand):
                     attendance.calculate_attendance_status()
                     
                     self.stdout.write(
-                        f'📝 {attendance.user.get_full_name()} - {attendance.date}: '
+                        f' {attendance.user.get_full_name()} - {attendance.date}: '
                         f'Status: {old_status} → {attendance.status}, '
                         f'Day Status: → {attendance.day_status}, '
                         f'Late: → {attendance.is_late}, '

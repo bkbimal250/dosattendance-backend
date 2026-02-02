@@ -1257,8 +1257,8 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
     
 
     def get_salary_increment_template(self):
-            """Professional salary increment template with absolute signature & stamp"""
-            return """
+        """Professional salary increment template with absolute signature & stamp"""
+        return """
         <!DOCTYPE html>
         <html>
         <head>

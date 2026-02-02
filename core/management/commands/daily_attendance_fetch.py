@@ -75,7 +75,7 @@ class Command(BaseCommand):
         start_date = end_date - timedelta(days=days)
         
         self.stdout.write(f" Date range: {start_date.date()} to {end_date.date()}")
-        self.stdout.write(f"📱 Processing {len(devices)} devices...\n")
+        self.stdout.write(f" Processing {len(devices)} devices...\n")
         
         total_processed = 0
         total_new_records = 0

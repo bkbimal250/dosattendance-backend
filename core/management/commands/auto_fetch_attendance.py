@@ -395,7 +395,7 @@ class AutoAttendanceService:
             
     def _process_essl_attendance(self, device, attendance_data):
         """Process ESSL attendance records"""
-        logger.info(f"📊 Processing {len(attendance_data)} ESSL attendance records from {device.name}")
+        logger.info(f" Processing {len(attendance_data)} ESSL attendance records from {device.name}")
         
         new_records = 0
         
@@ -466,7 +466,7 @@ class AutoAttendanceService:
                         old_checkin = attendance.check_in_time
                         attendance.check_in_time = timestamp
                         attendance.save()
-                        logger.info(f"🔄 EARLIER SCAN (ESSL): Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                        logger.info(f" EARLIER SCAN (ESSL): Updated check-in for {user.get_full_name()} from {old_checkin.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                     elif timestamp > existing_checkin:
                         # Later timestamp - update check-out time (last scan of the day)
                         if not attendance.check_out_time:
@@ -483,10 +483,10 @@ class AutoAttendanceService:
                                 old_checkout = attendance.check_out_time
                                 attendance.check_out_time = timestamp
                                 attendance.save()
-                                logger.info(f"🔄 LATER SCAN (ESSL): Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
+                                logger.info(f" LATER SCAN (ESSL): Updated check-out for {user.get_full_name()} from {old_checkout.strftime('%H:%M:%S')} to {timestamp.strftime('%H:%M:%S')}")
                             else:
                                 # This scan is between check-in and check-out, log it but don't change times
-                                logger.debug(f"📝 MIDDLE SCAN (ESSL): {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
+                                logger.debug(f" MIDDLE SCAN (ESSL): {user.get_full_name()} scanned at {timestamp.strftime('%H:%M:%S')} (between check-in and check-out)")
                 else:
                     # No check-in time exists - this should be the check-in
                     attendance.check_in_time = timestamp
@@ -502,14 +502,14 @@ class AutoAttendanceService:
             
     def _log_stats(self):
         """Log service statistics"""
-        logger.info(f"📈 Service Stats - Fetches: {self.stats['total_fetches']}, "
+        logger.info(f" Service Stats - Fetches: {self.stats['total_fetches']}, "
                    f"Records: {self.stats['total_records']}, "
                    f"Duplicates Prevented: {self.stats['duplicates_prevented']}, "
                    f"Errors: {self.stats['errors']}")
         
         # Log attendance logic summary
-        logger.info("🎯 ATTENDANCE LOGIC: First scan = Check-in, Last scan = Check-out")
-        logger.info("📱 Every biometric scan is logged, but only first/last affect attendance times")
+        logger.info(" ATTENDANCE LOGIC: First scan = Check-in, Last scan = Check-out")
+        logger.info(" Every biometric scan is logged, but only first/last affect attendance times")
                     
     def get_stats(self):
         """Get current service statistics"""
@@ -595,7 +595,7 @@ class Command(BaseCommand):
         """Show service status"""
         stats = auto_attendance_service.get_stats()
         
-        self.stdout.write("📊 Automatic Attendance Fetching Service Status")
+        self.stdout.write(" Automatic Attendance Fetching Service Status")
         self.stdout.write("=" * 50)
         self.stdout.write(f"Running: {'Yes' if auto_attendance_service.running else 'No'}")
         self.stdout.write(f"Interval: {auto_attendance_service.interval} seconds")
@@ -608,10 +608,10 @@ class Command(BaseCommand):
             self.stdout.write(f"Last Successful Fetch: {stats['last_successful_fetch']}")
             
         # Show device status
-        self.stdout.write("\n📱 Device Status:")
+        self.stdout.write("\n Device Status:")
         for device in auto_attendance_service.devices:
             last_fetch = auto_attendance_service.last_fetch_times.get(device.id)
-            status = "🟢 Active" if last_fetch else "🔴 Inactive"
+            status = " Active" if last_fetch else " Inactive"
             self.stdout.write(f"  {device.name} ({device.device_type}): {status}")
             
         self.stdout.write("=" * 50)

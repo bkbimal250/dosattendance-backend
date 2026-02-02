@@ -92,9 +92,9 @@ class Command(BaseCommand):
             
     def show_alternatives(self):
         """Show alternative commands for working with attendance data"""
-        self.stdout.write("\n🔄 Alternative Commands for Attendance Data")
+        self.stdout.write("\n Alternative Commands for Attendance Data")
         self.stdout.write("=" * 60)
-        self.stdout.write("\n📊 View Attendance Data:")
+        self.stdout.write("\n View Attendance Data:")
         self.stdout.write("  python manage.py view_attendance_data --today")
         self.stdout.write("  python manage.py view_attendance_data --date 2025-01-15")
         self.stdout.write("  python manage.py view_attendance_data --user john_doe")
@@ -108,7 +108,7 @@ class Command(BaseCommand):
         self.stdout.write("  python manage.py manage_attendance_data --export-today")
         self.stdout.write("  python manage.py manage_attendance_data --cleanup-duplicates")
         
-        self.stdout.write("\n📱 Device Management:")
+        self.stdout.write("\n Device Management:")
         self.stdout.write("  python manage.py map_and_fetch_attendance --list-devices")
         self.stdout.write("  python manage.py map_and_fetch_attendance --map-users")
         

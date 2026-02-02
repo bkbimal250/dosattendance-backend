@@ -632,8 +632,8 @@ class ReportsViewSet(viewsets.ViewSet):
             office_id = request.query_params.get('office')
             user_id = request.query_params.get('user')
             
-            logger.info(f"📊 Monthly summary request - Year: {year}, Month: {month}, Office: {office_id}, User: {user_id}")
-            logger.info(f"📊 All query params: {dict(request.query_params)}")
+            logger.info(f" Monthly summary request - Year: {year}, Month: {month}, Office: {office_id}, User: {user_id}")
+            logger.info(f" All query params: {dict(request.query_params)}")
 
             # Convert to integers
             if year:
@@ -655,12 +655,12 @@ class ReportsViewSet(viewsets.ViewSet):
             
             if office_id:
                 users_query = users_query.filter(office_id=office_id)
-                logger.info(f"📊 Filtering by office_id: {office_id}")
+                logger.info(f" Filtering by office_id: {office_id}")
             
             users = users_query.select_related('office')
             total_users_after_filter = users.count()
             
-            logger.info(f"📊 Users count - Before filter: {total_users_before_filter}, After filter: {total_users_after_filter}")
+            logger.info(f" Users count - Before filter: {total_users_before_filter}, After filter: {total_users_after_filter}")
             
             report_data = []
             for user in users:

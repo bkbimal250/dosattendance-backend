@@ -66,7 +66,6 @@ class SalaryIncrementSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = (
             'old_salary',
-            'increment_amount',
             'new_salary',
             'applied_at',
             'created_at',

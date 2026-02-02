@@ -68,7 +68,7 @@ class ImprovedAutoFetchService:
             is_active=True
         ))
         
-        logger.info(f"📱 Found {len(self.devices)} active ZKTeco devices")
+        logger.info(f" Found {len(self.devices)} active ZKTeco devices")
         
         # Initialize device connections
         for device in self.devices:
