@@ -1,9 +1,9 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from decimal import Decimal
 
-from .models import SalaryIncrement, SalaryIncrementHistory
+from .models import SalaryIncrement, SalaryIncrementHistory, Holiday
 
 
 @receiver(post_save, sender=SalaryIncrement)
@@ -43,3 +43,12 @@ def apply_salary_increment(sender, instance, created, **kwargs):
     # Mark as applied
     instance.applied_at = timezone.now()
     instance.save(update_fields=['applied_at'])
+
+@receiver(pre_save, sender=Holiday)
+def update_holiday(sender, instance, **kwargs):
+    """
+    Placeholder for holiday-related pre-save logic.
+    """
+    if instance.is_paid and instance.double_pay_if_worked:
+        # Potential future logic
+        pass

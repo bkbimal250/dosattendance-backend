@@ -375,7 +375,7 @@ python test_salary_system.py
 # Test API endpoints
 curl -H "Authorization: Bearer your-jwt-token" \
      -H "Content-Type: application/json" \
-     http://localhost:8000/api/salaries/
+     http://localhost:8001/api/salaries/
 ```
 
 ##  Best Practices
@@ -435,13 +435,13 @@ All API endpoints require JWT authentication:
 
 ```bash
 # Get JWT token
-curl -X POST http://localhost:8000/api/token/ \
+curl -X POST http://localhost:8001/api/token/ \
      -H "Content-Type: application/json" \
      -d '{"username": "your_username", "password": "your_password"}'
 
 # Use token in requests
 curl -H "Authorization: Bearer your-jwt-token" \
-     http://localhost:8000/api/salaries/
+     http://localhost:8001/api/salaries/
 ```
 
 ### Response Formats

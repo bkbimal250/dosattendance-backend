@@ -1172,11 +1172,11 @@ class Salary(models.Model):
         return max(0, self.net_salary - self.balance_loan)
 
     def calculate_worked_days_from_attendance(self):
-        """Calculate worked days from attendance records with holiday pay logic"""
+        """Calculate worked days from attendance records matching frontend logic"""
         try:
             from django.utils import timezone
             from datetime import datetime, timedelta
-            from coreapp.models import Holiday # Local import to avoid circular dependencies
+            from coreapp.models import Holiday  # Local import to avoid circular dependencies
             
             # Get the month and year from salary_month
             year = self.salary_month.year
@@ -1185,55 +1185,48 @@ class Salary(models.Model):
             # Calculate start and end dates for the month
             start_date = datetime(year, month, 1).date()
             if month == 12:
+                # For December, next month is Jan of next year
                 end_date = datetime(year + 1, 1, 1).date() - timedelta(days=1)
             else:
                 end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
             
-            # Get attendance records for the month
-            attendance_records = {
-                record.date: record for record in Attendance.objects.filter(
-                    user=self.employee,
-                    date__range=[start_date, end_date]
-                )
-            }
+            # 1. Calculate Present Days
+            # Count distinct dates where status is 'present'
+            present_days_count = Attendance.objects.filter(
+                user=self.employee,
+                date__range=[start_date, end_date],
+                status='present'
+            ).count()
             
-            # Get holidays for the month
-            holidays = {
-                holiday.date: holiday for holiday in Holiday.objects.filter(
-                    date__range=[start_date, end_date]
-                )
-            }
+            # 2. Calculate Sundays
+            total_sundays = 0
+            current = start_date
+            while current <= end_date:
+                if current.weekday() == 6:  # 6 is Sunday
+                    total_sundays += 1
+                current += timedelta(days=1)
+                
+            # 3. Calculate Effective Holidays (excluding Sundays)
+            # Fetch holidays in the range
+            holidays_qs = Holiday.objects.filter(
+                date__range=[start_date, end_date]
+            )
             
-            total_worked_days = 0
-            current_date = start_date
-            while current_date <= end_date:
-                record = attendance_records.get(current_date)
-                holiday = holidays.get(current_date)
-                
-                if holiday:
-                    # Holiday Logic:
-                    # Holiday + Present (complete / half) = Double pay (or proportional)
-                    # Holiday + Absent / Weekend = Single pay
-                    if record and record.status == 'present':
-                        if record.day_status == 'complete_day':
-                            total_worked_days += 2 # Holiday + Full Day = 2 days pay
-                        elif record.day_status == 'half_day':
-                            total_worked_days += 1.5 # Holiday + Half Day = 1.5 days pay
-                        else:
-                            total_worked_days += 1 # Present but unknown status
-                    else:
-                        # Absent or no record on a holiday
-                        total_worked_days += 1 # Paid holiday
-                else:
-                    # Normal working day logic
-                    if record and record.status == 'present':
-                        if record.day_status == 'complete_day':
-                            total_worked_days += 1
-                        elif record.day_status == 'half_day':
-                            total_worked_days += 0.5
-                    # Absent or no record = 0 pay
-                
-                current_date += timedelta(days=1)
+            effective_holidays = 0
+            for holiday in holidays_qs:
+                # Check if holiday is NOT on a Sunday
+                if holiday.date.weekday() != 6:
+                    effective_holidays += 1
+                    
+            # 4. Calculate Extra Days (to reach 30 standard days logic if applicable)
+            # Matches frontend "Extra Days" logic: 30 - actual_days if actual < 30
+            actual_days_in_month = (end_date - start_date).days + 1
+            extra_days = 0
+            if actual_days_in_month < 30:
+                extra_days = 30 - actual_days_in_month
+            
+            # Total Formula: Present + Sundays + Holidays(non-Sunday) + Extra
+            total_worked_days = present_days_count + total_sundays + effective_holidays + extra_days
             
             # Update worked_days
             self.worked_days = Decimal(str(total_worked_days))

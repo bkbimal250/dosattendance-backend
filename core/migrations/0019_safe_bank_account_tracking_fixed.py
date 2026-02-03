@@ -158,7 +158,7 @@ def safe_drop_bank_account_history_model(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0017_remove_customuser_upi_qr_reason_and_more'),
+        ('core', '0018_ghost_sync'),
     ]
 
     operations = [

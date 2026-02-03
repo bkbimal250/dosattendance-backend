@@ -5,7 +5,7 @@ Simple API test script to verify endpoints are working
 import requests
 import json
 
-API_BASE_URL = 'http://localhost:8000/api'
+API_BASE_URL = 'http://localhost:8001/api'
 
 def test_endpoint(method, endpoint, data=None, headers=None):
     """Test an API endpoint"""

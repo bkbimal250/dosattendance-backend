@@ -187,8 +187,8 @@ python manage.py start_attendance_service --status
 python manage.py start_attendance_service
 
 # Test API endpoints
-curl -X GET http://localhost:8000/api/offices/
-curl -X GET http://localhost:8000/api/users/
+curl -X GET http://localhost:8001/api/offices/
+curl -X GET http://localhost:8001/api/users/
 
 # Test WebSocket (if configured)
 # Check Redis connection

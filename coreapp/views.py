@@ -3,10 +3,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import SalaryIncrement, SalaryIncrementHistory
+from .models import SalaryIncrement, SalaryIncrementHistory, Holiday
 from .serializers import (
     SalaryIncrementSerializer,
     SalaryIncrementHistorySerializer,
+    HolidaySerializer,  
 )
 from .permissions import IsAdminManagerOrSuperuser
 
@@ -182,7 +183,15 @@ class HolidayViewSet(viewsets.ModelViewSet):
 
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Allow all authenticated users to view holidays.
+        Only Admins/Managers/Superusers can create/update/delete.
+        """
+        if self.action in ['list', 'retrieve']:
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdminManagerOrSuperuser()]
 
     def get_queryset(self):
         qs = super().get_queryset()
