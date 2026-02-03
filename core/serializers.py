@@ -778,7 +778,7 @@ class DocumentGenerationSerializer(serializers.Serializer):
     
     # Additional salary slip fields from frontend - increased max_digits
     total_days = serializers.IntegerField(required=False)
-    worked_days = serializers.IntegerField(required=False)
+    worked_days = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     per_day_pay = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     gross_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)
     net_salary = serializers.DecimalField(max_digits=15, decimal_places=2, required=False)

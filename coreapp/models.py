@@ -118,3 +118,23 @@ class SalaryIncrementHistory(models.Model):
 
     def __str__(self):
         return f"{self.employee.get_full_name()} | {self.old_salary} → {self.new_salary}"
+
+
+class Holiday(models.Model):
+    HOLIDAY_TYPE = (
+        ('NATIONAL', 'National'),
+        ('STATE', 'State'),
+        ('COMPANY', 'Company'),
+    )
+
+    name = models.CharField(max_length=100)
+    date = models.DateField(unique=True)
+    type = models.CharField(max_length=20, choices=HOLIDAY_TYPE)
+
+    is_paid = models.BooleanField(default=True)
+    double_pay_if_worked = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.date}"
+
+

@@ -173,3 +173,34 @@ class SalaryIncrementHistoryViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(changed_at__date__lte=to_date)
 
         return qs
+
+
+class HolidayViewSet(viewsets.ModelViewSet):
+    """
+    Create / Update / Delete holidays.
+    """
+
+    queryset = Holiday.objects.all()
+    serializer_class = HolidaySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = self.request.query_params
+
+        holiday_type = params.get('type')
+        from_date = params.get('from_date')
+        to_date = params.get('to_date')
+        is_paid = params.get('is_paid')
+
+        if holiday_type:
+            qs = qs.filter(type=holiday_type)
+        if from_date:
+            qs = qs.filter(date__gte=from_date)
+        if to_date:
+            qs = qs.filter(date__lte=to_date)
+        if is_paid is not None:
+            is_paid = is_paid.lower() == 'true'
+            qs = qs.filter(is_paid=is_paid)
+
+        return qs

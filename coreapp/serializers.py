@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SalaryIncrement, SalaryIncrementHistory
+from .models import SalaryIncrement, SalaryIncrementHistory, Holiday
 
 
 class SalaryIncrementSerializer(serializers.ModelSerializer):
@@ -126,3 +126,26 @@ class SalaryIncrementHistorySerializer(serializers.ModelSerializer):
             'remarks',
         ]
         read_only_fields = fields
+
+
+class HolidaySerializer(serializers.ModelSerializer):
+    """
+    Serializer for holidays.
+    """
+
+    class Meta:
+        model = Holiday
+        fields = [
+            'id',
+            'name',
+            'date',
+            'type',
+            'is_paid',
+            'double_pay_if_worked',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = (
+            'created_at',
+            'updated_at',
+        )

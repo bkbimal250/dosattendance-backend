@@ -241,10 +241,6 @@ class CustomUser(AbstractUser):
 
 
 
-
-
-
-
 class BankAccountHistory(models.Model):
     """Track all bank account changes for audit purposes"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -405,6 +401,7 @@ class Attendance(models.Model):
         ('absent', 'Absent'),
         ('upcoming', 'Upcoming'),
         ('weekend', 'Weekend'),
+        ('holiday', 'Holiday'),
     ]
     
     DAY_STATUS_CHOICES = [
@@ -413,6 +410,7 @@ class Attendance(models.Model):
         ('absent', 'Absent'),
         ('upcoming', 'Upcoming'),
         ('weekend', 'Weekend'),
+        ('holiday', 'Holiday'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -1036,7 +1034,7 @@ class Salary(models.Model):
     per_day_pay = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Per day pay amount (used for calculation)")
     increment = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Increment amount")
     total_days = models.PositiveIntegerField(default=30, help_text="Total working days in the month")
-    worked_days = models.PositiveIntegerField(default=30, help_text="Days actually worked")
+    worked_days = models.DecimalField(max_digits=5, decimal_places=2, default=30, help_text="Days actually worked (including holiday pay)")
     
     # Deductions and Adjustments
     deduction = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total deductions")
@@ -1108,43 +1106,28 @@ class Salary(models.Model):
         """Validate salary data"""
         super().clean()
         
-        # Note: Salary can be assigned to any user (admin panel functionality)
-        # This allows salary management for all users, not just employees
-        
-        # Note: worked_days can exceed total_days when including Sundays as working days
-        # This is intentional for salary calculation purposes
-        
         # Ensure basic_pay is positive
         if self.basic_pay <= 0:
             raise ValidationError('Basic pay must be greater than zero.')
         
         # Ensure approved_by is admin or manager
-        if self.approved_by and self.approved_by.role not in ['admin', 'manager']:
-            raise ValidationError('Only admin or manager can approve salaries.')
-        
-        # Note: Salary creation is allowed for all users in admin panel
-        # This allows flexible salary management across all user roles
+        if self.approved_by and self.approved_by.role not in ['admin', 'manager', 'accountant']:
+            raise ValidationError('Only admin, manager or accountant can approve salaries.')
 
     def save(self, *args, **kwargs):
         self.clean()
         
         # Auto-calculate worked_days from attendance if not manually set
-        # Only recalculate if attendance_based is True AND we're not manually setting worked_days
-        if self.attendance_based and not self._state.adding and hasattr(self, '_recalculate_from_attendance'):
+        if self.attendance_based and (self._state.adding or hasattr(self, '_recalculate_from_attendance')):
             self.calculate_worked_days_from_attendance()
         
         # Ensure worked_days has a reasonable default if it's 0
         if self.worked_days == 0:
-            if self.attendance_based:
-                # If attendance-based but no attendance data, use total_days
+            if not self.attendance_based:
                 self.worked_days = self.total_days
-            else:
-                # If not attendance-based, use total_days
-                self.worked_days = self.total_days
-        # If worked_days is manually set to a non-zero value, respect that value
         
         # Calculate and store gross_salary and net_salary in database fields
-        self.gross_salary = self.per_day_pay * Decimal(self.worked_days)
+        self.gross_salary = Decimal(str(self.per_day_pay)) * Decimal(str(self.worked_days))
         self.net_salary = self.gross_salary - self.deduction
         
         # Auto-calculate remaining_pay
@@ -1189,10 +1172,11 @@ class Salary(models.Model):
         return max(0, self.net_salary - self.balance_loan)
 
     def calculate_worked_days_from_attendance(self):
-        """Calculate worked days from attendance records"""
+        """Calculate worked days from attendance records with holiday pay logic"""
         try:
             from django.utils import timezone
-            from datetime import datetime
+            from datetime import datetime, timedelta
+            from coreapp.models import Holiday # Local import to avoid circular dependencies
             
             # Get the month and year from salary_month
             year = self.salary_month.year
@@ -1206,26 +1190,58 @@ class Salary(models.Model):
                 end_date = datetime(year, month + 1, 1).date() - timedelta(days=1)
             
             # Get attendance records for the month
-            attendance_records = Attendance.objects.filter(
-                user=self.employee,
-                date__range=[start_date, end_date]
-            )
+            attendance_records = {
+                record.date: record for record in Attendance.objects.filter(
+                    user=self.employee,
+                    date__range=[start_date, end_date]
+                )
+            }
             
-            # Count worked days based on attendance status
-            worked_days = 0
-            for record in attendance_records:
-                if record.status == 'present':
-                    if record.day_status == 'complete_day':
-                        worked_days += 1
-                    elif record.day_status == 'half_day':
-                        worked_days += 0.5
+            # Get holidays for the month
+            holidays = {
+                holiday.date: holiday for holiday in Holiday.objects.filter(
+                    date__range=[start_date, end_date]
+                )
+            }
+            
+            total_worked_days = 0
+            current_date = start_date
+            while current_date <= end_date:
+                record = attendance_records.get(current_date)
+                holiday = holidays.get(current_date)
+                
+                if holiday:
+                    # Holiday Logic:
+                    # Holiday + Present (complete / half) = Double pay (or proportional)
+                    # Holiday + Absent / Weekend = Single pay
+                    if record and record.status == 'present':
+                        if record.day_status == 'complete_day':
+                            total_worked_days += 2 # Holiday + Full Day = 2 days pay
+                        elif record.day_status == 'half_day':
+                            total_worked_days += 1.5 # Holiday + Half Day = 1.5 days pay
+                        else:
+                            total_worked_days += 1 # Present but unknown status
+                    else:
+                        # Absent or no record on a holiday
+                        total_worked_days += 1 # Paid holiday
+                else:
+                    # Normal working day logic
+                    if record and record.status == 'present':
+                        if record.day_status == 'complete_day':
+                            total_worked_days += 1
+                        elif record.day_status == 'half_day':
+                            total_worked_days += 0.5
+                    # Absent or no record = 0 pay
+                
+                current_date += timedelta(days=1)
             
             # Update worked_days
-            self.worked_days = int(worked_days)
+            self.worked_days = Decimal(str(total_worked_days))
             self.is_auto_calculated = True
             
         except Exception as e:
-            # If calculation fails, keep the current worked_days
+            # If calculation fails, keep the current worked_days or log error
+            print(f"Error calculating worked days for {self.employee}: {e}")
             pass
 
     def calculate_remaining_pay(self):
@@ -1248,8 +1264,6 @@ class Salary(models.Model):
         self.status = 'pending'
         self.save()
 
-
-
     def get_salary_breakdown(self):
         """Get detailed salary breakdown for display"""
         return {
@@ -1258,7 +1272,7 @@ class Salary(models.Model):
             'increment': float(self.increment),
             'final_salary': float(self.final_salary),
             'per_day_salary': float(self.per_day_salary),
-            'worked_days': self.worked_days,
+            'worked_days': float(self.worked_days),
             'total_days': self.total_days,
             'gross_salary': float(self.gross_salary),
             'allowances': {
