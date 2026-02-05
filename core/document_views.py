@@ -1512,6 +1512,311 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
 
 
 
+
+    def get_salary_slip_template(self):
+        """Professional salary slip template"""
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <style>
+        @page { size: A4; margin: 0.5in; }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9pt;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            background: #fff;
+        }
+        
+        .page {
+            width: 100%;
+            padding: 0;
+        }
+        
+        /* HEADER */
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .company-logo { max-height: 60px; }
+        .company-name { font-size: 16pt; font-weight: bold; margin-top: 5px; color: #000; }
+        .company-address { font-size: 9pt; margin-top: 5px; }
+        
+        /* TITLE */
+        .document-title {
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 10px 0 20px;
+            text-transform: uppercase;
+            background-color: #f0f0f0;
+            padding: 5px;
+            border: 1px solid #000;
+        }
+        
+        /* SECTIONS */
+        .section-header {
+            font-weight: bold;
+            background-color: #e0e0e0;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #000;
+            font-size: 10pt;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        
+        .info-table td {
+            width: 25%;
+            font-size: 9pt;
+        }
+        
+        .salary-table {
+            border: 1px solid #000;
+        }
+        
+        .salary-table th, .salary-table td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+        
+        .salary-table th {
+            background-color: #f9f9f9;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .amount-col {
+            text-align: right;
+            width: 150px;
+        }
+        
+        .label-col {
+            font-weight: bold;
+            width: 150px;
+        }
+        
+        /* TOTALS */
+        .total-row td {
+            font-weight: bold;
+            background-color: #f0f0f0;
+            border-top: 2px solid #000;
+        }
+        
+        .net-pay {
+            font-size: 11pt;
+            font-weight: bold;
+            padding: 10px;
+            border: 2px solid #000;
+            margin-top: 10px;
+            text-align: center;
+            background-color: #e8f4f8;
+        }
+        
+        /* FOOTER */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 8pt;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 200px;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 40px;
+            padding-top: 5px;
+            font-weight: bold;
+        }
+        
+        .note {
+            font-size: 8pt; 
+            margin-top: 20px;
+            font-style: italic;
+        }
+        </style>
+        </head>
+        
+        <body>
+        <div class="page">
+        
+            <!-- HEADER -->
+            <div class="header">
+                {% if logo_url %}
+                <img src="{{ logo_url }}" class="company-logo">
+                {% endif %}
+                <div class="company-name">DISHA ONLINE SOLUTION</div>
+                <div class="company-address">
+                    Bhumiraj Costarica, 9th Floor Office No-907, Plot No-1 & 2,<br>
+                    Sector 18, Sanpada, Navi Mumbai, Maharashtra 400705
+                </div>
+            </div>
+            
+            <!-- TITLE -->
+            <div class="document-title">Payslip for the month of {{ salary_month }} {{ salary_year }}</div>
+            
+            <!-- EMPLOYEE INFO -->
+            <div class="section-header">EMPLOYEE SUMMARY</div>
+            <table class="info-table">
+                <tr>
+                    <td class="label-col">Employee Name:</td>
+                    <td><b>{{ employee_name }}</b></td>
+                    <td class="label-col">Employee ID:</td>
+                    <td>{{ employee_id }}</td>
+                </tr>
+                <tr>
+                    <td class="label-col">Designation:</td>
+                    <td>{{ employee_designation }}</td>
+                    <td class="label-col">Department:</td>
+                    <td>{{ employee_department }}</td>
+                </tr>
+                <tr>
+                    <td class="label-col">Office/Branch:</td>
+                    <td>{{ office_name }}</td>
+                    <td class="label-col">Date of Joining:</td>
+                    <td>{{ joining_date|default:'-' }}</td>
+                </tr>
+                <tr>
+                    <td class="label-col">Bank Name:</td>
+                    <td>{{ bank_name }}</td>
+                    <td class="label-col">Account No:</td>
+                    <td>{{ account_number }}</td>
+                </tr>
+                <tr>
+                    <td class="label-col">PAN Number:</td>
+                    <td>{{ pan_number }}</td>
+                    <td class="label-col">UAN / PF No:</td>
+                    <td>{{ uan_number }} / {{ pf_number }}</td>
+                </tr>
+            </table>
+            
+            <!-- ATTENDANCE INFO -->
+            <div class="section-header">ATTENDANCE DETAILS</div>
+            <table class="info-table">
+                <tr>
+                    <td class="label-col">Total Days:</td>
+                    <td>{{ total_days }}</td>
+                    <td class="label-col">Worked Days:</td>
+                    <td>{{ worked_days }}</td>
+                </tr>
+                <tr>
+                    <td class="label-col">Absent Days:</td>
+                    <td>{{ absent_days }}</td>
+                    <td class="label-col">Payable Days:</td>
+                    <td>{{ worked_days }}</td>
+                </tr>
+            </table>
+            
+            <!-- SALARY DETAILS -->
+            <div class="section-header">SALARY COMPUTATION</div>
+            <table class="salary-table">
+                <thead>
+                    <tr>
+                        <th>EARNINGS</th>
+                        <th class="amount-col">AMOUNT (Rs.)</th>
+                        <th>DEDUCTIONS</th>
+                        <th class="amount-col">AMOUNT (Rs.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Basic Salary</td>
+                        <td class="amount-col">{{ basic_salary }}</td>
+                        <td>PF Deduction</td>
+                        <td class="amount-col">-</td>
+                    </tr>
+                    <tr>
+                        <td>Per Day Pay</td>
+                        <td class="amount-col">{{ per_day_pay }}</td>
+                        <td>Professional Tax</td>
+                        <td class="amount-col">-</td>
+                    </tr>
+                     <tr>
+                        <td>Extra Days Pay</td>
+                        <td class="amount-col">{{ extra_days_pay }}</td>
+                        <td>TDS / Income Tax</td>
+                        <td class="amount-col">-</td>
+                    </tr>
+                    <tr>
+                        <td>Gross Salary (Before Deductions)</td>
+                        <td class="amount-col">{{ total_gross_salary }}</td>
+                        <td>Loan / Advance</td>
+                        <td class="amount-col">{{ total_deductions }}</td>
+                    </tr>
+                    <tr>
+                        <td>&nbsp;</td>
+                        <td>&nbsp;</td>
+                        <td>Other Deductions</td>
+                        <td class="amount-col">-</td>
+                    </tr>
+                    
+                    <!-- TOTAL ROW -->
+                    <tr class="total-row">
+                        <td>TOTAL EARNINGS</td>
+                        <td class="amount-col">{{ total_gross_salary }}</td>
+                        <td>TOTAL DEDUCTIONS</td>
+                        <td class="amount-col">{{ total_deductions }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- NET PAY -->
+            <div class="net-pay">
+                NET PAYABLE AMOUNT: {{ net_salary }}
+            </div>
+            
+             <div class="note">
+                <p>Note: This is a computer-generated payslip and does not require a physical signature.</p>
+            </div>
+            
+            <!-- SIGNATURES -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-line">Admin / HR Signature</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line">Employee Signature</div>
+                </div>
+            </div>
+            
+            <!-- FOOTER -->
+            <div class="footer">
+                <p><strong>Disha Online Solution</strong> | Bhumiraj Costarica, Sanpada, Navi Mumbai | www.d0s369.co.in</p>
+            </div>
+            
+        </div>
+        </body>
+        </html>
+        """
+
     def format_currency(self, amount):
         """Format currency in Indian format with proper word representation"""
         if amount is None:
