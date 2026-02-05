@@ -184,9 +184,17 @@ class CustomUser(AbstractUser):
                 raise ValidationError({'pan_card': 'PAN card number format should be: AAAAA9999A (5 letters, 4 digits, 1 letter).'})
 
     def save(self, *args, **kwargs):
-        # Only run validation if this is not a partial update (like last_login)
-        if not kwargs.get('update_fields'):
-            self.clean()
+        # Auto-null biometric_id if user is inactive
+        if self.is_active is False and self.biometric_id is not None:
+            self.biometric_id = None
+            if kwargs.get('update_fields') is not None:
+                update_fields = set(kwargs['update_fields'])
+                update_fields.add('biometric_id')
+                kwargs['update_fields'] = list(update_fields)
+
+        # Validation is handled by serializers for API requests. 
+        # Forcing clean() here can trigger unhandled ValidationErrors for existing 
+        # "dirty" data during unrelated updates (like is_active toggle).
         
         # Handle UUID field compatibility issues
         try:
@@ -791,9 +799,6 @@ class Notification(models.Model):
 
 
 
-
-
-
 class SystemSettings(models.Model):
     """System settings model for configuration"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -980,7 +985,8 @@ class Resignation(models.Model):
     def clean(self):
         """Validate resignation data"""
         # Ensure resignation date is today or in the future (submission date)
-        if self.resignation_date and self.resignation_date < timezone.now().date():
+        # Only validate on creation, not on updates (approvals)
+        if not self.pk and self.resignation_date and self.resignation_date < timezone.now().date():
             raise ValidationError('Resignation date cannot be in the past.')
         
         # Ensure notice period is reasonable (15 or 30 days)

@@ -22,22 +22,11 @@ class SalaryIncrementSerializer(serializers.ModelSerializer):
         source='employee.employee_id',
         read_only=True,
     )
-    employee_office_name = serializers.CharField(
-        source='employee.office.name',
-        read_only=True,
-    )
-    employee_department_name = serializers.CharField(
-        source='employee.department.name',
-        read_only=True,
-    )
-    employee_designation_name = serializers.CharField(
-        source='employee.designation.name',
-        read_only=True,
-    )
-    approved_by_name = serializers.CharField(
-        source='approved_by.get_full_name',
-        read_only=True,
-    )
+    # Using SerializerMethodField for safe traversal of optional relationships
+    employee_office_name = serializers.SerializerMethodField()
+    employee_department_name = serializers.SerializerMethodField()
+    employee_designation_name = serializers.SerializerMethodField()
+    approved_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = SalaryIncrement
@@ -72,6 +61,30 @@ class SalaryIncrementSerializer(serializers.ModelSerializer):
             'updated_at',
         )
 
+    def get_employee_office_name(self, obj):
+        try:
+            return obj.employee.office.name if obj.employee.office else None
+        except AttributeError:
+            return None
+
+    def get_employee_department_name(self, obj):
+        try:
+            return obj.employee.department.name if obj.employee.department else None
+        except AttributeError:
+            return None
+
+    def get_employee_designation_name(self, obj):
+        try:
+            return obj.employee.designation.name if obj.employee.designation else None
+        except AttributeError:
+            return None
+
+    def get_approved_by_name(self, obj):
+        try:
+            return obj.approved_by.get_full_name() if obj.approved_by else None
+        except AttributeError:
+            return None
+
     def create(self, validated_data):
         """
         Auto set old_salary from employee at creation time.
@@ -101,14 +114,8 @@ class SalaryIncrementHistorySerializer(serializers.ModelSerializer):
         source='employee.get_full_name',
         read_only=True,
     )
-    employee_office_name = serializers.CharField(
-        source='employee.office.name',
-        read_only=True,
-    )
-    employee_department_name = serializers.CharField(
-        source='employee.department.name',
-        read_only=True,
-    )
+    employee_office_name = serializers.SerializerMethodField()
+    employee_department_name = serializers.SerializerMethodField()
 
     class Meta:
         model = SalaryIncrementHistory
@@ -126,6 +133,18 @@ class SalaryIncrementHistorySerializer(serializers.ModelSerializer):
             'remarks',
         ]
         read_only_fields = fields
+
+    def get_employee_office_name(self, obj):
+        try:
+            return obj.employee.office.name if obj.employee.office else None
+        except AttributeError:
+            return None
+
+    def get_employee_department_name(self, obj):
+        try:
+            return obj.employee.department.name if obj.employee.department else None
+        except AttributeError:
+            return None
 
 
 class HolidaySerializer(serializers.ModelSerializer):

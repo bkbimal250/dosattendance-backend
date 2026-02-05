@@ -210,6 +210,14 @@ debug_*.py
 clean_*.py
 deploy_*.py
 push_*.py
+verify_*.py
+print_*.py
+*.pyc
+*test*.py
+*debug*.py
+*fix*.py
+*testing*.py
+*scripts*.py
 
 # Windows batch files and PowerShell scripts
 *.bat

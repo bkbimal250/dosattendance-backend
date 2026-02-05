@@ -28,9 +28,11 @@ import dashboardAPI from './apis/dashboardAPI';
 import notificationsAPI from './apis/notificationsAPI';
 import salaryAPI from './apis/salaryAPI';
 import esslAPI from './apis/esslAPI';
+import HolidayAPI from './apis/holidayAPI';
+import incrementsAPI from './apis/incrementAPI';
 
 // Export all APIs for backward compatibility
-export { authAPI, usersAPI, officesAPI, attendanceAPI, leavesAPI, resignationsAPI, documentsAPI, documentGenerationAPI, devicesAPI, deviceUserAPI, departmentsAPI, designationsAPI, reportsAPI, dashboardAPI, notificationsAPI, salaryAPI, esslAPI };
+export { authAPI, usersAPI, officesAPI, attendanceAPI, leavesAPI, resignationsAPI, documentsAPI, documentGenerationAPI, devicesAPI, deviceUserAPI, departmentsAPI, designationsAPI, reportsAPI, dashboardAPI, notificationsAPI, salaryAPI, esslAPI, HolidayAPI, incrementsAPI };
 
 // Convenience methods for backward compatibility
 apiClient.getDepartments = () => departmentsAPI.getDepartments();
@@ -39,6 +41,10 @@ apiClient.getDepartmentDesignations = (departmentId) => departmentsAPI.getDepart
 apiClient.getDesignations = () => designationsAPI.getDesignations();
 apiClient.getDesignation = (id) => designationsAPI.getDesignation(id);
 apiClient.getDesignationsByDepartment = (departmentId) => designationsAPI.getDesignationsByDepartment(departmentId);
+apiClient.getHolidays = () => HolidayAPI.getHolidays();
+apiClient.getIncrements = () => incrementsAPI.getIncrements();
+apiClient.toggleUserStatus = (id, isActive) => usersAPI.toggleUserStatus(id, isActive);
+
 
 // Default export (axios instance)
 export default apiClient;
