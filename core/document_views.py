@@ -18,48 +18,35 @@ PDF_CONSTRUCTOR_ARGS = None
 from io import BytesIO
 
 def check_weasyprint_availability():
-    """Check if WeasyPrint is available and return status"""
-    global WEASYPRINT_AVAILABLE, PDF_CONSTRUCTOR_ARGS
-    
+    global WEASYPRINT_AVAILABLE, PDF_CONSTRUCTOR_ARGS, weasyprint, HTML
+
     if WEASYPRINT_AVAILABLE is not None:
         return WEASYPRINT_AVAILABLE
-    
+
     try:
-        import weasyprint
+        import weasyprint as wp
+        from weasyprint import HTML as HTMLClass
         import pydyf
+
+        # Assign to global namespace
+        weasyprint = wp
+        HTML = HTMLClass
+
         WEASYPRINT_AVAILABLE = True
         logger = logging.getLogger(__name__)
-        logger.info(f"WeasyPrint is available for PDF generation - Version: {weasyprint.__version__}")
+
+        logger.info(f"WeasyPrint version: {weasyprint.__version__}")
         logger.info(f"pydyf version: {pydyf.__version__}")
-        
-        # Test if pydyf.PDF constructor is compatible
-        try:
-            # Test the PDF constructor with different argument counts
-            test_pdf = pydyf.PDF()
-            logger.info("pydyf.PDF() constructor test: SUCCESS (0 args)")
-            PDF_CONSTRUCTOR_ARGS = 0
-        except TypeError as e:
-            try:
-                test_pdf = pydyf.PDF('1.7')
-                logger.info("pydyf.PDF() constructor test: SUCCESS (1 arg)")
-                PDF_CONSTRUCTOR_ARGS = 1
-            except TypeError as e2:
-                try:
-                    test_pdf = pydyf.PDF('1.7', 'test')
-                    logger.info("pydyf.PDF() constructor test: SUCCESS (2 args)")
-                    PDF_CONSTRUCTOR_ARGS = 2
-                except TypeError as e3:
-                    logger.error(f"pydyf.PDF() constructor test: FAILED - {e3}")
-                    PDF_CONSTRUCTOR_ARGS = -1
-                    WEASYPRINT_AVAILABLE = False
-                    
-    except (ImportError, OSError) as e:
+
+        PDF_CONSTRUCTOR_ARGS = 0
+
+    except Exception as e:
         WEASYPRINT_AVAILABLE = False
         PDF_CONSTRUCTOR_ARGS = -1
-        logger = logging.getLogger(__name__)
-        logger.error(f"WeasyPrint not available: {e}. PDF generation will be disabled.")
-    
+        logger.error(f"WeasyPrint not available: {e}")
+
     return WEASYPRINT_AVAILABLE
+
 
 from .models import (
     CustomUser, DocumentTemplate, GeneratedDocument, Office
