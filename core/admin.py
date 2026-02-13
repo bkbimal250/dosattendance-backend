@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from unfold.admin import ModelAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.admin.helpers import AdminForm
 from django.utils.html import format_html
@@ -20,7 +21,7 @@ from .models import (
 
 
 @admin.register(Office)
-class OfficeAdmin(admin.ModelAdmin):
+class OfficeAdmin(ModelAdmin):
     list_display = ['name', 'phone', 'email', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'address', 'email', 'phone']
@@ -29,7 +30,7 @@ class OfficeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
+class DepartmentAdmin(ModelAdmin):
     list_display = ['name', 'description', 'is_active', 'designation_count', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
@@ -68,7 +69,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Designation)
-class DesignationAdmin(admin.ModelAdmin):
+class DesignationAdmin(ModelAdmin):
     list_display = ['name', 'department', 'description', 'is_active', 'created_at']
     list_filter = ['department', 'is_active', 'created_at']
     search_fields = ['name', 'description', 'department__name']
@@ -207,7 +208,7 @@ class CustomUserAdminForm(forms.ModelForm):
         return designation
 
 
-class SafeCustomUserAdmin(UserAdmin):
+class SafeCustomUserAdmin(BaseUserAdmin, ModelAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserAdminForm
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'pay_bank_name', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
@@ -688,7 +689,7 @@ admin.site.register(CustomUser, SafeCustomUserAdmin)
 
 
 @admin.register(Device)
-class DeviceAdmin(admin.ModelAdmin):
+class DeviceAdmin(ModelAdmin):
     list_display = ['name', 'device_type', 'ip_address', 'office', 'is_active', 'last_sync']
     list_filter = ['device_type', 'office', 'is_active', 'created_at']
     search_fields = ['name', 'ip_address', 'serial_number', 'location']
@@ -697,7 +698,7 @@ class DeviceAdmin(admin.ModelAdmin):
 
 
 @admin.register(DeviceUser)
-class DeviceUserAdmin(admin.ModelAdmin):
+class DeviceUserAdmin(ModelAdmin):
     list_display = ['device_user_name', 'device_user_id', 'device', 'is_mapped', 'system_user', 'created_at']
     list_filter = ['device', 'is_mapped', 'device_user_privilege', 'created_at']
     search_fields = ['device_user_name', 'device_user_id', 'device__name']
@@ -713,7 +714,7 @@ class DeviceUserAdmin(admin.ModelAdmin):
 
 
 @admin.register(Attendance)
-class AttendanceAdmin(admin.ModelAdmin):
+class AttendanceAdmin(ModelAdmin):
     list_display = ['user', 'date', 'check_in_time', 'check_out_time', 'total_hours', 'status', 'day_status', 'is_late', 'device']
     list_filter = ['status', 'day_status', 'is_late', 'date', 'device', 'user__office']
     search_fields = ['user__first_name', 'user__last_name', 'user__employee_id', 'notes']
@@ -731,7 +732,7 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(Leave)
-class LeaveAdmin(admin.ModelAdmin):
+class LeaveAdmin(ModelAdmin):
     list_display = ['user', 'leave_type', 'start_date', 'end_date', 'total_days', 'status', 'approved_by']
     list_filter = ['leave_type', 'status', 'start_date', 'end_date', 'user__office']
     search_fields = ['user__first_name', 'user__last_name', 'reason']
@@ -753,7 +754,7 @@ class LeaveAdmin(admin.ModelAdmin):
 
 
 @admin.register(Document)
-class DocumentAdmin(admin.ModelAdmin):
+class DocumentAdmin(ModelAdmin):
     list_display = ['title', 'user', 'document_type', 'uploaded_by', 'created_at']
     list_filter = ['document_type', 'created_at', 'user__office']
     search_fields = ['title', 'description', 'user__first_name', 'user__last_name']
@@ -762,7 +763,7 @@ class DocumentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
+class NotificationAdmin(ModelAdmin):
     list_display = ['user', 'title', 'notification_type', 'is_read', 'created_at']
     list_filter = ['notification_type', 'is_read', 'created_at', 'user__office']
     search_fields = ['title', 'message', 'user__first_name', 'user__last_name']
@@ -783,7 +784,7 @@ class NotificationAdmin(admin.ModelAdmin):
 
 
 @admin.register(SystemSettings)
-class SystemSettingsAdmin(admin.ModelAdmin):
+class SystemSettingsAdmin(ModelAdmin):
     list_display = ['key', 'value', 'description', 'updated_at']
     list_filter = ['updated_at']
     search_fields = ['key', 'description']
@@ -792,7 +793,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(AttendanceLog)
-class AttendanceLogAdmin(admin.ModelAdmin):
+class AttendanceLogAdmin(ModelAdmin):
     list_display = ['attendance', 'action', 'changed_by', 'created_at']
     list_filter = ['action', 'created_at', 'attendance__user__office']
     search_fields = ['attendance__user__first_name', 'attendance__user__last_name', 'action']
@@ -810,7 +811,7 @@ class AttendanceLogAdmin(admin.ModelAdmin):
 
 
 @admin.register(ESSLAttendanceLog)
-class ESSLAttendanceLogAdmin(admin.ModelAdmin):
+class ESSLAttendanceLogAdmin(ModelAdmin):
     list_display = ['biometric_id', 'device', 'user', 'punch_time', 'punch_type', 'is_processed']
     list_filter = ['device', 'punch_type', 'is_processed', 'created_at']
     search_fields = ['biometric_id', 'device__name', 'user__first_name', 'user__last_name']
@@ -820,7 +821,7 @@ class ESSLAttendanceLogAdmin(admin.ModelAdmin):
 
 
 @admin.register(BankAccountHistory)
-class BankAccountHistoryAdmin(admin.ModelAdmin):
+class BankAccountHistoryAdmin(ModelAdmin):
     list_display = ['user', 'action', 'changed_by', 'is_verified', 'created_at']
     list_filter = ['action', 'is_verified', 'created_at']
     search_fields = ['user__first_name', 'user__last_name', 'user__employee_id', 'changed_by__username']
@@ -849,7 +850,7 @@ class BankAccountHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(WorkingHoursSettings)
-class WorkingHoursSettingsAdmin(admin.ModelAdmin):
+class WorkingHoursSettingsAdmin(ModelAdmin):
     list_display = ['office', 'standard_hours', 'start_time', 'end_time', 'late_threshold', 'half_day_threshold', 'late_coming_threshold']
     list_filter = ['office', 'created_at']
     search_fields = ['office__name']
@@ -865,7 +866,7 @@ class WorkingHoursSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(Resignation)
-class ResignationAdmin(admin.ModelAdmin):
+class ResignationAdmin(ModelAdmin):
     list_display = ['user', 'resignation_date', 'notice_period_days', 'status', 'approved_by', 'created_at']
     list_filter = ['status', 'resignation_date', 'created_at', 'user__office']
     search_fields = ['user__first_name', 'user__last_name', 'reason', 'approved_by__first_name', 'approved_by__last_name']
@@ -905,7 +906,7 @@ class ResignationAdmin(admin.ModelAdmin):
 
 
 @admin.register(DocumentTemplate)
-class DocumentTemplateAdmin(admin.ModelAdmin):
+class DocumentTemplateAdmin(ModelAdmin):
     list_display = ['name', 'document_type', 'is_active', 'created_by', 'created_at']
     list_filter = ['document_type', 'is_active', 'created_at', 'created_by']
     search_fields = ['name', 'description', 'content']
@@ -926,7 +927,7 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
 
 
 @admin.register(GeneratedDocument)
-class GeneratedDocumentAdmin(admin.ModelAdmin):
+class GeneratedDocumentAdmin(ModelAdmin):
     list_display = ['document_type', 'employee_name', 'employee', 'generated_at', 'has_pdf_file', 'is_sent', 'action_buttons']
     list_filter = ['document_type', 'generated_at', 'is_sent', 'employee__office']
     search_fields = ['employee__first_name', 'employee__last_name', 'employee__employee_id', 'document_type', 'title']
@@ -1126,7 +1127,7 @@ admin.site.index_title = "Welcome to Disha Online Solution"
 
 
 @admin.register(Shift)
-class ShiftAdmin(admin.ModelAdmin):
+class ShiftAdmin(ModelAdmin):
     list_display = ['name', 'shift_type', 'start_time', 'end_time', 'office', 'is_active', 'created_at']
     list_filter = ['shift_type', 'is_active', 'office', 'created_at']
     search_fields = ['name', 'office__name']
@@ -1140,7 +1141,7 @@ class ShiftAdmin(admin.ModelAdmin):
 
 
 @admin.register(EmployeeShiftAssignment)
-class EmployeeShiftAssignmentAdmin(admin.ModelAdmin):
+class EmployeeShiftAssignmentAdmin(ModelAdmin):
     list_display = ['employee', 'shift', 'office_name', 'is_active', 'assigned_by', 'created_at']
     list_filter = ['is_active', 'shift__office', 'shift__shift_type', 'created_at']
     search_fields = ['employee__first_name', 'employee__last_name', 'shift__name']

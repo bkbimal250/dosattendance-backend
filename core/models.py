@@ -68,7 +68,7 @@ class Designation(models.Model):
     """Designation model for employee job titles"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='designations')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='designations')
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -120,8 +120,8 @@ class CustomUser(AbstractUser):
     employee_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     biometric_id = models.CharField(max_length=50, unique=True, null=True, blank=True, help_text="Biometric ID from ESSL device")
     joining_date = models.DateField(null=True, blank=True)
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='department_id')
-    designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='designation_id')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='department_id', verbose_name="Department")
+    designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True, related_name='employees', db_column='designation_id', verbose_name="Designation")
     salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     pay_bank_name=models.CharField(max_length=200, blank=True, help_text="Bank name for salary payment");
     

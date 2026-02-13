@@ -181,6 +181,9 @@ media/
 core/migrations/
 core/migrations/*
 
+coreapp/migrations/
+coreapp/migrations/*
+
 # Database files
 db.sqlite3
 *.db

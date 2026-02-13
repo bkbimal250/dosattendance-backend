@@ -1,9 +1,10 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import SalaryIncrement, SalaryIncrementHistory
 
 
 @admin.register(SalaryIncrement)
-class SalaryIncrementAdmin(admin.ModelAdmin):
+class SalaryIncrementAdmin(ModelAdmin):
     list_display = (
         'employee',
         'increment_type',
@@ -86,7 +87,7 @@ class SalaryIncrementAdmin(admin.ModelAdmin):
         return super().has_delete_permission(request, obj)
 
 @admin.register(SalaryIncrementHistory)
-class SalaryIncrementHistoryAdmin(admin.ModelAdmin):
+class SalaryIncrementHistoryAdmin(ModelAdmin):
     list_display = (
         'employee',
         'old_salary',
@@ -113,12 +114,12 @@ class SalaryIncrementHistoryAdmin(admin.ModelAdmin):
         'remarks',
     )
 
-def has_add_permission(self, request):
-    return request.user.is_superuser or request.user.role in ['admin', 'manager']
+    def has_add_permission(self, request):
+        return request.user.is_superuser or request.user.role in ['admin', 'manager']
 
-def has_change_permission(self, request, obj=None):
-    return request.user.is_superuser or request.user.role in ['admin', 'manager']
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.role in ['admin', 'manager']
 
-def has_delete_permission(self, request, obj=None):
-    return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
