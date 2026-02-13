@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from django.utils.translation import gettext_lazy as _
+from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -10,6 +11,7 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # Note: Since this is in settings/base.py, we go up THREE levels
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+COMPANY_NAME = "Disha Online Solution"
 
 # =============================================================================
 # ENVIRONMENT CONFIGURATION
@@ -41,6 +43,13 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'channels',
+    'import_export',
+    'simple_history',
+    'djangoql',
+    'constance',
+    'constance.backends.database',
+    'guardian',
+    'django_celery_beat',
 ]
 
 # Admin Theme Apps (must be loaded before django.contrib.admin)
@@ -148,6 +157,7 @@ AUTH_USER_MODEL = 'core.CustomUser'
 AUTHENTICATION_BACKENDS = [
     'core.authentication_backend.CustomAuthenticationBackend',
     'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
 ]
 
 # =============================================================================
@@ -235,20 +245,126 @@ def environment_callback(request):
     return os.environ.get('ENVIRONMENT', 'development')
 
 UNFOLD = {
-    "SITE_TITLE": "Disha Online Solution",
+    "SITE_TITLE": "DOS - Employee Attendance System",
     "SITE_HEADER": "Disha Online Solution",
     "SITE_URL": "/",
     "SITE_SYMBOL": "settings",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "ENVIRONMENT": environment_callback,
+    "DASHBOARD_CALLBACK": "attendance_system.dashboard.dashboard_callback",
+    "THEME": "dark",
     "COLORS": {
         "primary": {
-            "50": "250 245 255", "100": "243 232 255", "200": "233 213 255",
-            "300": "216 180 254", "400": "192 132 252", "500": "168 85 247",
-            "600": "147 51 234", "700": "126 34 206", "800": "107 33 168", "900": "88 28 135",
+            "50": "238 242 255", "100": "224 231 255", "200": "199 210 254",
+            "300": "165 180 252", "400": "129 140 248", "500": "99 102 241",
+            "600": "79 70 229", "700": "67 56 202", "800": "55 48 163", "900": "49 46 129", "950": "30 27 75",
         },
     },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": _("Organization"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Dashboard"),
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                    {
+                        "title": _("Offices"),
+                        "icon": "home_work",
+                        "link": reverse_lazy("admin:core_office_changelist"),
+                    },
+                    {
+                        "title": _("Departments"),
+                        "icon": "domain",
+                        "link": reverse_lazy("admin:core_department_changelist"),
+                    },
+                    {
+                        "title": _("Designations"),
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:core_designation_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Users & Access"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Employees"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:core_customuser_changelist"),
+                    },
+                    {
+                        "title": _("Groups"),
+                        "icon": "group_work",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Attendance & HR"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Attendance Logs"),
+                        "icon": "history",
+                        "link": reverse_lazy("admin:core_attendance_changelist"),
+                    },
+                    {
+                        "title": _("Leave Requests"),
+                        "icon": "event_note",
+                        "link": reverse_lazy("admin:core_leave_changelist"),
+                    },
+                    {
+                        "title": _("Salary Increments"),
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:coreapp_salaryincrement_changelist"),
+                    },
+                    {
+                        "title": _("Resignations"),
+                        "icon": "exit_to_app",
+                        "link": reverse_lazy("admin:core_resignation_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("System Configuration"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Scheduled Tasks"),
+                        "icon": "schedule",
+                        "link": reverse_lazy("admin:django_celery_beat_periodictask_changelist"),
+                    },
+                    {
+                        "title": _("System Settings"),
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:core_systemsettings_changelist"),
+                    },
+                    {
+                        "title": _("Global Config"),
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:constance_config_changelist"), # Correct Constance admin link
+                    },
+                ],
+            },
+        ],
+    },
+    "TABS": [
+        {
+            "models": ["core.customuser"],
+            "items": [
+                {"title": _("Personal Info"), "link": "reverse_lazy('admin:core_customuser_change', args=[obj.pk])"},
+                {"title": _("History"), "link": "reverse_lazy('admin:core_customuser_history', args=[obj.pk])"},
+            ],
+        },
+    ],
 }
 
 # =============================================================================
@@ -266,9 +382,9 @@ LOGGING = {
         'console': {'level': 'DEBUG', 'class': 'logging.StreamHandler', 'formatter': 'simple'},
         'file': {
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 10485760, 'backupCount': 5, 'formatter': 'verbose',
+            'formatter': 'verbose',
         },
     },
     'root': {'handlers': ['console', 'file'], 'level': 'INFO'},
@@ -297,7 +413,22 @@ CACHES = {
 }
 
 # =============================================================================
+# CONSTANCE CONFIGURATION (Dynamic Settings)
+# =============================================================================
+CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
+CONSTANCE_CONFIG = {
+    'MAINTENANCE_MODE': (False, 'Put the site into maintenance mode', bool),
+    'REGISTRATION_OPEN': (True, 'Whether new users can register', bool),
+    'COMPANY_NAME': (COMPANY_NAME, 'Display name of the company', str),
+}
+
+# =============================================================================
+# SIMPLE HISTORY CONFIGURATION
+# =============================================================================
+SIMPLE_HISTORY_REVERT_DISABLED = False
+SIMPLE_HISTORY_EDIT_ONLY_BY_USER = True
+
+# =============================================================================
 # APPLICATION-SPECIFIC SETTINGS
 # =============================================================================
-COMPANY_NAME = "Disha Online Solution"
 SITE_URL = os.environ.get('SITE_URL', 'https://company.d0s369.co.in')

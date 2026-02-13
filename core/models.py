@@ -1,4 +1,5 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
@@ -60,6 +61,8 @@ class Department(models.Model):
         verbose_name_plural = "Departments"
         ordering = ['name']
 
+    history = HistoricalRecords()
+
     def __str__(self):
         return self.name
 
@@ -78,6 +81,8 @@ class Designation(models.Model):
         verbose_name_plural = "Designations"
         ordering = ['department__name', 'name']
         unique_together = ['name', 'department']
+
+    history = HistoricalRecords()
 
     def __str__(self):
         try:
@@ -153,6 +158,8 @@ class CustomUser(AbstractUser):
         verbose_name = "User"
         verbose_name_plural = "Users"
         ordering = ['username']
+
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"{self.get_full_name()} ({self.role})"

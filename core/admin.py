@@ -1,5 +1,4 @@
-from django.contrib import admin
-from unfold.admin import ModelAdmin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.admin.helpers import AdminForm
@@ -7,11 +6,16 @@ from django.utils.html import format_html
 from django import forms
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse, path
-from django.contrib import messages
 from django.template.response import TemplateResponse
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+from unfold.admin import ModelAdmin
+from import_export.admin import ImportExportModelAdmin
+from unfold.contrib.filters.admin import RangeDateFilter
+from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     CustomUser, Office, Device, DeviceUser, Attendance, Leave, Document, 
     Notification, SystemSettings, AttendanceLog, ESSLAttendanceLog, 
@@ -23,14 +27,14 @@ from .models import (
 @admin.register(Office)
 class OfficeAdmin(ModelAdmin):
     list_display = ['name', 'phone', 'email', 'is_active', 'created_at']
-    list_filter = ['is_active', 'created_at']
+    list_filter = ['is_active', ('created_at', RangeDateFilter)]
     search_fields = ['name', 'address', 'email', 'phone']
     ordering = ['name']
     readonly_fields = ['id', 'created_at', 'updated_at']
 
 
 @admin.register(Department)
-class DepartmentAdmin(ModelAdmin):
+class DepartmentAdmin(SimpleHistoryAdmin, ModelAdmin):
     list_display = ['name', 'description', 'is_active', 'designation_count', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
@@ -69,7 +73,7 @@ class DepartmentAdmin(ModelAdmin):
 
 
 @admin.register(Designation)
-class DesignationAdmin(ModelAdmin):
+class DesignationAdmin(SimpleHistoryAdmin, ModelAdmin):
     list_display = ['name', 'department', 'description', 'is_active', 'created_at']
     list_filter = ['department', 'is_active', 'created_at']
     search_fields = ['name', 'description', 'department__name']
@@ -208,26 +212,39 @@ class CustomUserAdminForm(forms.ModelForm):
         return designation
 
 
-class SafeCustomUserAdmin(BaseUserAdmin, ModelAdmin):
+class SafeCustomUserAdmin(BaseUserAdmin, ImportExportModelAdmin, SimpleHistoryAdmin, ModelAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserAdminForm
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'office', 'department_name', 'designation_display', 'pay_bank_name', 'aadhaar_card', 'pan_card', 'is_active', 'last_login']
-    list_filter = ['role', 'office', 'is_active', 'department', 'pay_bank_name', 'created_at']
+    list_filter = [
+        'role',
+        'office',
+        'is_active',
+        'department',
+        'pay_bank_name',
+        ('created_at', RangeDateFilter),
+    ]
     search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id', 'aadhaar_card', 'pan_card', 'pay_bank_name']
     ordering = ['username']
     readonly_fields = ['id', 'last_login', 'created_at', 'updated_at']
     
+    # Unfold Tabs
+    tabs = [
+        (_("Information"), "change_view"),
+        (_("Logs"), "history_view"),
+    ]
+
     # Define fieldsets to organize the form
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'phone', 'employee_id')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'role', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
-        ('Office Information', {'fields': ('office', 'department', 'designation')}),
-        ('Personal Details', {'fields': ('date_of_birth', 'gender', 'address', 'aadhaar_card', 'pan_card')}),
-        ('Employment Details', {'fields': ('biometric_id', 'joining_date', 'salary', 'pay_bank_name')}),
-        ('Emergency Contact', {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
-        ('Bank Details', {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name')}),
+        (_('Personal info'), {'fields': ('first_name', 'last_name', 'email', 'phone', 'employee_id')}),
+        (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser', 'role', 'groups', 'user_permissions')}),
+        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
+        (_('Office Information'), {'fields': ('office', 'department', 'designation')}),
+        (_('Personal Details'), {'fields': ('date_of_birth', 'gender', 'address', 'aadhaar_card', 'pan_card')}),
+        (_('Employment Details'), {'fields': ('biometric_id', 'joining_date', 'salary', 'pay_bank_name')}),
+        (_('Emergency Contact'), {'fields': ('emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship')}),
+        (_('Bank Details'), {'fields': ('account_holder_name', 'bank_name', 'account_number', 'ifsc_code', 'bank_branch_name', 'upi_qr')}),
     )
     
     add_fieldsets = (

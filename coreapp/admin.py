@@ -1,10 +1,12 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
+from import_export.admin import ImportExportModelAdmin
+from unfold.contrib.filters.admin import RangeDateFilter
 from .models import SalaryIncrement, SalaryIncrementHistory
 
 
 @admin.register(SalaryIncrement)
-class SalaryIncrementAdmin(ModelAdmin):
+class SalaryIncrementAdmin(ImportExportModelAdmin, ModelAdmin):
     list_display = (
         'employee',
         'increment_type',
@@ -20,7 +22,8 @@ class SalaryIncrementAdmin(ModelAdmin):
     list_filter = (
         'status',
         'increment_type',
-        'effective_from',
+        ('effective_from', RangeDateFilter),
+        'employee',
     )
 
     search_fields = (
