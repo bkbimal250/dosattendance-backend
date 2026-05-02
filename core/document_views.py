@@ -45,6 +45,29 @@ def check_weasyprint_availability():
         PDF_CONSTRUCTOR_ARGS = -1
         logger.error(f"WeasyPrint not available: {e}")
 
+    # Fix: Monkeypatch pydyf.PDF to handle arguments
+    if WEASYPRINT_AVAILABLE:
+        try:
+            import pydyf
+            original_pdf_init = pydyf.PDF.__init__
+
+            def patched_pdf_init(self, *args, **kwargs):
+                try:
+                    original_pdf_init(self, *args, **kwargs)
+                except TypeError:
+                    # If arguments fail, try without them (old pydyf version)
+                    original_pdf_init(self)
+                    # Manually set attributes that WeasyPrint expects but old pydyf doesn't accept in init
+                    if args and len(args) > 0:
+                        self.version = args[0] if isinstance(args[0], bytes) else str(args[0]).encode('ascii')
+                    else:
+                        self.version = b'1.7' # Default expected by WeasyPrint
+            
+            pydyf.PDF.__init__ = patched_pdf_init
+            logger.info("Patched pydyf.PDF.__init__ for compatibility")
+        except Exception as patch_error:
+            logger.warning(f"Failed to patch pydyf: {patch_error}")
+
     return WEASYPRINT_AVAILABLE
 
 
@@ -203,7 +226,7 @@ class GeneratedDocumentViewSet(viewsets.ModelViewSet):
                     logger.warning(f"Could not load company information: {e}")
                 
                 # Get employee ID from user
-                employee_id = document.user.employee_id if document.user.employee_id else str(document.user.id)[:8].upper()
+                employee_id = document.employee.employee_id if document.employee.employee_id else str(document.employee.id)[:8].upper()
                 
                 # Enhance the document content with professional, compact CSS for A4 printing
                 html_content = f"""
@@ -1211,7 +1234,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                     <p>Sincerely,</p>
 
                     <div class="signature-container">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png"
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1777727241/Shailesh_Logo_cltial.png"
                             alt="Signature" class="signature-image">
                         <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png"
                             alt="Company Stamp" class="stamp-image">
@@ -1472,7 +1495,7 @@ class DocumentGenerationViewSet(viewsets.ViewSet):
                         <strong>Disha Online Solution</strong>
                     </div>
                         <div class="signature-block">
-                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696269/dinesh_signature_vgbkmh.png" class="signature-image">
+                        <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1777727241/Shailesh_Logo_cltial.png" class="signature-image">
                         <img src="https://res.cloudinary.com/dm2bxj0gx/image/upload/v1769696236/disha_stamp_j2liis.png" class="stamp-image">
                     </div>
                 </div>
